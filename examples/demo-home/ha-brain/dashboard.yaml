@@ -1,0 +1,369 @@
+# =============================================================================
+# Demo House — Lovelace dashboard (sections view, built-in cards only)
+# Visualises the 5-layer brain over the demo-home.knxproj entities.
+# In a live HA: Settings → Dashboards → add YAML dashboard pointing here, or
+# paste per-view config in the UI editor. Design demo — entity IDs match the
+# slugs produced by generate_ha_package + the ha-brain packages.
+# =============================================================================
+title: Demo House
+views:
+  # ----------------------------------------------------------------- OVERVIEW
+  - title: Overview
+    path: overview
+    type: sections
+    icon: mdi:home-heart
+    max_columns: 4
+    badges:
+      - type: entity
+        entity: input_select.home_mode
+        color: indigo
+      - type: entity
+        entity: sensor.season
+        show_state: true
+      - type: entity
+        entity: sensor.daypart
+        show_state: true
+      - type: entity
+        entity: sensor.outdoor_temperature
+        color: cyan
+      - type: entity
+        entity: sensor.house_comfort_score
+        color: amber
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: At a glance
+            heading_style: title
+            icon: mdi:eye-outline
+          - type: markdown
+            content: >
+              ## {{ states('input_select.home_mode') }}
+              **{{ states('sensor.daypart') | replace('_',' ') | title }}** ·
+              {{ states('sensor.season') | title }} ·
+              {{ 'Weekend' if is_state('binary_sensor.is_weekend','on') else 'Weekday' }}
+
+              Outside **{{ states('sensor.outdoor_temperature') }}°C** ·
+              HVAC **{{ states('input_select.hvac_season_mode') }}** ·
+              Comfort **{{ states('sensor.house_comfort_score') }}%**
+            grid_options: { columns: 12 }
+          - type: tile
+            entity: input_select.home_mode
+            name: Home mode
+            icon: mdi:home-switch
+            features: [{ type: select-options }]
+          - type: gauge
+            entity: sensor.house_comfort_score
+            name: Comfort
+            min: 0
+            max: 100
+            needle: true
+            severity: { green: 70, yellow: 45, red: 0 }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Scenes
+            heading_style: subtitle
+            icon: mdi:movie-open
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: button
+                name: Movie
+                icon: mdi:movie
+                tap_action: { action: perform-action, perform_action: script.movie_mode }
+              - type: button
+                name: Goodnight
+                icon: mdi:weather-night
+                tap_action: { action: perform-action, perform_action: script.goodnight }
+              - type: button
+                name: Morning ramp
+                icon: mdi:weather-sunset-up
+                tap_action: { action: perform-action, perform_action: script.morning_ramp }
+              - type: button
+                name: Away
+                icon: mdi:exit-run
+                tap_action:
+                  action: perform-action
+                  perform_action: input_select.select_option
+                  target: { entity_id: input_select.home_mode }
+                  data: { option: Away }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Climate snapshot
+            heading_style: subtitle
+            icon: mdi:thermostat
+          - type: tile
+            entity: climate.living_room_hvac
+            name: Living
+            features: [{ type: target-temperature }]
+          - type: tile
+            entity: climate.master_bedroom_hvac
+            name: Bedroom
+            features: [{ type: target-temperature }]
+
+  # ------------------------------------------------------------------ CLIMATE
+  - title: Climate
+    path: climate
+    type: sections
+    icon: mdi:thermostat
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Zones
+            icon: mdi:home-thermometer
+          - type: tile
+            entity: climate.living_room_hvac
+            features: [{ type: target-temperature }, { type: climate-hvac-modes, style: dropdown }]
+          - type: tile
+            entity: climate.master_bedroom_hvac
+            features: [{ type: target-temperature }, { type: climate-hvac-modes, style: dropdown }]
+      - type: grid
+        cards:
+          - type: heading
+            heading: The brain (computed)
+            heading_style: subtitle
+            icon: mdi:brain
+          - type: markdown
+            content: >
+              **Living target** {{ states('sensor.living_target_setpoint') }}°C
+              — {{ state_attr('sensor.living_target_setpoint','basis') }}
+
+              **Bedroom target** {{ states('sensor.bedroom_target_setpoint') }}°C
+
+              **Pre-heat lead** {{ states('sensor.living_preheat_minutes') }} min ·
+              **Changeover** {{ states('input_select.hvac_season_mode') }}
+            grid_options: { columns: 12 }
+          - type: tile
+            entity: sensor.living_target_setpoint
+            name: Living setpoint (computed)
+            color: orange
+          - type: tile
+            entity: sensor.living_preheat_minutes
+            name: Pre-heat lead
+            color: deep-orange
+          - type: gauge
+            entity: sensor.living_room_floor_valve_status
+            name: Living valve
+            min: 0
+            max: 100
+            unit: "%"
+      - type: grid
+        cards:
+          - type: heading
+            heading: Trends
+            heading_style: subtitle
+            icon: mdi:chart-line
+          - type: history-graph
+            hours_to_show: 48
+            entities:
+              - { entity: sensor.living_room_temperature, name: Living, color: orange }
+              - { entity: sensor.master_bedroom_temperature, name: Bedroom, color: "#1f77b4" }
+              - { entity: sensor.outdoor_temperature, name: Outdoor, color: cyan }
+            grid_options: { columns: 12 }
+          - type: tile
+            entity: sensor.heating_degree_hours_daily
+            name: Degree-hours today
+            color: red
+
+  # ----------------------------------------------------------------- LIGHTING
+  - title: Lighting
+    path: lighting
+    type: sections
+    icon: mdi:lightbulb-group
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Adaptive (circadian)
+            icon: mdi:theme-light-dark
+          - type: gauge
+            entity: sensor.circadian_brightness
+            name: Brightness
+            min: 0
+            max: 100
+            unit: "%"
+            severity: { green: 0, yellow: 0, red: 0 }
+          - type: tile
+            entity: sensor.circadian_color_temp_kelvin
+            name: Colour temp
+            icon: mdi:temperature-kelvin
+            color: amber
+          - type: tile
+            entity: input_boolean.auto_light_enable
+            name: Adaptive lighting
+      - type: grid
+        cards:
+          - type: heading
+            heading: Dimmable & colour
+            heading_style: subtitle
+            icon: mdi:lightbulb-on
+          - type: tile
+            entity: light.living_room_cove
+            features: [{ type: light-brightness }]
+          - type: tile
+            entity: light.living_room_rgbw_accent_wall
+            features: [{ type: light-brightness }]
+          - type: tile
+            entity: light.kitchen_worktop_led
+            features: [{ type: light-color-temp }]
+          - type: tile
+            entity: light.master_bedroom_ceiling
+            features: [{ type: light-brightness }]
+          - type: tile
+            entity: light.staircase_led_steps
+            features: [{ type: light-brightness }]
+      - type: grid
+        cards:
+          - type: heading
+            heading: Switched
+            heading_style: subtitle
+            icon: mdi:light-switch
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - { type: tile, entity: switch.living_room_ceiling_spots, name: Living spots }
+              - { type: tile, entity: switch.kitchen_main_ceiling, name: Kitchen }
+              - { type: tile, entity: switch.corridor_gf_ceiling, name: Corridor GF }
+              - { type: tile, entity: switch.master_bath_ceiling, name: Master bath }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Blinds
+            heading_style: subtitle
+            icon: mdi:blinds-horizontal
+          - type: tile
+            entity: cover.living_room_window_blind
+            features: [{ type: cover-open-close }, { type: cover-position }]
+          - type: tile
+            entity: cover.master_bedroom_blind
+            features: [{ type: cover-open-close }, { type: cover-position }]
+
+  # ------------------------------------------------------------- ENERGY & STATS
+  - title: Energy & Stats
+    path: energy
+    type: sections
+    icon: mdi:lightning-bolt
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Energy today
+            icon: mdi:counter
+          - type: gauge
+            entity: sensor.hvac_daily
+            name: HVAC kWh
+            min: 0
+            max: 30
+            needle: true
+            severity: { green: 0, yellow: 12, red: 22 }
+          - type: gauge
+            entity: sensor.lighting_daily
+            name: Lighting kWh
+            min: 0
+            max: 10
+            needle: true
+          - type: tile
+            entity: sensor.energy_per_occupied_hour
+            name: kWh / occupied-h
+            color: green
+      - type: grid
+        cards:
+          - type: heading
+            heading: Runtime (today)
+            heading_style: subtitle
+            icon: mdi:timer-outline
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - { type: tile, entity: sensor.living_lights_on_today, name: Living lights }
+              - { type: tile, entity: sensor.living_heating_hours_today, name: Living heating }
+              - { type: tile, entity: sensor.house_occupied_hours_today, name: Occupied }
+              - { type: tile, entity: sensor.master_bath_usage_count_today, name: Bath uses }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Air & comfort
+            heading_style: subtitle
+            icon: mdi:molecule-co2
+          - type: tile
+            entity: sensor.master_bedroom_co2
+            name: Bedroom CO₂
+            color: >
+              {{ 'red' if states('sensor.master_bedroom_co2')|float(0) > 1000 else 'green' }}
+          - type: gauge
+            entity: sensor.living_room_comfort_index
+            name: Living comfort
+            min: 0
+            max: 100
+            severity: { green: 70, yellow: 45, red: 0 }
+          - type: history-graph
+            hours_to_show: 24
+            entities:
+              - { entity: sensor.master_bedroom_co2, name: CO₂ }
+            grid_options: { columns: 12 }
+
+  # ------------------------------------------------------------ PRESENCE & MODE
+  - title: Presence
+    path: presence
+    type: sections
+    icon: mdi:motion-sensor
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Mode machine
+            icon: mdi:state-machine
+          - type: tile
+            entity: input_select.home_mode
+            features: [{ type: select-options }]
+          - type: tile
+            entity: binary_sensor.anyone_present
+            name: Anyone present
+          - type: tile
+            entity: input_boolean.vacation_presence_sim
+            name: Vacation sim
+      - type: grid
+        cards:
+          - type: heading
+            heading: Occupancy (computed)
+            heading_style: subtitle
+            icon: mdi:account-check
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - { type: tile, entity: binary_sensor.living_room_occupied, name: Living }
+              - { type: tile, entity: binary_sensor.master_bedroom_occupied, name: Bedroom }
+              - { type: tile, entity: binary_sensor.master_bath_occupied, name: Master bath }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Raw presence (KNX)
+            heading_style: subtitle
+            icon: mdi:motion-sensor
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - { type: tile, entity: binary_sensor.corridor_gf_presence, name: Corridor GF }
+              - { type: tile, entity: binary_sensor.corridor_uf_presence, name: Corridor UF }
+              - { type: tile, entity: binary_sensor.staircase_presence, name: Staircase }
+              - { type: tile, entity: binary_sensor.guest_wc_presence, name: Guest WC }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Schedules
+            heading_style: subtitle
+            icon: mdi:calendar-clock
+          - { type: tile, entity: schedule.work_week, name: Work week }
+          - { type: tile, entity: schedule.quiet_hours, name: Quiet hours }

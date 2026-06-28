@@ -89,6 +89,7 @@ clamp. See [`30_climate_engine.yaml`](packages/30_climate_engine.yaml).
 | `packages/30_climate_engine.yaml` | L2 | KNX climate entities + multi-factor setpoint + pre-heat + interlocks |
 | `packages/40_lighting_engine.yaml` | L3 | circadian sensors + adaptive motion/presence + scenes + vacation sim |
 | `packages/50_statistics.yaml` | L4 | history_stats, integration→utility_meter degree-hours, KPIs, tariffs |
+| `dashboard.yaml` | UI | 5-view Lovelace dashboard (sections layout, built-in cards only): Overview · Climate · Lighting · Energy & Stats · Presence |
 
 ## Deploy (in a live HA)
 
