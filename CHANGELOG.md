@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-06-28
+
+**Home Assistant mapping quality** — a second hardening pass driven by running the tool
+against more public ETS **4.2 / 5.0 / 5.5 / 6** projects (`yene/knxproj` DemoCase,
+`tuxedo0801/KnxProjParser`, `dataheld/knxray`, `whaeuser/open-knxviewer`). Three new
+regression tests; zero crashes across the whole corpus.
+
 ### Added
 - **Dimmable lights are assembled completely.** A light now collects BOTH its on/off
   status (1.x) and brightness status (5.x) via identity-based pairing, folds the on/off
@@ -79,6 +86,7 @@ Initial public beta.
 - Tested end-to-end on a synthetic project only; real-world `.knxproj` testing is ongoing
   (see the call for testers in the README).
 
-[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/NickoScope/nickol-knx-mcp/releases/tag/v0.1.0
