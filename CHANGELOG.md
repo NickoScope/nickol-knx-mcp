@@ -6,33 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Venetian-blind slats are handled as the blind's tilt: a slat GA (Lamelle / slat /
-  ламель / tilt) is attached to its parent blind cover as `move_short_address` instead of
-  becoming a standalone cover; an unmatched slat is flagged `shutter_slat_unattached` for
-  manual attachment rather than emitted wrong.
-- A 1-bit diagnostics GA (wind/frost/rain/smoke/leak alarm, fault) is now a read-only
-  `binary_sensor` instead of a phantom command switch.
-- HA generation never drops a group address silently ("no silent caps"): every GA is
-  either emitted as an entity or listed in the `review` output, and the YAML header states
-  how many need manual review.
-- Shutter classification now recognises German/directional names (`Behang`, `Lamelle`,
-  `auf/ab`, `Raffstore`, `Markise`, plus RU equivalents). A shutter-looking command whose
-  DPT lacks a sub-type gets an actionable `shutter_incomplete_dpt` review hint (set 1.008 /
-  1.010 / 5.001 in ETS) instead of vanishing.
-- **ETS Function role pairing (the headline feature) is now actually wired up.**
-  command↔status pairs are taken from ETS Function roles (e.g. `SwitchOnOff`↔`InfoOnOff`)
-  in `pairing.function_status_pairs()`, used by both `check_missing_status` and the HA
-  generator. A feedback GA named only "Status" now pairs correctly (name tokens not needed),
-  HA entities get the right `state_address`, and function-paired commands are no longer
-  false-flagged as missing a status. Found because real ETS6 projects exposed that Functions
-  were previously ignored despite the README.
+## [0.1.1] — 2026-06-28
+
+**Hardening release.** Every change below was surfaced by running the tool end-to-end
+against **real ETS5/ETS6 project files** (the `XKNX/xknxproject` test fixtures), not the
+synthetic smoke test — which alone never exercised the real parser or the MCP server path.
+Five new regression tests now guard these cases.
 
 ### Fixed
-- **Critical:** `load_project` MCP tool recursed infinitely (`RecursionError`) on every
-  real `.knxproj` because the server tool function shadowed the imported project loader.
-  The tool now delegates correctly. Added a regression test that fails on recursion.
-  Found via end-to-end testing against real ETS5/ETS6 project files.
+- **Critical:** the `load_project` MCP tool recursed infinitely (`RecursionError`) on
+  **every** real `.knxproj`. The server tool function `load_project` shadowed the imported
+  project loader of the same name, so it called itself instead of parsing. It now delegates
+  to `load_project_file`. This made the tool's primary entry point unusable over MCP; the
+  synthetic smoke test missed it because it calls the parser directly, bypassing the server.
+
+### Added
+- **ETS Function role pairing — the headline feature — is now actually implemented.**
+  command↔status pairs are taken from ETS Function roles (e.g. `SwitchOnOff` ↔ `InfoOnOff`)
+  via `pairing.function_status_pairs()`, consumed by both `check_missing_status` and the HA
+  generator. Previously Functions were ignored entirely despite the README claiming they
+  were the primary signal. Consequences fixed: a feedback GA named only "Status" now pairs
+  correctly (name tokens no longer required), HA entities get the right `state_address`, and
+  function-paired commands are no longer false-flagged as missing a status.
+- **No silent drops in HA generation ("no silent caps").** Every group address is now either
+  emitted as an entity or listed in the `review` output; the YAML header reports how many
+  need manual review. Previously, GAs the generator could not classify simply vanished.
+- **Smarter shutter classification.** German/directional names are recognised (`Behang`,
+  `Lamelle`, `auf/ab`, `Raffstore`, `Markise`, plus RU equivalents). A shutter-looking
+  command whose DPT lacks a sub-type now gets an actionable `shutter_incomplete_dpt` review
+  hint (set 1.008 / 1.010 / 5.001 in ETS) instead of being dropped as "unknown".
+- **Venetian slats handled as tilt.** A slat GA (Lamelle / slat / ламель / tilt) is attached
+  to its parent blind cover as `move_short_address` instead of becoming a standalone cover;
+  an unmatched slat is flagged `shutter_slat_unattached` for manual attachment.
+- **Diagnostics alarms are inputs.** A 1-bit diagnostics GA (wind/frost/rain/smoke/leak
+  alarm, fault) is now a read-only `binary_sensor` instead of a phantom command switch.
 
 ## [0.1.0] — 2026-06-28
 
@@ -57,5 +64,6 @@ Initial public beta.
 - Tested end-to-end on a synthetic project only; real-world `.knxproj` testing is ongoing
   (see the call for testers in the README).
 
-[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/NickoScope/nickol-knx-mcp/releases/tag/v0.1.0
