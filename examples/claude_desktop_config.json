@@ -1,0 +1,25 @@
+{
+  "_comment": "Full KNX toolchain. Layer 1 (live HA) is optional and only needed once the house is running. Layers 2-4 are the design-time core. macOS path for Claude Desktop config: ~/Library/Application Support/Claude/claude_desktop_config.json. For Claude Code, put the mcpServers block in .mcp.json at your project root.",
+  "mcpServers": {
+    "nickol-knx": {
+      "command": "uv",
+      "args": ["--directory", "/ABSOLUTE/PATH/TO/nickol-knx-mcp", "run", "nickol-knx-mcp"],
+      "env": {
+        "NICKOL_KNX_WORKSPACE": "/ABSOLUTE/PATH/TO/your-knx-repo"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/ABSOLUTE/PATH/TO/your-knx-repo"]
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "/ABSOLUTE/PATH/TO/your-knx-repo"]
+    },
+    "home-assistant": {
+      "_comment": "Optional live layer. Official HA MCP Server add-on exposes an SSE endpoint; point an SSE-capable client at http://HA_HOST:8123/mcp_server/sse with a long-lived token. Replace below with your client's SSE config if it differs.",
+      "url": "http://HA_HOST:8123/mcp_server/sse",
+      "headers": { "Authorization": "Bearer YOUR_LONG_LIVED_TOKEN" }
+    }
+  }
+}

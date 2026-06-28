@@ -1,0 +1,55 @@
+name: "🧪 Real-project test report"
+description: "You ran nickol-knx-mcp on a real ETS project — tell us how it went (this is the most valuable feedback)."
+title: "[test] "
+labels: ["test-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing! The tool is read-only and never touches a bus, so this is safe.
+        **Please do NOT attach your actual `.knxproj`** — a redacted snippet or a screenshot of the
+        report is plenty.
+  - type: input
+    id: ets
+    attributes:
+      label: ETS version
+      placeholder: "ETS6 (6.3.0) / ETS5 ..."
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: Project size
+      placeholder: "~120 group addresses, ~30 devices, 3-level GA"
+    validations:
+      required: true
+  - type: dropdown
+    id: parsed
+    attributes:
+      label: Did load_project parse it?
+      options:
+        - "Yes, fully"
+        - "Yes, but with warnings"
+        - "No, it crashed"
+    validations:
+      required: true
+  - type: textarea
+    id: right
+    attributes:
+      label: What did it get RIGHT?
+      placeholder: "Correctly flagged missing status GAs for lights; HA covers looked good..."
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What did it get WRONG?
+      placeholder: "False missing-status on X; wrong category for Y; bad DPT call on Z; HA YAML issue..."
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "OS, Python version, Claude Desktop or Claude Code"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Any crash / stack trace
+      render: shell

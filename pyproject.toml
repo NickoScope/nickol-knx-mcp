@@ -1,0 +1,41 @@
+[project]
+name = "nickol-knx-mcp"
+version = "0.1.0"
+description = "Design-time KNX/ETS6 project assistant as an MCP server (parse .knxproj, validate, generate HA YAML + ETS CSV/XML). No live bus access."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Nikolay Miroshnichenko" }]
+keywords = ["knx", "ets", "ets6", "home-assistant", "mcp", "model-context-protocol", "smart-home", "home-automation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Home Automation",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "mcp>=1.10",
+    "xknxproject>=3.8",
+    "PyYAML>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/NickoScope/nickol-knx-mcp"
+Repository = "https://github.com/NickoScope/nickol-knx-mcp"
+Issues = "https://github.com/NickoScope/nickol-knx-mcp/issues"
+Changelog = "https://github.com/NickoScope/nickol-knx-mcp/blob/main/CHANGELOG.md"
+
+[project.scripts]
+nickol-knx-mcp = "nickol_knx_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["nickol_knx_mcp"]

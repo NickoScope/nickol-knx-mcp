@@ -1,0 +1,46 @@
+name: "🐛 Bug report"
+description: "Something is broken or behaves incorrectly."
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. load_project on ...
+        2. call analyze_all
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Which MCP tool / command
+      placeholder: "generate_ha_package"
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "OS, Python version (python3 --version), nickol-knx-mcp version, Claude Desktop/Code"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Full error / stack trace
+      render: shell
+  - type: checkboxes
+    id: nopii
+    attributes:
+      label: Confirmation
+      options:
+        - label: "I have not attached a real `.knxproj`/`.knxkeys` (redacted snippets only)."
+          required: true

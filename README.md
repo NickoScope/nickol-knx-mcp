@@ -1,0 +1,228 @@
+# nickol-knx-mcp
+
+**A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
+
+It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates Home Assistant KNX YAML and ETS-importable group-address files (XML/CSV), and produces human-readable reports — **without ever touching the live KNX bus.**
+
+[![CI](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#-status--call-for-testers)
+
+🇷🇺 **Русская версия:** [README.ru.md](README.ru.md)
+
+---
+
+## 🧪 Status & call for testers
+
+This is a **public beta**. The full pipeline passes an end-to-end smoke test on a synthetic
+16-group-address project, but it has had **limited testing against real-world `.knxproj` files** —
+and real ETS projects are wonderfully messy and diverse.
+
+**👉 If you have an ETS5/ETS6 project, please try it and tell us what happens.** Open a
+[Real-project test report](https://github.com/NickoScope/nickol-knx-mcp/issues/new?template=real_project_test.yml)
+issue. The tool is read-only and never connects to a bus, so testing is safe (see
+[Safety model](#-safety-model)). See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+---
+
+## Why this exists
+
+As of mid-2026 there is **no off-the-shelf ETS6 ↔ Claude / MCP tool**. The KNX community has
+been explicitly asking for an integration that can inspect and help modify projects (adding /
+renaming devices and group addresses) through an AI/CLI workflow. This package fills exactly the
+**design-time** layer — the missing one.
+
+The recommended full setup is four layers; only one needs to be built from scratch:
+
+| Layer | Purpose | What to use | Build it? |
+|-------|---------|-------------|-----------|
+| 1. Live | states, control, debugging a running house | **official Home Assistant MCP Server** + KNX (XKNX) integration | No, already exists |
+| 2. **Design-time** | parse `.knxproj`, validate DPT/naming/status, generate HA YAML & ETS XML/CSV | **`nickol-knx-mcp` (this package)** | **YES — this is the gap** |
+| 3. Files + Git | YAML/CSV/XML, versioning the address schema | standard filesystem + git MCP servers | No, already exists |
+| 4. Skill | design rules (GA structure, naming, DPT, scenes) | `CLAUDE.md` in this package | No, included |
+
+> **Safety by design:** layer 2 (this server) **physically cannot** connect to a bus. It has no
+> network/bus dependency at all — it only reads `.knxproj` and writes files into a confined
+> workspace. The "never write to a live bus" requirement is enforced **structurally**, not by
+> promise. Any real interaction with the house goes only through layer 1 (Home Assistant).
+
+---
+
+## What the server does
+
+- **Parses** password-protected ETS5/ETS6 `.knxproj` files via [`xknxproject`](https://github.com/XKNX/xknxproject) (3.9.x).
+- **Extracts** group addresses, DPTs, devices, topology, descriptions, and ETS Functions.
+- **Classifies** every GA: category (lighting / shutter / hvac / sensor / scene / energy /
+  diagnostics) and kind (command / status / sensor) — from the DPT plus multilingual (EN/DE/RU)
+  keywords in the name.
+- **Validates naming** against a 3-level structure and a configurable regex.
+- **Finds missing status addresses** — primarily from ETS Function roles, falling back to
+  name-token pairing (command in `…/0/…`, feedback in `…/4/…` is common, so it matches by name
+  tokens rather than by middle-group adjacency).
+- **Catches DPT problems**: missing DPT, mismatch between a Communication Object and its GA, and
+  the same logical name carrying different DPTs.
+- **Generates Home Assistant KNX YAML** — category by category, conservatively: covers → lights →
+  switches → sensors/binary. Ambiguous items (e.g. DPT 5.001 — brightness vs blind position) are
+  **not guessed**; they go into a `review` list instead.
+- **Generates ETS-importable** group addresses in **XML** (the recommended `knx.org/xml/ga-export/01`
+  schema) and **CSV** (ETS's native layout).
+- **Writes a Markdown report** (inventory + 🔴🟡🔵 findings + HA-mapping preview + next steps) for
+  human review **before** any import.
+
+All writes go only into the workspace directory (`NICKOL_KNX_WORKSPACE`, default `./knx-workspace`);
+writes outside it are rejected.
+
+---
+
+## Installation
+
+Requires **Python 3.10+**.
+
+```bash
+git clone https://github.com/NickoScope/nickol-knx-mcp.git
+cd nickol-knx-mcp
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+```
+
+Dependencies: `mcp>=1.10`, `xknxproject>=3.8`, `PyYAML>=6.0`.
+
+> On Debian/Ubuntu, if pip complains about an externally-managed environment, use a venv (as above)
+> or `pip install -e . --break-system-packages`. If `PyJWT` conflicts, run
+> `pip install mcp --ignore-installed PyJWT` first.
+
+Verify:
+
+```bash
+python tests/test_pipeline.py     # synthetic 16-GA project, end-to-end smoke test
+nickol-knx-mcp                    # start the MCP server (stdio)
+```
+
+---
+
+## Connecting to Claude
+
+### Claude Desktop
+
+`examples/claude_desktop_config.json` wires up nickol-knx + filesystem + git + home-assistant.
+Minimal fragment (macOS config path: `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "nickol-knx": {
+      "command": "nickol-knx-mcp",
+      "env": { "NICKOL_KNX_WORKSPACE": "/path/to/your/knx-workspace" }
+    }
+  }
+}
+```
+
+### Claude Code
+
+```bash
+claude mcp add nickol-knx \
+  -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" \
+  -- /absolute/path/to/.venv/bin/nickol-knx-mcp
+```
+
+Then drop `CLAUDE.md` into your project root — it acts as an ETS Assistant skill (design rules,
+safety rules, 3-level GA structure, command/status pairing, DPT discipline, naming, KNX Secure
+keyring handling, and the recommended workflow).
+
+---
+
+## MCP tools (12)
+
+| Tool | Purpose |
+|------|---------|
+| `load_project(path, password?, language?)` | parse a `.knxproj` (read-only) and cache it |
+| `list_group_addresses(category?, kind?)` | list GAs with classification and filters |
+| `get_devices()` | devices + their communication objects |
+| `get_topology()` | topology (areas / lines / devices) |
+| `check_naming(name_regex?)` | validate naming / structure |
+| `check_missing_status()` | actuators lacking a status object |
+| `check_dpt()` | missing / inconsistent DPTs |
+| `analyze_all(name_regex?)` | run every check at once |
+| `generate_ha_package(output_path?)` | HA KNX YAML + review list |
+| `generate_ets_group_addresses(fmt="xml"\|"csv", output_path?)` | ETS-importable GAs |
+| `project_report(output_path?, name_regex?)` | Markdown report |
+| `workspace_info()` | workspace path + safety guarantees |
+
+---
+
+## Typical workflow
+
+1. `load_project` → point it at your `.knxproj` (+ password if protected).
+2. `analyze_all` or `project_report` → read the findings; **human review first**.
+3. Fix naming/DPT/status in ETS (by importing generated GAs or manually).
+4. `generate_ets_group_addresses(fmt="xml")` → import the missing GAs into ETS.
+5. `generate_ha_package` → place the YAML into Home Assistant; resolve `review` items by hand.
+6. Keep everything (`.knxproj` export, HA configs, address schema) in Git.
+7. Touch the live house only through the Home Assistant MCP (layer 1).
+
+---
+
+## Limitations (honest)
+
+- command/status and category classification is a **heuristic** (DPT + names + ETS Functions). On
+  messy projects with no Functions and non-standard names, false negatives/positives are possible —
+  which is why the report is always for human review, and ambiguity goes to `review`, not into config.
+- DPT 5.001 is structurally ambiguous (brightness vs position); it's disambiguated by keywords —
+  double-check with non-standard naming.
+- The HA generator is conservative: it would rather defer an item to `review` than emit a wrong entity.
+- The server never writes to the bus and never talks to ETS directly — ETS exchange is file
+  import/export of GAs only.
+- **Tested only on a synthetic project so far.** Real `.knxproj` files vary a lot — hence the
+  [call for testers](#-status--call-for-testers).
+
+---
+
+## 🔒 Safety model
+
+- **No bus access, structurally.** There is no networking or bus library in the dependency tree.
+  `workspace_info()` reports `bus_access: false`.
+- **Read-only on your project.** `project.py` is the only module that touches `.knxproj`, and it
+  only reads.
+- **Confined writes.** All output is constrained to `NICKOL_KNX_WORKSPACE`; paths outside it are rejected.
+- **Human-in-the-loop.** Generate a `project_report` and review it **before** importing into ETS or
+  deploying into Home Assistant.
+
+Found a security issue? See [SECURITY.md](SECURITY.md).
+
+---
+
+## Package layout
+
+```
+nickol-knx-mcp/
+├── nickol_knx_mcp/
+│   ├── dpt_map.py        # DPT → category / kind / HA platform / value_type
+│   ├── project.py        # the ONLY module that reads .knxproj (read-only)
+│   ├── pairing.py        # command↔status pairing by name tokens
+│   ├── analyze.py        # naming / missing-status / DPT checks
+│   ├── generate_ha.py    # Home Assistant KNX YAML generation
+│   ├── generate_ets.py   # ETS XML + CSV generation
+│   ├── report.py         # Markdown report
+│   └── server.py         # FastMCP server, 12 tools, confined writes
+├── tests/test_pipeline.py
+├── examples/claude_desktop_config.json
+├── CLAUDE.md             # ETS Assistant skill / playbook
+├── pyproject.toml
+└── README.md
+```
+
+---
+
+## Contributing
+
+Testers and contributors are very welcome — especially **real-project test reports**. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and the [issue templates](.github/ISSUE_TEMPLATE).
+
+## License
+
+[MIT](LICENSE) © 2026 Nikolay Miroshnichenko
+
+> Not affiliated with or endorsed by the KNX Association. "KNX" and "ETS" are trademarks of the
+> KNX Association cc. This is an independent, community tool.
