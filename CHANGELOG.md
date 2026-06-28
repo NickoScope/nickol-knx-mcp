@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Dimmable lights are assembled completely.** A light now collects BOTH its on/off
+  status (1.x) and brightness status (5.x) via identity-based pairing, folds the on/off
+  command into the same `light` entity (no more duplicate `switch`), and pairs correctly
+  even when the device identity is a single name token (e.g. `HaloSpotLeft.A.VALUE` ↔
+  `HaloSpotLeft.A.STATE%`). Switches gained the same identity-based status pairing.
+- **Wider shutter detection.** A cover's up/down is recognised on canonical DPT 1.008 *or*
+  any 1.x command named up/down (`UP/DOWN`, `auf/ab`); stop is recognised on DPT 1.007 /
+  1.010 / 1.017 *or* a "stop"/"stopp"/"стоп" name. Position and stop siblings attach only to
+  the same shutter (zone-identity guard), so multiple blinds in one main group no longer
+  cross-wire. Real ETS4/5 projects that use 1.001+1.017 now map to full covers.
+- **Date / time / text DPTs recognised** (10.001 time, 11.001 date, 19.001 datetime,
+  16.000/16.001 string): routed to `review` as `manual_datetime` / `manual_text` (HA KNX has
+  dedicated date/time/text platforms) instead of an opaque `unmapped_dpt`.
+
 ## [0.1.1] — 2026-06-28
 
 **Hardening release.** Every change below was surfaced by running the tool end-to-end

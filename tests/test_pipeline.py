@@ -220,3 +220,33 @@ assert len(_covers6) == 1, f"expected 1 cover (slat not standalone), got {len(_c
 assert _covers6[0].get("move_short_address") == "2/0/1", _covers6[0]
 assert _pkg6["knx"].get("binary_sensor"), "wind alarm should be a binary_sensor"
 print("OK: slat -> blind tilt; wind alarm -> binary_sensor")
+
+# --------------------------------------------------------------------------- #
+# Regression (round 2): real-project HA mapping gaps found on yene/DemoCase.
+#   A) dimmable light with single-token identity gets BOTH on/off and brightness
+#      status (one light entity, no duplicate switch).
+#   B) shutter on 1.001 up/down + 1.017 stop still becomes a cover.
+#   C) date/time DPTs route to review (manual_datetime), not a silent drop.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: light status pairing + shutter DPT variance + datetime ===")
+_raw7 = {"group_addresses": {
+    "1/0/0": ga("1/0/0", "HaloX.ON/OFF", 1, 1),
+    "1/0/1": ga("1/0/1", "HaloX.VALUE", 5, 1),
+    "1/0/2": ga("1/0/2", "HaloX.STATE", 1, 1),
+    "1/0/3": ga("1/0/3", "HaloX.STATE%", 5, 1),
+    "2/0/0": ga("2/0/0", "Shutter.Foyer.UP/DOWN", 1, 1),
+    "2/0/1": ga("2/0/1", "Shutter.Foyer.STOP", 1, 17),
+    "4/0/0": ga("4/0/0", "Clock.DateTime", 19, 1),
+}}
+_p7 = build_loaded_from_raw(_raw7, "mem")
+_ha7 = generate_ha_yaml(_p7)
+_pkg7 = _yaml.safe_load(_ha7["yaml"].split("\n\n", 1)[1])["knx"]
+_lights7 = _pkg7.get("light", [])
+assert len(_lights7) == 1, f"expected 1 light, got {_lights7}"
+for _k in ("address", "state_address", "brightness_address", "brightness_state_address"):
+    assert _k in _lights7[0], f"light missing {_k}: {_lights7[0]}"
+assert not any("HaloX" in s["name"] for s in _pkg7.get("switch", [])), "HaloX duplicated as switch"
+_covers7 = _pkg7.get("cover", [])
+assert len(_covers7) == 1 and _covers7[0].get("move_short_address") == "2/0/1", _covers7
+assert any(r["reason"] == "manual_datetime" for r in _ha7["review"]), "datetime not routed to review"
+print("OK: full light entity (no dup switch); 1.001/1.017 cover; datetime -> review")

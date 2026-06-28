@@ -39,6 +39,42 @@ def _ident_tokens(name: str) -> set:
             if t not in _DIR_WORDS and t not in _SLAT_WORDS and t not in _BLIND_GENERIC}
 
 
+_UPDOWN_PHRASES = ("up/down", "auf/ab", "ab/auf", "updown", "up-down", "вверх/вниз")
+_STOP_WORDS = ("stop", "stopp", "стоп")
+
+
+def _is_updown(name: str) -> bool:
+    """A shutter move (long) command: 'up/down', 'auf/ab', or both directions."""
+    low = name.lower()
+    if any(p in low for p in _UPDOWN_PHRASES):
+        return True
+    toks = set(base_tokens(low))
+    return ("up" in toks and "down" in toks) or ("auf" in toks and "ab" in toks)
+
+
+def _is_stop(name: str) -> bool:
+    low = name.lower()
+    return any(w in low for w in _STOP_WORDS)
+
+
+# Function words that differ between a command and its status (on/off, value,
+# state, brightness, ...). Stripping them leaves the device/zone identity, so a
+# command pairs to its feedback even when the identity is a single token
+# (e.g. "HaloSpotLeft.A.VALUE" <-> "HaloSpotLeft.A.STATE%").
+_FUNC_WORDS = {
+    "on", "off", "onoff", "value", "val", "dim", "dimming", "bright", "brightness",
+    "state", "status", "stat", "fb", "feedback", "rm", "pct", "percent",
+    "up", "down", "move", "stop", "step", "pos", "position", "set", "control",
+    "schalt", "schalten", "steuer", "wert", "helligkeit", "rueck", "rück", "soll",
+}
+
+
+def _pair_ident(name: str) -> set:
+    """Device/zone identity tokens for command<->status pairing."""
+    return {t for t in base_tokens(name)
+            if t not in _FUNC_WORDS and not t.endswith("%")}
+
+
 def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     """Return {'yaml': str, 'review': [...], 'counts': {...}}."""
     status_gas = [g for g in project.gas.values() if _is_status_ga(g)]
@@ -55,6 +91,30 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         same_main = [s for s in status_gas if s.main == cmd.main]
         return find_status(cmd, same_main) or find_status(cmd, status_gas)
 
+    def status_for_dpt(cmd: GARecord, want_main: int):
+        """Find a status GA for cmd of a given DPT main, matched by device/zone
+        identity. Lets a dimmable light find BOTH its on/off status (1.x) and
+        brightness status (5.x), and pairs even when identity is a single token."""
+        paired = fpairs.get(cmd.address)
+        if paired and paired in project.gas and project.gas[paired].dpt_main == want_main:
+            return project.gas[paired]
+        cid = _pair_ident(cmd.name)
+        if not cid:
+            cands = [s for s in status_gas if s.dpt_main == want_main]
+            same_main = [s for s in cands if s.main == cmd.main]
+            return find_status(cmd, same_main) or find_status(cmd, cands)
+        best, best_score = None, 0
+        for s in status_gas:
+            if s.dpt_main != want_main or s.address == cmd.address:
+                continue
+            overlap = len(cid & _pair_ident(s.name))
+            if not overlap:
+                continue
+            score = overlap + (2 if s.main == cmd.main else 0)
+            if score > best_score:
+                best, best_score = s, score
+        return best
+
     def same_main_gas(cmd: GARecord):
         return [g for g in project.gas.values() if g.main == cmd.main]
 
@@ -67,36 +127,48 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     consumed: set[str] = set()
 
     # ---- 1. COVERS first (they own 5.001 position) ----
+    # A cover's "move long" is a shutter command that is up/down: canonical DPT
+    # 1.008, OR a 1.x command whose name says up/down (real projects use 1.001).
     for ga in project.gas.values():
         if ga.address in consumed:
             continue
-        if ga.category == "shutter" and ga.dpt_main == 1 and ga.dpt_sub == 8 \
-                and ga.address not in slat_addrs:
-            entity = {"name": ga.name, "move_long_address": ga.address}
-            for sib in same_main_gas(ga):
-                if sib.address in consumed or sib.address == ga.address:
-                    continue
-                if sib.category != "shutter":
-                    continue
-                if sib.dpt_main == 1 and sib.dpt_sub == 10:
-                    entity["move_short_address"] = sib.address
-                    consumed.add(sib.address)
-                elif sib.address in slat_addrs and sib.dpt_main == 1 \
-                        and "move_short_address" not in entity \
-                        and (_ident_tokens(ga.name) & _ident_tokens(sib.name)):
-                    # venetian slat (tilt) = the short-move/step of this blind
-                    entity["move_short_address"] = sib.address
-                    consumed.add(sib.address)
-                elif sib.dpt_main == 5 and sib.kind == "command":
-                    entity["position_address"] = sib.address
-                    consumed.add(sib.address)
-                elif sib.dpt_main == 5 and _is_status_ga(sib):
-                    entity["position_state_address"] = sib.address
-                    consumed.add(sib.address)
-            covers.append(entity)
-            consumed.add(ga.address)
-            review.append({"reason": "verify_cover_mapping", "address": ga.address,
-                           "name": ga.name})
+        is_move_long = (ga.category == "shutter" and ga.kind == "command"
+                        and ga.dpt_main == 1 and ga.address not in slat_addrs
+                        and (ga.dpt_sub == 8 or _is_updown(ga.name)))
+        if not is_move_long:
+            continue
+        entity = {"name": ga.name, "move_long_address": ga.address}
+        ptoks = _ident_tokens(ga.name)
+        for sib in same_main_gas(ga):
+            if sib.address in consumed or sib.address == ga.address:
+                continue
+            if sib.category != "shutter":
+                continue
+            # only attach siblings of the SAME shutter when both carry a zone
+            # identity (prevents cross-wiring multiple blinds in one main group)
+            if ptoks and _ident_tokens(sib.name) and not (ptoks & _ident_tokens(sib.name)):
+                continue
+            is_stop = (sib.dpt_main == 1 and sib.dpt_sub in (7, 10, 17)) or _is_stop(sib.name)
+            if is_stop and "move_short_address" not in entity:
+                entity["move_short_address"] = sib.address
+                consumed.add(sib.address)
+            elif sib.address in slat_addrs and sib.dpt_main == 1 \
+                    and "move_short_address" not in entity:
+                # venetian slat (tilt) = the short-move/step of this blind
+                entity["move_short_address"] = sib.address
+                consumed.add(sib.address)
+            elif sib.dpt_main == 5 and sib.kind == "command" \
+                    and "position_address" not in entity:
+                entity["position_address"] = sib.address
+                consumed.add(sib.address)
+            elif sib.dpt_main == 5 and _is_status_ga(sib) \
+                    and "position_state_address" not in entity:
+                entity["position_state_address"] = sib.address
+                consumed.add(sib.address)
+        covers.append(entity)
+        consumed.add(ga.address)
+        review.append({"reason": "verify_cover_mapping", "address": ga.address,
+                       "name": ga.name})
 
     # ---- 2. LIGHTS (brightness 5.001 command, lighting category) ----
     for ga in project.gas.values():
@@ -104,20 +176,20 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             continue
         if ga.category == "lighting" and ga.dpt_main == 5 and ga.kind == "command":
             entity = {"name": ga.name, "brightness_address": ga.address}
-            st = status_for(ga)
-            if st and st.dpt_main == 5:
-                entity["brightness_state_address"] = st.address
-                consumed.add(st.address)
+            st5 = status_for_dpt(ga, 5)   # brightness status (5.x)
+            if st5:
+                entity["brightness_state_address"] = st5.address
+                consumed.add(st5.address)
             for sib in same_main_gas(ga):
                 if sib.address in consumed:
                     continue
                 if sib.category == "lighting" and sib.dpt_main == 1 and sib.kind == "command" \
-                        and len(base_tokens(ga.name) & base_tokens(sib.name)) >= 2:
+                        and (_pair_ident(ga.name) & _pair_ident(sib.name)):
                     entity["address"] = sib.address
-                    s2 = status_for(sib)
-                    if s2 and s2.dpt_main == 1:
-                        entity["state_address"] = s2.address
-                        consumed.add(s2.address)
+                    s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
+                    if s1:
+                        entity["state_address"] = s1.address
+                        consumed.add(s1.address)
                     consumed.add(sib.address)
                     break
             lights.append(entity)
@@ -134,8 +206,8 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                 consumed.add(ga.address)
                 continue
             entity = {"name": ga.name, "address": ga.address}
-            st = status_for(ga)
-            if st and st.dpt_main == 1:
+            st = status_for_dpt(ga, 1)
+            if st:
                 entity["state_address"] = st.address
                 consumed.add(st.address)
             else:
@@ -160,7 +232,7 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         elif ga.ha_platform == "binary_sensor":
             binary_sensors.append({"name": ga.name, "state_address": ga.address})
             consumed.add(ga.address)
-        elif ga.ha_platform in ("climate", "scene", "number"):
+        elif ga.ha_platform in ("climate", "scene", "number", "datetime", "text"):
             review.append({"reason": f"manual_{ga.ha_platform}", "address": ga.address,
                            "name": ga.name, "dpt": ga.dpt})
         elif ga.ha_platform == "unknown" and ga.dpt_main is not None:
