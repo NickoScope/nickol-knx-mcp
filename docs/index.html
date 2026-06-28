@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>nickol-knx-mcp — design-time KNX/ETS6 assistant (MCP server)</title>
+<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server: parse .knxproj, validate DPT/naming/status, generate Home Assistant YAML + ETS exports. No live bus access. Includes a full demo house + smart Home Assistant brain." />
+<style>
+  :root{
+    --bg:#0d0f12;--panel:#14171c;--card:#181c22;--card2:#1c2027;--line:#242a33;
+    --text:#e7eaef;--muted:#8b939e;--faint:#5c646e;
+    --green:#7bd88f;--amber:#ffcb7d;--blue:#83b9ff;--orange:#ff8a65;--indigo:#9fa8ff;--cyan:#5fd0de;--violet:#c4a7f0;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:20;background:rgba(13,15,18,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:18px;height:56px}
+  nav .brand{font-weight:700;display:flex;align-items:center;gap:8px}
+  nav .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px #7bd88f88}
+  nav .links{display:flex;gap:16px;margin-left:auto;font-size:14px;color:var(--muted);align-items:center;flex-wrap:wrap}
+  nav .links a{color:var(--muted)}
+  nav .gh{background:#222831;border:1px solid var(--line);color:var(--text)!important;padding:6px 12px;border-radius:9px;font-weight:600}
+  @media(max-width:720px){.nav-hide{display:none}}
+
+  /* hero */
+  header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);background:
+     radial-gradient(700px 300px at 80% -10%, #1c2a2033, transparent),
+     radial-gradient(600px 260px at 0% 0%, #1a2230aa, transparent)}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .pill{font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px;border:1px solid var(--line);background:#161a20;color:var(--muted)}
+  .pill.beta{color:var(--amber);border-color:#3a2f1a}
+  .pill.mit{color:var(--green);border-color:#1f3327}
+  h1{font-size:42px;line-height:1.1;margin:6px 0 12px;letter-spacing:-.5px}
+  h1 .grad{background:linear-gradient(90deg,#7bd88f,#5fd0de);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tagline{font-size:18px;color:var(--muted);max-width:680px}
+  .cta{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+  .btn{padding:11px 18px;border-radius:11px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--text)!important;display:inline-flex;gap:8px;align-items:center}
+  .btn.primary{background:linear-gradient(90deg,#2f6b45,#357a4e);border-color:#3a7a52}
+  .btn:hover{text-decoration:none;border-color:#3a444f}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{color:var(--green);font-weight:700;font-size:13px;letter-spacing:.6px;text-transform:uppercase}
+  h2{font-size:28px;margin:8px 0 6px;letter-spacing:-.3px}
+  .lead{color:var(--muted);max-width:760px}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:760px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+  .card h3{margin:0 0 6px;font-size:16px}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .stat{font-size:34px;font-weight:800}
+  .stat.green{color:var(--green)}.stat.blue{color:var(--blue)}.stat.amber{color:var(--amber)}.stat.violet{color:var(--violet)}
+  .stat-l{color:var(--muted);font-size:13px;margin-top:2px}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  .ok{color:var(--green)}.warn{color:var(--amber)}
+
+  /* architecture stack */
+  .stack{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .layer{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .layer .ll{font-weight:700;width:120px;color:var(--text);flex-shrink:0}
+  .layer .ld{color:var(--muted);font-size:14px}
+  .layer.knx{background:#15191f;border-style:dashed}
+  .layer .tag{margin-left:auto;font-size:11px;color:var(--faint);font-family:ui-monospace,monospace}
+
+  /* ---------- dashboard mock ---------- */
+  .dash{margin-top:22px;background:#111317;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .dash-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:8px}
+  .dash-title{font-weight:700;display:flex;align-items:center;gap:8px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap}
+  .tab{font-size:13px;color:var(--muted);padding:6px 12px;border-radius:9px;cursor:pointer;border:1px solid transparent;user-select:none}
+  .tab.active{color:#fff;background:#262c34;border-color:#2f3742}
+  .dash-body{padding:16px}
+  .view{display:none}
+  .view.active{display:block}
+  .badges{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .badge{display:flex;align-items:center;gap:6px;background:#171a1f;border:1px solid var(--line);border-radius:20px;padding:4px 11px 4px 5px;font-size:12.5px;font-weight:600}
+  .bic{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .dgrid{display:grid;gap:11px;grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.dgrid{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:9px}
+  .dh{font-weight:700;font-size:12px;color:#9aa0a8;text-transform:uppercase;letter-spacing:.4px;margin:2px}
+  .dc{background:#181b21;border:1px solid var(--line);border-radius:13px;padding:12px 13px}
+  .tile{display:flex;align-items:center;gap:11px}
+  .tic{width:36px;height:36px;border-radius:10px;background:#23262d;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .tn{font-weight:600;font-size:13.5px}.ts{font-size:12px;color:var(--muted)}.ts.on{color:var(--amber)}
+  .mode{font-size:20px;font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chips span{background:#23262d;border-radius:7px;padding:3px 8px;font-size:11.5px;color:#b9bfc7}
+  .chips b{color:#fff}
+  .scenes{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .scene{background:#181b21;border:1px solid var(--line);border-radius:13px;padding:13px 8px;text-align:center;font-size:12.5px;font-weight:600}
+  .scene .si{font-size:21px;margin-bottom:5px}
+  .gz{display:flex;justify-content:center;padding:6px}
+  .gv{fill:#fff;font-size:18px;font-weight:700}.gu{fill:#8b9199;font-size:7px}
+  .clim{display:flex;flex-direction:column;gap:7px}
+  .ctop{display:flex;justify-content:space-between;align-items:center}
+  .cmode{font-size:11px;color:var(--orange);background:#ff8a651a;padding:2px 8px;border-radius:7px;font-weight:600}
+  .cmode.cool{color:var(--cyan);background:#5fd0de1a}
+  .ctemp{font-size:19px;font-weight:700}.carr{color:#5c636c;margin:0 6px;font-weight:400}.ctemp b{color:var(--amber)}
+  .bar{height:6px;background:#23262d;border-radius:4px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8a65,#ffcb7d);border-radius:4px}
+  .bar.b i{background:linear-gradient(90deg,#83b9ff,#5fd0de)}
+  .cfoot{font-size:11.5px;color:var(--muted)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .spark{width:100%;height:46px}
+  .note{font-size:12px;color:var(--faint);margin-top:10px;text-align:center}
+
+  footer{padding:40px 0 60px;color:var(--muted);font-size:13px}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+</style>
+</head>
+<body>
+<h1 class="sr-only">nickol-knx-mcp — a design-time KNX/ETS6 assistant exposed as an MCP server, with a full demo house and a smart Home Assistant control layer.</h1>
+
+<nav><div class="wrap">
+  <div class="brand"><span class="dot"></span> nickol-knx-mcp</div>
+  <div class="links">
+    <a class="nav-hide" href="#what">What</a>
+    <a class="nav-hide" href="#demo">Demo house</a>
+    <a href="#dashboard">Dashboard</a>
+    <a class="nav-hide" href="#brain">The brain</a>
+    <a href="https://github.com/NickoScope/nickol-knx-mcp" class="gh">★ GitHub</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="pills">
+    <span class="pill mit">MIT</span>
+    <span class="pill beta">public beta · v0.1.2</span>
+    <span class="pill">Python 3.10+</span>
+    <span class="pill">Model Context Protocol</span>
+  </div>
+  <h1>The missing <span class="grad">ETS6 ↔ Claude</span><br>design-time layer for KNX</h1>
+  <p class="tagline">A design-time KNX/ETS6 assistant exposed as an <b>MCP server</b>. It reads your
+  <code>.knxproj</code>, validates DPTs / naming / status pairs, generates Home Assistant YAML and
+  ETS-importable exports, and produces human-readable reports — <b>without ever touching the live bus.</b></p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/NickoScope/nickol-knx-mcp">★ Star on GitHub</a>
+    <a class="btn" href="#dashboard">▶ See the demo dashboard</a>
+    <a class="btn" href="https://github.com/NickoScope/nickol-knx-mcp/releases">Releases</a>
+  </div>
+</div></header>
+
+<!-- WHAT -->
+<section id="what"><div class="wrap">
+  <div class="eyebrow">Why it exists</div>
+  <h2>Two layers, one source of truth</h2>
+  <p class="lead">As of 2026 there is no off-the-shelf ETS6 ↔ AI tool. This fills exactly the
+  <b>design-time</b> gap — and the architecture keeps the dangerous part impossible by design.</p>
+  <div class="stack" style="margin-top:18px">
+    <div class="layer"><div class="ll">🧠 Home Assistant</div><div class="ld">The brain — time/season/presence-aware automations, scenes, statistics. Reads <b>real</b> device state.</div><div class="tag">smart layer</div></div>
+    <div class="layer knx"><div class="ll">🦾 KNX / ETS</div><div class="ld">The body — group addresses are the muscles (commands) &amp; nerves (status/sensors). Runs autonomously.</div><div class="tag">.knxproj = truth</div></div>
+  </div>
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card"><h3>🔒 No bus access</h3><p>Zero networking/bus libraries in the dependency tree. <code>bus_access: false</code> — structural, not a promise.</p></div>
+    <div class="card"><h3>🧩 12 MCP tools</h3><p>load · analyze (naming/DPT/status) · generate HA YAML · generate ETS XML/CSV · report. All read-only on your project.</p></div>
+    <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Tested across ETS 4.2 / 5.0 / 5.5 / 6 fixtures.</p></div>
+  </div>
+</div></section>
+
+<!-- DEMO HOUSE -->
+<section id="demo"><div class="wrap">
+  <div class="eyebrow">The demo house</div>
+  <h2>A whole synthetic home — input to output</h2>
+  <p class="lead">A complete worked example ships in the repo (<code>examples/demo-home</code>): a synthetic 2-storey
+  home — living room with fireplace, kitchen, master + 2 kids bedrooms each with ensuite, guest WC, laundry,
+  2 corridors, staircase. Lighting (switch/dim/CCT/RGBW), underfloor heating + AC, sensors, scenes.</p>
+  <div class="grid g4" style="margin-top:18px">
+    <div class="card"><div class="stat green">239</div><div class="stat-l">group addresses</div></div>
+    <div class="card"><div class="stat blue">47</div><div class="stat-l">ETS Functions</div></div>
+    <div class="card"><div class="stat amber">13</div><div class="stat-l">zones</div></div>
+    <div class="card"><div class="stat violet">5</div><div class="stat-l">deliberate mistakes</div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>The 5 planted mistakes — and what the checks caught</h3>
+    <table>
+      <tr><th>#</th><th>Planted mistake</th><th>Caught?</th></tr>
+      <tr><td>1</td><td>Group address with <b>no DPT</b> (Living room CO₂)</td><td class="ok">✅ check_dpt</td></tr>
+      <tr><td>2</td><td>Two GAs, <b>same name, different DPT</b> (Kitchen temperature)</td><td class="ok">✅ check_dpt</td></tr>
+      <tr><td>3</td><td>Dimmer with on/off status but <b>no brightness status</b></td><td class="warn">⚠️ not yet — honest limit</td></tr>
+      <tr><td>4</td><td>Switch with <b>no status</b> (Guest WC)</td><td class="ok">✅ check_missing_status</td></tr>
+      <tr><td>5</td><td>Group address with an <b>empty name</b></td><td class="ok">✅ check_naming</td></tr>
+    </table>
+    <p style="margin-top:10px">The tool surfaced its own limitation (#3): the missing-status check asks “does this control have
+    <i>a</i> status?”, not “each <i>expected</i> status type”. Tracked for a future release — found by this very demo.</p>
+  </div>
+</div></section>
+
+<!-- DASHBOARD -->
+<section id="dashboard"><div class="wrap">
+  <div class="eyebrow">Live in Home Assistant</div>
+  <h2>The dashboard</h2>
+  <p class="lead">The KNX I/O drives a 5-view Home Assistant dashboard. Below is an interactive preview
+  (mock data) — click the tabs. The real thing runs on a live HA with simulated sensors that drift over time.</p>
+
+  <div class="dash">
+    <div class="dash-bar">
+      <div class="dash-title"><span style="width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 8px #7bd88f88"></span> Demo House</div>
+      <div class="tabs">
+        <span class="tab active" data-v="ov">Overview</span>
+        <span class="tab" data-v="cl">Climate</span>
+        <span class="tab" data-v="li">Lighting</span>
+        <span class="tab" data-v="en">Energy</span>
+        <span class="tab" data-v="pr">Presence</span>
+      </div>
+    </div>
+    <div class="dash-body">
+
+      <!-- OVERVIEW -->
+      <div class="view active" data-v="ov">
+        <div class="badges">
+          <div class="badge"><span class="bic" style="background:#3949ab1a;color:#9fa8ff">⌂</span>Home</div>
+          <div class="badge"><span class="bic" style="background:#4fc3f71a;color:#7fd3f5">❄</span>Winter</div>
+          <div class="badge"><span class="bic" style="background:#ffb74d1a;color:#ffcb7d">☀</span>Morning</div>
+          <div class="badge"><span class="bic" style="background:#26c6da1a;color:#5fd0de">🌡</span>8.0°C</div>
+          <div class="badge"><span class="bic" style="background:#ffca281a;color:#ffd968">☺</span>78%</div>
+        </div>
+        <div class="dgrid">
+          <div class="col">
+            <div class="dh">At a glance</div>
+            <div class="dc"><div class="mode">Home</div><div class="ts">Morning · Winter · Weekday</div>
+              <div class="chips"><span>Outside <b>8°C</b></span><span>HVAC <b>Heating</b></span><span>Comfort <b>78%</b></span></div></div>
+            <div class="dc gz"><svg viewBox="0 0 120 70" width="100%" height="86">
+              <path d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="#2a2f37" stroke-width="9" stroke-linecap="round"/>
+              <path d="M10 64 A50 50 0 0 1 96 30" fill="none" stroke="#7bd88f" stroke-width="9" stroke-linecap="round"/>
+              <text x="60" y="50" text-anchor="middle" class="gv">78</text><text x="60" y="63" text-anchor="middle" class="gu">Comfort %</text></svg></div>
+          </div>
+          <div class="col">
+            <div class="dh">Scenes</div>
+            <div class="scenes">
+              <div class="scene"><div class="si">🎬</div>Movie</div>
+              <div class="scene"><div class="si">🌙</div>Goodnight</div>
+              <div class="scene"><div class="si">🌅</div>Morning</div>
+              <div class="scene"><div class="si">🏃</div>Away</div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="dh">Climate snapshot</div>
+            <div class="dc clim"><div class="ctop"><span class="tn">Living room</span><span class="cmode">Heating</span></div>
+              <div class="ctemp">21.4°<span class="carr">→</span><b>21.5°</b></div><div class="bar"><i style="width:70%"></i></div><div class="cfoot">valve 70% · pre-heat 18 min</div></div>
+            <div class="dc clim"><div class="ctop"><span class="tn">Master bedroom</span><span class="cmode">Heating</span></div>
+              <div class="ctemp">19.8°<span class="carr">→</span><b>20.0°</b></div><div class="bar"><i style="width:45%"></i></div><div class="cfoot">night setpoint · occupied</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLIMATE -->
+      <div class="view" data-v="cl">
+        <div class="dgrid">
+          <div class="col">
+            <div class="dh">Zones</div>
+            <div class="dc clim"><div class="ctop"><span class="tn">Living room</span><span class="cmode">Heating</span></div>
+              <div class="ctemp">21.4°<span class="carr">→</span><b>21.5°</b></div><div class="bar"><i style="width:70%"></i></div></div>
+            <div class="dc clim"><div class="ctop"><span class="tn">Master bedroom</span><span class="cmode">Heating</span></div>
+              <div class="ctemp">19.8°<span class="carr">→</span><b>20.0°</b></div><div class="bar"><i style="width:45%"></i></div></div>
+          </div>
+          <div class="col">
+            <div class="dh">The brain (computed)</div>
+            <div class="dc"><div class="ts">Living target</div><div class="ctemp" style="font-size:22px"><b>21.5°C</b></div>
+              <div class="chips"><span>daypart morning</span><span>mode Home</span><span>winter</span><span>occupied</span><span>window ✓</span></div>
+              <div class="cfoot" style="margin-top:8px">8-factor setpoint · pre-heat lead 18 min</div></div>
+            <div class="dc tile"><div class="tic" style="color:#ff8a65">🔥</div><div><div class="tn">Living valve</div><div class="ts on">70%</div></div></div>
+          </div>
+          <div class="col">
+            <div class="dh">Trends · 48h</div>
+            <div class="dc"><svg class="spark" viewBox="0 0 120 40" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#ff8a65" stroke-width="1.6" points="0,28 15,26 30,22 45,24 60,18 75,16 90,20 105,15 120,17"/>
+              <polyline fill="none" stroke="#83b9ff" stroke-width="1.6" points="0,32 15,31 30,30 45,31 60,28 75,29 90,27 105,28 120,26"/>
+              <polyline fill="none" stroke="#5fd0de" stroke-width="1.4" points="0,36 15,35 30,34 45,36 60,33 75,34 90,35 105,33 120,34"/></svg>
+              <div class="cfoot">Living · Bedroom · Outdoor</div></div>
+            <div class="dc tile"><div class="tic" style="color:#ef5350">📈</div><div><div class="tn">Degree-hours today</div><div class="ts">142 °C·h</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIGHTING -->
+      <div class="view" data-v="li">
+        <div class="dgrid">
+          <div class="col">
+            <div class="dh">Adaptive (circadian)</div>
+            <div class="dc gz"><svg viewBox="0 0 120 70" width="100%" height="86">
+              <path d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="#2a2f37" stroke-width="9" stroke-linecap="round"/>
+              <path d="M10 64 A50 50 0 0 1 78 22" fill="none" stroke="#ffcb7d" stroke-width="9" stroke-linecap="round"/>
+              <text x="60" y="50" text-anchor="middle" class="gv">62</text><text x="60" y="63" text-anchor="middle" class="gu">Brightness %</text></svg></div>
+            <div class="dc tile"><div class="tic" style="color:#ffcb7d">🌡</div><div><div class="tn">Colour temp</div><div class="ts on">3400 K</div></div></div>
+          </div>
+          <div class="col">
+            <div class="dh">Dimmable &amp; colour</div>
+            <div class="dc tile"><div class="tic" style="color:#ffcb7d">💡</div><div style="flex:1"><div class="tn">Living cove</div><div class="bar" style="margin-top:5px"><i style="width:62%"></i></div></div></div>
+            <div class="dc tile"><div class="tic" style="color:#c4a7f0">🟪</div><div style="flex:1"><div class="tn">RGBW accent</div><div class="bar b" style="margin-top:5px"><i style="width:40%"></i></div></div></div>
+            <div class="dc tile"><div class="tic" style="color:#ffcb7d">🔆</div><div style="flex:1"><div class="tn">Kitchen worktop CCT</div><div class="bar" style="margin-top:5px"><i style="width:80%"></i></div></div></div>
+          </div>
+          <div class="col">
+            <div class="dh">Switched &amp; blinds</div>
+            <div class="row2">
+              <div class="dc tile" style="padding:9px"><div class="tic" style="width:28px;height:28px;font-size:14px">💡</div><div class="tn" style="font-size:12px">Living spots</div></div>
+              <div class="dc tile" style="padding:9px"><div class="tic" style="width:28px;height:28px;font-size:14px">💡</div><div class="tn" style="font-size:12px">Kitchen</div></div>
+            </div>
+            <div class="dc tile"><div class="tic" style="color:#83b9ff">🪟</div><div style="flex:1"><div class="tn">Living blind</div><div class="bar b" style="margin-top:5px"><i style="width:35%"></i></div><div class="cfoot" style="margin-top:3px">position 35% · slat tilt</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENERGY -->
+      <div class="view" data-v="en">
+        <div class="dgrid">
+          <div class="col">
+            <div class="dh">Energy today</div>
+            <div class="dc gz"><svg viewBox="0 0 120 70" width="100%" height="86">
+              <path d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="#2a2f37" stroke-width="9" stroke-linecap="round"/>
+              <path d="M10 64 A50 50 0 0 1 88 26" fill="none" stroke="#ff8a65" stroke-width="9" stroke-linecap="round"/>
+              <text x="60" y="50" text-anchor="middle" class="gv">14</text><text x="60" y="63" text-anchor="middle" class="gu">HVAC kWh</text></svg></div>
+            <div class="dc tile"><div class="tic" style="color:#7bd88f">⚡</div><div><div class="tn">kWh / occupied-h</div><div class="ts on">0.92</div></div></div>
+          </div>
+          <div class="col">
+            <div class="dh">Runtime today</div>
+            <div class="row2">
+              <div class="dc"><div class="tn">Living lights</div><div class="ts">3.4 h</div></div>
+              <div class="dc"><div class="tn">Living heating</div><div class="ts">6.1 h</div></div>
+              <div class="dc"><div class="tn">Occupied</div><div class="ts">11.2 h</div></div>
+              <div class="dc"><div class="tn">Bath uses</div><div class="ts">7</div></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="dh">Air &amp; comfort</div>
+            <div class="dc tile"><div class="tic" style="color:#7bd88f">🫧</div><div><div class="tn">Bedroom CO₂</div><div class="ts on">680 ppm</div></div></div>
+            <div class="dc"><svg class="spark" viewBox="0 0 120 40" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#7bd88f" stroke-width="1.6" points="0,30 15,28 30,24 45,20 60,26 75,30 90,22 105,18 120,24"/></svg>
+              <div class="cfoot">CO₂ · 24h</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRESENCE -->
+      <div class="view" data-v="pr">
+        <div class="dgrid">
+          <div class="col">
+            <div class="dh">Mode machine</div>
+            <div class="dc tile"><div class="tic" style="color:#9fa8ff">⌂</div><div><div class="tn">Home mode</div><div class="ts on">Home ▾</div></div></div>
+            <div class="dc tile"><div class="tic" style="color:#7bd88f">👣</div><div><div class="tn">Anyone present</div><div class="ts on">Detected</div></div></div>
+          </div>
+          <div class="col">
+            <div class="dh">Occupancy (computed)</div>
+            <div class="row2">
+              <div class="dc"><div class="tn">Living</div><div class="ts on">occupied</div></div>
+              <div class="dc"><div class="tn">Bedroom</div><div class="ts">clear</div></div>
+              <div class="dc"><div class="tn">Master bath</div><div class="ts">clear</div></div>
+              <div class="dc"><div class="tn">Corridors</div><div class="ts on">active</div></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="dh">Schedules</div>
+            <div class="dc tile"><div class="tic" style="color:#83b9ff">🗓</div><div><div class="tn">Work week</div><div class="ts on">07:00 – 22:30</div></div></div>
+            <div class="dc tile"><div class="tic" style="color:#9fa8ff">🌙</div><div><div class="tn">Quiet hours</div><div class="ts">23:00 – 06:30</div></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <p class="note">Interactive preview with mock data · the live dashboard runs in Home Assistant (real screenshots coming).</p>
+</div></section>
+
+<!-- BRAIN -->
+<section id="brain"><div class="wrap">
+  <div class="eyebrow">The brain</div>
+  <h2>Logic that depends on <i>everything</i></h2>
+  <p class="lead">On top of the KNX I/O sits a 5-layer Home Assistant control system — built on native helpers
+  (utility_meter, history_stats, statistics, derivative, trend, threshold, schedule), 22 automations and 3 scripts.</p>
+  <div class="stack" style="margin-top:18px">
+    <div class="layer"><div class="ll">L4 Statistics</div><div class="ld">energy meters &amp; tariffs · runtime counters · heating degree-hours · KPIs (kWh/occupied-h, comfort)</div></div>
+    <div class="layer"><div class="ll">L3 Lighting</div><div class="ld">circadian brightness &amp; colour temp · motion/presence (only when dark) · scenes · vacation simulation</div></div>
+    <div class="layer"><div class="ll">L2 Climate</div><div class="ld"><b>8-factor target setpoint</b> · heat/cool changeover · adaptive pre-heat · window/CO₂ interlocks</div></div>
+    <div class="layer"><div class="ll">L1 Home mode</div><div class="ld">Home / Away / Night / Eco / Guest / Vacation state machine</div></div>
+    <div class="layer"><div class="ll">L0 Senses</div><div class="ld">season · daypart (sun) · weekday/weekend · per-zone occupancy · comfort index</div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>⭐ The 8-factor setpoint</h3>
+    <p>A single template folds everything into one number:
+    <code>daypart profile → weekend hold → occupancy setback → home-mode override (Away −3°, Vacation→frost 12°)
+    → seasonal trim / cooling target → window interlock → clamp 12–28 °C</code>.</p>
+  </div>
+</div></section>
+
+<!-- CTA / testers -->
+<section id="try"><div class="wrap">
+  <div class="eyebrow">It's a beta — testers welcome</div>
+  <h2>Try it on your own <code>.knxproj</code></h2>
+  <p class="lead">It's read-only and never touches a bus, so testing is safe. Run it from Claude, point it at your
+  project, and tell us what the report got right — and wrong.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/NickoScope/nickol-knx-mcp">Get it on GitHub</a>
+    <a class="btn" href="https://github.com/NickoScope/nickol-knx-mcp/tree/main/examples/demo-home">Browse the demo house</a>
+    <a class="btn" href="https://github.com/NickoScope/nickol-knx-mcp/blob/main/CONTRIBUTING.md">How to test</a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <p><b>nickol-knx-mcp</b> · <a href="https://github.com/NickoScope/nickol-knx-mcp">github.com/NickoScope/nickol-knx-mcp</a> · MIT © 2026 Nikolay Miroshnichenko</p>
+  <p style="color:var(--faint)">Not affiliated with or endorsed by the KNX Association. “KNX” and “ETS” are trademarks of the KNX Association cc. An independent community tool.</p>
+</div></footer>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click',function(){
+      var v=t.getAttribute('data-v');
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-v')===v)});
+      document.querySelectorAll('.view').forEach(function(x){x.classList.toggle('active',x.getAttribute('data-v')===v)});
+    });
+  });
+</script>
+</body>
+</html>

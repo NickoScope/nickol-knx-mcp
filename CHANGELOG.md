@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs/` — a self-contained GitHub Pages landing site (project overview, two-layer
+  architecture, demo-house stats, an interactive 5-tab dashboard preview, the HA "brain",
+  and a call for testers).
 - `examples/demo-home/` — a complete synthetic worked example: a 239-GA / 47-Function demo
   `.knxproj`, the tool's generated report + Home Assistant entities + ETS export, and a
   `ha-brain/` Home Assistant smart layer (circadian lighting, multi-factor climate, presence/
