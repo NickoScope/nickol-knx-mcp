@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **ETS Function role pairing (the headline feature) is now actually wired up.**
+  command↔status pairs are taken from ETS Function roles (e.g. `SwitchOnOff`↔`InfoOnOff`)
+  in `pairing.function_status_pairs()`, used by both `check_missing_status` and the HA
+  generator. A feedback GA named only "Status" now pairs correctly (name tokens not needed),
+  HA entities get the right `state_address`, and function-paired commands are no longer
+  false-flagged as missing a status. Found because real ETS6 projects exposed that Functions
+  were previously ignored despite the README.
+
 ### Fixed
 - **Critical:** `load_project` MCP tool recursed infinitely (`RecursionError`) on every
   real `.knxproj` because the server tool function shadowed the imported project loader.

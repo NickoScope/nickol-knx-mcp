@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from .project import LoadedProject, GARecord, STATUS_KEYWORDS
-from .pairing import find_status
+from .pairing import find_status, function_status_pairs
 
 SEVERITY_ERROR = "error"
 SEVERITY_WARN = "warning"
@@ -168,8 +168,9 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
     """
     findings = _function_role_status(project)
 
-    # addresses already explained by a function finding -> skip in heuristic
-    covered: set[str] = set()
+    # Commands already paired to a status by an ETS Function are satisfied
+    # (authoritative). Plus any address a function-missing-status finding covers.
+    covered: set[str] = set(function_status_pairs(project).keys())
     for f in findings:
         covered.update(f.get("addresses", []))
 

@@ -60,3 +60,63 @@ def find_status(command: GARecord, candidates: Iterable[GARecord]) -> Optional[G
         if score > best_score:
             best, best_score = c, score
     return best
+
+
+# --------------------------------------------------------------------------- #
+# Authoritative pairing from ETS Functions (roles)
+# --------------------------------------------------------------------------- #
+_FN_STATUS_TOKENS = ("info", "status", "state", "feedback", "rueck", "rück")
+_FN_STATUS_PREFIXES = ("Info", "Status", "State", "Feedback")
+
+
+def _role_is_status(role: str) -> bool:
+    r = (role or "").lower()
+    return any(t in r for t in _FN_STATUS_TOKENS)
+
+
+def _status_suffix(role: str) -> str:
+    """'InfoOnOff' -> 'onoff', 'StatusValue' -> 'value' (strip status prefix)."""
+    r = role or ""
+    for p in _FN_STATUS_PREFIXES:
+        if r.startswith(p):
+            r = r[len(p):]
+            break
+    return r.lower()
+
+
+def function_status_pairs(project) -> dict[str, str]:
+    """Map command-GA address -> status-GA address using ETS Function roles.
+
+    This is the authoritative signal: ETS Functions group the GAs of one logical
+    function and tag each with a role (e.g. ``SwitchOnOff`` for the command and
+    ``InfoOnOff`` for the feedback). Within each function we pair every command
+    role to a status role, preferring a matching role suffix
+    (``InfoOnOff`` <-> ``SwitchOnOff``) and otherwise falling back to the single
+    status GA in that function. Names are never needed, so a feedback GA called
+    just "Status" still pairs correctly.
+    """
+    pairs: dict[str, str] = {}
+    for fn in (project.functions or {}).values():
+        roles = fn.get("group_addresses", {}) or {}
+        cmds: list[tuple[str, str]] = []
+        stats: list[tuple[str, str]] = []
+        for key, ref in roles.items():
+            addr = ref.get("address", key)
+            role = ref.get("role") or ""
+            (stats if _role_is_status(role) else cmds).append((addr, role))
+        valid_stats = [(a, r) for a, r in stats if a in project.gas]
+        if not cmds or not valid_stats:
+            continue
+        for caddr, crole in cmds:
+            if caddr not in project.gas:
+                continue
+            partner = None
+            for saddr, srole in valid_stats:
+                suf = _status_suffix(srole)
+                if suf and suf in crole.lower():
+                    partner = saddr
+                    break
+            if partner is None:
+                partner = valid_stats[0][0]
+            pairs[caddr] = partner
+    return pairs

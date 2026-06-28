@@ -15,14 +15,20 @@ import yaml
 
 from .project import LoadedProject, GARecord
 from .analyze import _is_status_ga
-from .pairing import find_status, base_tokens
+from .pairing import find_status, base_tokens, function_status_pairs
 
 
 def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     """Return {'yaml': str, 'review': [...], 'counts': {...}}."""
     status_gas = [g for g in project.gas.values() if _is_status_ga(g)]
+    fpairs = function_status_pairs(project)  # authoritative cmd-addr -> status-addr
 
     def status_for(cmd: GARecord):
+        # 1. ETS Function role pairing is authoritative (names not needed).
+        paired = fpairs.get(cmd.address)
+        if paired and paired in project.gas:
+            return project.gas[paired]
+        # 2. fall back to name-token pairing.
         same_main = [s for s in status_gas if s.main == cmd.main]
         return find_status(cmd, same_main) or find_status(cmd, status_gas)
 

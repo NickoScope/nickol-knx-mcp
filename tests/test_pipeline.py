@@ -144,3 +144,29 @@ except Exception as exc:
     print(f"OK: delegated, raised {type(exc).__name__} (expected, not RecursionError)")
 else:
     print("OK: delegated (no error)")
+
+# --------------------------------------------------------------------------- #
+# Regression: ETS Function roles must pair command <-> status (the headline
+# feature). A status GA named only "Status" pairs via the InfoOnOff role even
+# though name-token pairing alone would miss it.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: ETS Function role pairing ===")
+from nickol_knx_mcp.pairing import function_status_pairs
+
+
+class _StubProject:
+    functions = {
+        "F-1": {
+            "name": "LivingroomLight",
+            "group_addresses": {
+                "0/0/1": {"address": "0/0/1", "role": "SwitchOnOff"},
+                "0/0/2": {"address": "0/0/2", "role": "InfoOnOff"},
+            },
+        }
+    }
+    gas = {"0/0/1": object(), "0/0/2": object()}
+
+
+_pairs = function_status_pairs(_StubProject())
+assert _pairs == {"0/0/1": "0/0/2"}, f"function pairing regression: {_pairs}"
+print("OK: SwitchOnOff <-> InfoOnOff paired via ETS Function role")
