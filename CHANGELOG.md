@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Venetian-blind slats are handled as the blind's tilt: a slat GA (Lamelle / slat /
+  ламель / tilt) is attached to its parent blind cover as `move_short_address` instead of
+  becoming a standalone cover; an unmatched slat is flagged `shutter_slat_unattached` for
+  manual attachment rather than emitted wrong.
+- A 1-bit diagnostics GA (wind/frost/rain/smoke/leak alarm, fault) is now a read-only
+  `binary_sensor` instead of a phantom command switch.
 - HA generation never drops a group address silently ("no silent caps"): every GA is
   either emitted as an entity or listed in the `review` output, and the YAML header states
   how many need manual review.

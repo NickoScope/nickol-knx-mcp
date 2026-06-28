@@ -198,3 +198,25 @@ for _name in ("Behang D auf/ab", "Lamelle B auf/ab"):
     _cat = _refine_category(_name, "unknown")
     assert _cat == "shutter", f"{_name!r} -> {_cat}, expected shutter"
 print("OK: 'Behang/Lamelle auf/ab' classified as shutter")
+
+# --------------------------------------------------------------------------- #
+# Regression (#6): a venetian slat becomes the tilt (move_short) of its blind,
+# not a standalone cover; a 1-bit diagnostics alarm is a binary_sensor, not a
+# phantom command switch.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: slat tilt + diagnostics alarm ===")
+from nickol_knx_mcp.project import build_loaded_from_raw
+_raw6 = {"group_addresses": {
+    "2/0/0": ga("2/0/0", "Living room blind", 1, 8),
+    "2/0/1": ga("2/0/1", "Living room blind slat", 1, 8),
+    "2/0/2": ga("2/0/2", "Wind alarm", 1, 1),
+}}
+_p6 = build_loaded_from_raw(_raw6, "mem")
+assert _p6.gas["2/0/2"].ha_platform == "binary_sensor", _p6.gas["2/0/2"].ha_platform
+assert _p6.gas["2/0/2"].kind == "sensor", _p6.gas["2/0/2"].kind
+_pkg6 = _yaml.safe_load(generate_ha_yaml(_p6)["yaml"].split("\n\n", 1)[1])
+_covers6 = _pkg6["knx"].get("cover", [])
+assert len(_covers6) == 1, f"expected 1 cover (slat not standalone), got {len(_covers6)}"
+assert _covers6[0].get("move_short_address") == "2/0/1", _covers6[0]
+assert _pkg6["knx"].get("binary_sensor"), "wind alarm should be a binary_sensor"
+print("OK: slat -> blind tilt; wind alarm -> binary_sensor")

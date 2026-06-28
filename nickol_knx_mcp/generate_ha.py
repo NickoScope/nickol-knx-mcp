@@ -17,11 +17,34 @@ from .project import LoadedProject, GARecord
 from .analyze import _is_status_ga
 from .pairing import find_status, base_tokens, function_status_pairs
 
+# Venetian-blind slat (tilt) detection: a slat GA is the tilt of its parent
+# blind, not a standalone cover.
+_SLAT_WORDS = ("lamelle", "lamel", "ламел", "slat", "louver", "louvre", "tilt")
+_DIR_WORDS = {"auf", "ab", "up", "down", "hoch", "runter", "move", "step",
+              "long", "short", "open", "close", "вверх", "вниз"}
+_BLIND_GENERIC = {"behang", "blind", "blinds", "shutter", "jalousie", "rollo",
+                  "roller", "store", "markise", "roll", "cover", "curtain",
+                  "штора", "жалюзи", "ролета", "ролл"}
+
+
+def _is_slat(name: str) -> bool:
+    low = name.lower()
+    return any(w in low for w in _SLAT_WORDS)
+
+
+def _ident_tokens(name: str) -> set:
+    """Identity/zone tokens for matching a slat to its blind (drop direction,
+    slat and generic-blind words so only the zone/name identity remains)."""
+    return {t for t in base_tokens(name)
+            if t not in _DIR_WORDS and t not in _SLAT_WORDS and t not in _BLIND_GENERIC}
+
 
 def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     """Return {'yaml': str, 'review': [...], 'counts': {...}}."""
     status_gas = [g for g in project.gas.values() if _is_status_ga(g)]
     fpairs = function_status_pairs(project)  # authoritative cmd-addr -> status-addr
+    slat_addrs = {g.address for g in project.gas.values()
+                  if g.category == "shutter" and _is_slat(g.name)}
 
     def status_for(cmd: GARecord):
         # 1. ETS Function role pairing is authoritative (names not needed).
@@ -47,7 +70,8 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     for ga in project.gas.values():
         if ga.address in consumed:
             continue
-        if ga.category == "shutter" and ga.dpt_main == 1 and ga.dpt_sub == 8:
+        if ga.category == "shutter" and ga.dpt_main == 1 and ga.dpt_sub == 8 \
+                and ga.address not in slat_addrs:
             entity = {"name": ga.name, "move_long_address": ga.address}
             for sib in same_main_gas(ga):
                 if sib.address in consumed or sib.address == ga.address:
@@ -55,6 +79,12 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                 if sib.category != "shutter":
                     continue
                 if sib.dpt_main == 1 and sib.dpt_sub == 10:
+                    entity["move_short_address"] = sib.address
+                    consumed.add(sib.address)
+                elif sib.address in slat_addrs and sib.dpt_main == 1 \
+                        and "move_short_address" not in entity \
+                        and (_ident_tokens(ga.name) & _ident_tokens(sib.name)):
+                    # venetian slat (tilt) = the short-move/step of this blind
                     entity["move_short_address"] = sib.address
                     consumed.add(sib.address)
                 elif sib.dpt_main == 5 and sib.kind == "command":
@@ -148,10 +178,16 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             "address": addr, "name": ga.name, "dpt": ga.dpt,
             "category": ga.category, "kind": ga.kind,
         }
+        # A slat/tilt GA that wasn't matched to a blind cover by name.
+        if ga.address in slat_addrs:
+            item["reason"] = "shutter_slat_unattached"
+            item["hint"] = ("Slat/tilt control of a venetian blind; could not be matched "
+                            "to a blind cover by name. Attach it manually as the cover's "
+                            "tilt/move_short address.")
         # A shutter-looking command that didn't become a cover almost always has
         # an incomplete DPT (e.g. bare "1" instead of 1.008 up/down). Make that
         # actionable instead of an opaque drop.
-        if ga.category == "shutter" and ga.kind == "command" and ga.dpt_sub is None:
+        elif ga.category == "shutter" and ga.kind == "command" and ga.dpt_sub is None:
             item["reason"] = "shutter_incomplete_dpt"
             item["hint"] = ("Looks like a shutter control but the DPT has no sub-type. "
                             "Set it in ETS (1.008 up/down, 1.010 stop, 5.001 position) "

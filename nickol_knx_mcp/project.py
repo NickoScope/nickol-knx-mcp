@@ -183,6 +183,11 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         # correct the HA platform so the generator builds a cover, not a light.
         if category == "shutter" and ha_platform in ("light", "switch"):
             ha_platform = "cover"
+        # A 1-bit diagnostics GA (wind/frost/rain/smoke/leak alarm, fault) is a
+        # read-only input, not a command switch -> binary_sensor.
+        if category == "diagnostics" and main == 1 and ha_platform == "switch":
+            ha_platform = "binary_sensor"
+            kind = "sensor"
         m, mid, s = _split_three_level(ga.get("address", addr))
         rec = GARecord(
             address=ga.get("address", addr),
