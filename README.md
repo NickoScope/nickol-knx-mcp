@@ -9,6 +9,7 @@ It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#-status--call-for-testers)
 [![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen?logo=homeassistant&logoColor=white)](https://nickoscope.github.io/nickol-knx-mcp/)
+[![Join the discussion](https://img.shields.io/badge/💬_join_the-discussion-8957e5?logo=github&logoColor=white)](https://github.com/NickoScope/nickol-knx-mcp/discussions/1)
 
 🇷🇺 **Русская версия:** [README.ru.md](README.ru.md)
 
@@ -60,6 +61,8 @@ and real ETS projects are wonderfully messy and diverse.
 [Real-project test report](https://github.com/NickoScope/nickol-knx-mcp/issues/new?template=real_project_test.yml)
 issue. The tool is read-only and never connects to a bus, so testing is safe (see
 [Safety model](#-safety-model)). See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+💬 **[Join the discussion →](https://github.com/NickoScope/nickol-knx-mcp/discussions/1)** — say hi, ask anything, or share what the tool found on your project.
 
 ---
 
