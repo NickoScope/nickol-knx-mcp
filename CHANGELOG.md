@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Critical:** `load_project` MCP tool recursed infinitely (`RecursionError`) on every
+  real `.knxproj` because the server tool function shadowed the imported project loader.
+  The tool now delegates correctly. Added a regression test that fails on recursion.
+  Found via end-to-end testing against real ETS5/ETS6 project files.
+
 ## [0.1.0] — 2026-06-28
 
 Initial public beta.

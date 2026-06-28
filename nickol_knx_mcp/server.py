@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .project import load_project, LoadedProject
+from .project import load_project as load_project_file, LoadedProject
 from .analyze import validate_naming, detect_missing_status, detect_dpt_issues
 from .generate_ha import generate_ha_yaml
 from .generate_ets import generate_ets_csv, generate_ets_xml
@@ -69,7 +69,7 @@ def load_project(path: str, password: Optional[str] = None,
         password: Project password, if the .knxproj is protected.
         language: Optional language code (e.g. 'de-DE', 'ru-RU').
     """
-    proj = load_project(path, password=password, language=language)
+    proj = load_project_file(path, password=password, language=language)
     _STATE["project"] = proj
     return {
         "loaded": True,

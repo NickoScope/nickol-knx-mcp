@@ -126,3 +126,21 @@ rep = build_report(proj)
 print(rep["summary"])
 print("\n--- report head ---")
 print("\n".join(rep["markdown"].splitlines()[:30]))
+
+# --------------------------------------------------------------------------- #
+# Regression: the MCP server tool `load_project` must delegate to the project
+# loader, not call itself (a name-shadowing bug once caused infinite recursion).
+# Calling it on a bad path must raise a normal error, never RecursionError.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: server.load_project must not recurse ===")
+import nickol_knx_mcp.server as _server
+try:
+    _server.load_project("/nonexistent/__no_such__.knxproj")
+except RecursionError as exc:  # pragma: no cover
+    raise AssertionError(
+        "server.load_project recursed — load_project name-shadowing regression"
+    ) from exc
+except Exception as exc:
+    print(f"OK: delegated, raised {type(exc).__name__} (expected, not RecursionError)")
+else:
+    print("OK: delegated (no error)")
