@@ -119,6 +119,15 @@
   .spark{width:100%;height:46px}
   .note{font-size:12px;color:var(--faint);margin-top:10px;text-align:center}
 
+  /* real screenshot gallery */
+  .shots{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px}
+  @media(max-width:760px){.shots{grid-template-columns:1fr}}
+  .shots a{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none}
+  .shots a:hover{border-color:#3a444f}
+  .shots img{display:block;width:100%;height:auto;border-bottom:1px solid var(--line)}
+  .shots span{display:block;padding:10px 13px;color:var(--muted);font-size:13px}
+  .shots a.hero{grid-column:1 / -1}
+
   footer{padding:40px 0 60px;color:var(--muted);font-size:13px}
   .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 </style>
@@ -204,8 +213,19 @@
 <section id="dashboard"><div class="wrap">
   <div class="eyebrow">Live in Home Assistant</div>
   <h2>The dashboard</h2>
-  <p class="lead">The KNX I/O drives a 5-view Home Assistant dashboard. Below is an interactive preview
-  (mock data) — click the tabs. The real thing runs on a live HA with simulated sensors that drift over time.</p>
+  <p class="lead">The KNX I/O drives a 5-view Home Assistant dashboard. These are <b>real screenshots from a
+  live Home Assistant</b> running the demo (simulated sensors that drift over time) — note how Summer flipped the
+  whole house to <b>Cooling</b> at 92% comfort. Below them, an interactive preview lets you click through the views.</p>
+
+  <div class="shots">
+    <a class="hero" href="assets/screenshots/overview.png"><img src="assets/screenshots/overview.png" alt="Overview view: home mode, comfort gauge, scenes, climate snapshot" loading="lazy"><span><b>Overview</b> — at a glance · scenes · climate snapshot (Summer · Cooling · 92% comfort)</span></a>
+    <a href="assets/screenshots/climate.png"><img src="assets/screenshots/climate.png" alt="Climate view" loading="lazy"><span><b>Climate</b> — zones &amp; the computed “brain”, targets &amp; valve</span></a>
+    <a href="assets/screenshots/lighting.png"><img src="assets/screenshots/lighting.png" alt="Lighting view" loading="lazy"><span><b>Lighting</b> — circadian 71% @ 3750K · dimmers · blinds 41/59%</span></a>
+    <a href="assets/screenshots/energy.png"><img src="assets/screenshots/energy.png" alt="Energy view" loading="lazy"><span><b>Energy &amp; stats</b> — gauges · runtime · air quality</span></a>
+    <a href="assets/screenshots/presence.png"><img src="assets/screenshots/presence.png" alt="Presence view" loading="lazy"><span><b>Presence</b> — mode machine · occupancy · schedules</span></a>
+  </div>
+
+  <h3 style="margin:34px 0 0;font-size:15px;color:var(--muted)">↓ Or explore an interactive preview (mock data)</h3>
 
   <div class="dash">
     <div class="dash-bar">
@@ -372,7 +392,7 @@
 
     </div>
   </div>
-  <p class="note">Interactive preview with mock data · the live dashboard runs in Home Assistant (real screenshots coming).</p>
+  <p class="note">↑ Interactive preview with mock data · the screenshots above are the real thing, live in Home Assistant.</p>
 </div></section>
 
 <!-- BRAIN -->

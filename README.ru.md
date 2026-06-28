@@ -25,6 +25,26 @@
 
 ---
 
+## 🖥️ Дашборд — вживую в Home Assistant
+
+Реальные скриншоты из живого Home Assistant с демо-домом. «Мозг» в действии: **лето** само переключило дом
+на **охлаждение** при **92% комфорта**, свет идёт по **циркадной** кривой (71% @ 3750K), а уставки климата
+**вычисляются**, а не задаются вручную.
+
+<p align="center">
+  <img src="docs/assets/screenshots/overview.png" alt="Overview" width="78%">
+</p>
+
+| Climate | Lighting |
+|:---:|:---:|
+| [<img src="docs/assets/screenshots/climate.png" width="100%">](docs/assets/screenshots/climate.png) | [<img src="docs/assets/screenshots/lighting.png" width="100%">](docs/assets/screenshots/lighting.png) |
+| **Energy & stats** | **Presence** |
+| [<img src="docs/assets/screenshots/energy.png" width="100%">](docs/assets/screenshots/energy.png) | [<img src="docs/assets/screenshots/presence.png" width="100%">](docs/assets/screenshots/presence.png) |
+
+▶ **[Открыть интерактивно на сайте →](https://nickoscope.github.io/nickol-knx-mcp/)** · конфиг в [`examples/demo-home/ha-brain`](examples/demo-home/ha-brain)
+
+---
+
 ## 1. Зачем это и где оно в общей схеме
 
 На июнь 2026 готового официального **ETS6 ↔ Claude / MCP** инструмента не существует.

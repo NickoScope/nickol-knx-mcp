@@ -30,6 +30,26 @@ It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates 
 
 ---
 
+## 🖥️ The dashboard — live in Home Assistant
+
+Real screenshots from a live Home Assistant running the demo house. Note the brain at work: **Summer**
+flipped the whole house to **Cooling** at **92 % comfort**, lights follow a **circadian** curve (71 % @ 3750 K),
+and the climate setpoints are **computed**, not set by hand.
+
+<p align="center">
+  <img src="docs/assets/screenshots/overview.png" alt="Overview — home mode, comfort gauge, scenes, climate snapshot" width="78%">
+</p>
+
+| Climate | Lighting |
+|:---:|:---:|
+| [<img src="docs/assets/screenshots/climate.png" alt="Climate view" width="100%">](docs/assets/screenshots/climate.png) | [<img src="docs/assets/screenshots/lighting.png" alt="Lighting view" width="100%">](docs/assets/screenshots/lighting.png) |
+| **Energy & stats** | **Presence** |
+| [<img src="docs/assets/screenshots/energy.png" alt="Energy view" width="100%">](docs/assets/screenshots/energy.png) | [<img src="docs/assets/screenshots/presence.png" alt="Presence view" width="100%">](docs/assets/screenshots/presence.png) |
+
+▶ **[Explore it interactively on the live site →](https://nickoscope.github.io/nickol-knx-mcp/)** · config in [`examples/demo-home/ha-brain`](examples/demo-home/ha-brain)
+
+---
+
 ## 🧪 Status & call for testers
 
 This is a **public beta**. The full pipeline passes an end-to-end smoke test on a synthetic
