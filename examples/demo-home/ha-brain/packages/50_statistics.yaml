@@ -1,0 +1,135 @@
+# =============================================================================
+# Demo House — Layer 4: STATISTICS & ANALYTICS
+# utility_meter (in 00_helpers) + history_stats runtime counters + derived KPIs.
+# "Collect statistics depending on everything": per-room runtime, presence dwell,
+# heating load, comfort, energy-per-occupied-hour, seasonal degree-hours.
+# =============================================================================
+
+# Heating-active flags (valve % > 5) feed runtime stats
+template:
+  - binary_sensor:
+      - name: Living heating active
+        unique_id: living_heating_active
+        device_class: heat
+        state: "{{ states('sensor.living_room_floor_valve_status') | float(0) > 5 }}"
+      - name: Bedroom heating active
+        unique_id: bedroom_heating_active
+        device_class: heat
+        state: "{{ states('sensor.master_bedroom_floor_valve_status') | float(0) > 5 }}"
+
+  # Instantaneous heating demand (°C) — integrated natively below into degree-hours
+  - sensor:
+      - name: Heating demand
+        unique_id: heating_demand
+        unit_of_measurement: "°C"
+        icon: mdi:thermometer-lines
+        state: >
+          {% set outdoor = states('sensor.outdoor_temperature') | float(8) %}
+          {{ [18 - outdoor, 0] | max if is_state('input_select.hvac_season_mode','Heating') else 0 }}
+
+  # ---- Derived KPIs ----
+  - trigger:
+      - platform: time_pattern
+        minutes: "/15"
+      - platform: homeassistant
+        event: start
+    sensor:
+      # Energy efficiency: HVAC kWh today per occupied-hour today
+      - name: Energy per occupied hour
+        unique_id: energy_per_occupied_hour
+        unit_of_measurement: "kWh/h"
+        icon: mdi:lightning-bolt-outline
+        state: >
+          {% set kwh = states('sensor.hvac_daily') | float(0) %}
+          {% set occh = states('sensor.house_occupied_hours_today') | float(0) %}
+          {{ (kwh / occh) | round(3) if occh > 0.2 else 0 }}
+
+      # House comfort score = mean of room comfort indices
+      - name: House comfort score
+        unique_id: house_comfort_score
+        unit_of_measurement: "%"
+        icon: mdi:gauge
+        state: >
+          {{ states('sensor.living_room_comfort_index') | float(70) | round(0) }}
+
+# ---- Native integration of heating demand → degree-hours, reset daily ----
+sensor:
+  - platform: integration
+    name: Heating degree hours raw
+    source: sensor.heating_demand
+    unit_time: h
+    method: left
+
+  # ---- Runtime counters (native history_stats) ----
+  - platform: history_stats
+    name: Living lights on today
+    entity_id: light.living_room_cove
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Living heating hours today
+    entity_id: binary_sensor.living_heating_active
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Bedroom heating hours today
+    entity_id: binary_sensor.bedroom_heating_active
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: House occupied hours today
+    entity_id: binary_sensor.anyone_present
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: Master bath usage count today
+    entity_id: binary_sensor.master_bath_presence
+    state: "on"
+    type: count
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  # weekly heating runtime (trend across the week)
+  - platform: history_stats
+    name: Living heating hours this week
+    entity_id: binary_sensor.living_heating_active
+    state: "on"
+    type: time
+    start: "{{ now().replace(hour=0, minute=0, second=0) - timedelta(days=now().weekday()) }}"
+    end: "{{ now() }}"
+
+automation:
+  # ---- Tariff switching for the house meter (peak 07–23, offpeak otherwise) ----
+  - id: stats_tariff_peak
+    alias: "Stats · tariff → peak"
+    mode: single
+    trigger: [{ platform: time, at: "07:00:00" }]
+    action:
+      - service: utility_meter.select_tariff
+        target: { entity_id: [select.house_daily, select.house_monthly] }
+        data: { tariff: peak }
+  - id: stats_tariff_offpeak
+    alias: "Stats · tariff → offpeak"
+    mode: single
+    trigger: [{ platform: time, at: "23:00:00" }]
+    action:
+      - service: utility_meter.select_tariff
+        target: { entity_id: [select.house_daily, select.house_monthly] }
+        data: { tariff: offpeak }
+
+# utility_meter gives the degree-hours a clean daily/seasonal reset (native)
+utility_meter:
+  heating_degree_hours_daily:    { source: sensor.heating_degree_hours_raw, cycle: daily }
+  heating_degree_hours_seasonal: { source: sensor.heating_degree_hours_raw, cycle: quarterly }

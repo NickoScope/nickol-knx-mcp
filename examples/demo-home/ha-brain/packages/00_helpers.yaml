@@ -1,0 +1,72 @@
+# =============================================================================
+# Demo House — Layer 0: helpers (native HA constructs, not templates)
+# The "knobs and registers" the brain reads/writes. Created here as YAML for the
+# showcase; in a live system these would normally be UI/config-flow Helpers.
+# =============================================================================
+
+# ---- The home state machine (single source of truth for "what mode are we in")
+input_select:
+  home_mode:
+    name: Home mode
+    icon: mdi:home-heart
+    options: [Home, Away, Night, Guest, Eco, Vacation]
+    initial: Home
+
+  hvac_season_mode:
+    name: HVAC season changeover
+    icon: mdi:sun-snowflake-variant
+    options: [Heating, Cooling, Off, Auto]
+    initial: Auto
+
+# ---- Tunables exposed to the user (so logic is not hard-coded)
+input_number:
+  comfort_temp_living:   { name: Comfort setpoint · Living, min: 18, max: 25, step: 0.5, unit_of_measurement: "°C", initial: 21.5 }
+  comfort_temp_bedroom:  { name: Comfort setpoint · Bedroom, min: 16, max: 24, step: 0.5, unit_of_measurement: "°C", initial: 20.5 }
+  eco_setback:           { name: Eco setback ΔT, min: 0, max: 5, step: 0.5, unit_of_measurement: "°C", initial: 1.5 }
+  away_setback:          { name: Away setback ΔT, min: 0, max: 6, step: 0.5, unit_of_measurement: "°C", initial: 3.0 }
+  frost_guard:           { name: Frost-guard / vacation, min: 7, max: 16, step: 0.5, unit_of_measurement: "°C", initial: 12.0 }
+  cooling_changeover:    { name: Changeover · cool above, min: 18, max: 28, step: 0.5, unit_of_measurement: "°C", initial: 22.0 }
+  heating_changeover:    { name: Changeover · heat below, min: 8,  max: 20, step: 0.5, unit_of_measurement: "°C", initial: 15.0 }
+  lux_dark_threshold:    { name: "Lights: dark below (lux)", min: 5, max: 200, step: 5, unit_of_measurement: "lx", initial: 60 }
+  co2_high_threshold:    { name: "CO2 high (ppm)", min: 600, max: 1600, step: 50, unit_of_measurement: "ppm", initial: 1000 }
+  preheat_rate_c_per_h:  { name: Heating rate model (°C/h), min: 0.5, max: 4, step: 0.1, unit_of_measurement: "°C/h", initial: 1.4 }
+  outdoor_temp_sim:      { name: "Outdoor temp (sim, if no weather)", min: -25, max: 40, step: 0.5, unit_of_measurement: "°C", initial: 8.0 }
+
+input_boolean:
+  vacation_presence_sim: { name: Vacation presence simulation, icon: mdi:account-clock }
+  guest_mode:            { name: Guest mode, icon: mdi:account-group }
+  auto_light_enable:     { name: Adaptive lighting enabled, icon: mdi:lightbulb-auto, initial: "on" }
+
+# ---- Schedules (native) — weekday work hours & quiet hours
+schedule:
+  work_week:
+    name: Work week (occupied-expected)
+    monday:    [{ from: "07:00:00", to: "22:30:00" }]
+    tuesday:   [{ from: "07:00:00", to: "22:30:00" }]
+    wednesday: [{ from: "07:00:00", to: "22:30:00" }]
+    thursday:  [{ from: "07:00:00", to: "22:30:00" }]
+    friday:    [{ from: "07:00:00", to: "23:30:00" }]
+    saturday:  [{ from: "08:30:00", to: "23:59:00" }]
+    sunday:    [{ from: "08:30:00", to: "22:30:00" }]
+  quiet_hours:
+    name: Quiet / night hours
+    monday:    [{ from: "23:00:00", to: "06:30:00" }]
+    sunday:    [{ from: "23:00:00", to: "06:30:00" }]
+
+# ---- Per-zone occupancy hold timers (armed by motion, read by occupancy sensor)
+timer:
+  occ_living:    { name: Occupancy hold · Living, duration: "00:15:00", restore: true }
+  occ_bedroom:   { name: Occupancy hold · Bedroom, duration: "00:20:00", restore: true }
+  occ_corridor:  { name: Occupancy hold · Corridor, duration: "00:03:00", restore: true }
+  occ_staircase: { name: Occupancy hold · Staircase, duration: "00:02:00", restore: true }
+  occ_bath_m:    { name: Occupancy hold · Master bath, duration: "00:10:00", restore: true }
+
+# ---- Energy meters (native utility_meter, multi-cycle + tariffs)
+utility_meter:
+  lighting_daily:    { source: sensor.lighting_energy, cycle: daily }
+  lighting_monthly:  { source: sensor.lighting_energy, cycle: monthly }
+  hvac_daily:        { source: sensor.hvac_energy, cycle: daily }
+  hvac_monthly:      { source: sensor.hvac_energy, cycle: monthly }
+  hvac_seasonal:     { source: sensor.hvac_energy, cycle: quarterly }
+  house_daily:       { source: sensor.house_total_energy, cycle: daily, tariffs: [peak, offpeak] }
+  house_monthly:     { source: sensor.house_total_energy, cycle: monthly, tariffs: [peak, offpeak] }

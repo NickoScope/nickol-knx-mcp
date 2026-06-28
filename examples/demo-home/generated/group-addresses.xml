@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GroupAddress-Export xmlns="http://knx.org/xml/ga-export/01">
+  <GroupRange Name="Central / Scenes" RangeStart="0" RangeEnd="2047">
+    <GroupRange Name="Scenes" RangeStart="0" RangeEnd="255">
+      <GroupAddress Name="Scene All off" Address="0/0/1" DPTs="DPST-18-1" />
+      <GroupAddress Name="Scene Movie" Address="0/0/2" DPTs="DPST-18-1" />
+      <GroupAddress Name="Scene Night" Address="0/0/3" DPTs="DPST-18-1" />
+      <GroupAddress Name="Scene Away" Address="0/0/4" DPTs="DPST-18-1" />
+    </GroupRange>
+    <GroupRange Name="Central functions" RangeStart="256" RangeEnd="511">
+      <GroupAddress Name="All lights off" Address="0/1/1" DPTs="DPST-1-1" />
+      <GroupAddress Name="All blinds down" Address="0/1/2" DPTs="DPST-1-8" />
+    </GroupRange>
+    <GroupRange Name="Fireplace (cmd)" RangeStart="768" RangeEnd="1023">
+      <GroupAddress Name="Living room fireplace on/off" Address="0/3/0" DPTs="DPST-1-1" />
+    </GroupRange>
+    <GroupRange Name="Fireplace (status)" RangeStart="1024" RangeEnd="1279">
+      <GroupAddress Name="Living room fireplace status" Address="0/4/0" DPTs="DPST-1-11" />
+    </GroupRange>
+  </GroupRange>
+  <GroupRange Name="Lighting" RangeStart="2048" RangeEnd="4095">
+    <GroupRange Name="Switch (cmd)" RangeStart="2048" RangeEnd="2303">
+      <GroupAddress Name="Living room ceiling spots switch" Address="1/0/1" DPTs="DPST-1-1" />
+      <GroupAddress Name="Living room cove switch" Address="1/0/2" DPTs="DPST-1-1" />
+      <GroupAddress Name="Living room RGBW accent wall switch" Address="1/0/3" DPTs="DPST-1-1" />
+      <GroupAddress Name="Living room fireplace floor lamp switch" Address="1/0/4" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kitchen main ceiling switch" Address="1/0/10" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kitchen worktop LED switch" Address="1/0/11" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kitchen island pendants switch" Address="1/0/12" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bedroom ceiling switch" Address="1/0/20" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bedroom bedside left switch" Address="1/0/21" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bedroom bedside right switch" Address="1/0/22" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bedroom wardrobe LED switch" Address="1/0/23" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bath ceiling switch" Address="1/0/25" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bath mirror CCT switch" Address="1/0/26" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids room 1 ceiling switch" Address="1/0/30" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids room 1 RGB accent switch" Address="1/0/31" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids bath 1 ceiling switch" Address="1/0/35" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids room 2 ceiling switch" Address="1/0/40" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids room 2 desk light switch" Address="1/0/41" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids bath 2 ceiling switch" Address="1/0/45" DPTs="DPST-1-1" />
+      <GroupAddress Name="Guest WC ceiling switch" Address="1/0/50" DPTs="DPST-1-1" />
+      <GroupAddress Name="Laundry ceiling switch" Address="1/0/55" DPTs="DPST-1-1" />
+      <GroupAddress Name="Corridor GF ceiling switch" Address="1/0/60" DPTs="DPST-1-1" />
+      <GroupAddress Name="Corridor UF ceiling switch" Address="1/0/61" DPTs="DPST-1-1" />
+      <GroupAddress Name="Staircase LED steps switch" Address="1/0/65" DPTs="DPST-1-1" />
+    </GroupRange>
+    <GroupRange Name="Dim relative (cmd)" RangeStart="2304" RangeEnd="2559">
+      <GroupAddress Name="Living room cove dim" Address="1/1/2" DPTs="DPST-3-7" />
+      <GroupAddress Name="Living room RGBW accent wall dim" Address="1/1/3" DPTs="DPST-3-7" />
+      <GroupAddress Name="Kitchen worktop LED dim" Address="1/1/11" DPTs="DPST-3-7" />
+      <GroupAddress Name="Kitchen island pendants dim" Address="1/1/12" DPTs="DPST-3-7" />
+      <GroupAddress Name="Master bedroom ceiling dim" Address="1/1/20" DPTs="DPST-3-7" />
+      <GroupAddress Name="Master bedroom bedside left dim" Address="1/1/21" DPTs="DPST-3-7" />
+      <GroupAddress Name="Master bedroom bedside right dim" Address="1/1/22" DPTs="DPST-3-7" />
+      <GroupAddress Name="Master bath mirror CCT dim" Address="1/1/26" DPTs="DPST-3-7" />
+      <GroupAddress Name="Kids room 1 ceiling dim" Address="1/1/30" DPTs="DPST-3-7" />
+      <GroupAddress Name="Kids room 1 RGB accent dim" Address="1/1/31" DPTs="DPST-3-7" />
+      <GroupAddress Name="Kids room 2 ceiling dim" Address="1/1/40" DPTs="DPST-3-7" />
+      <GroupAddress Name="Staircase LED steps dim" Address="1/1/65" DPTs="DPST-3-7" />
+    </GroupRange>
+    <GroupRange Name="Brightness (cmd)" RangeStart="2560" RangeEnd="2815">
+      <GroupAddress Name="Living room cove brightness" Address="1/2/2" DPTs="DPST-5-1" />
+      <GroupAddress Name="Living room RGBW accent wall brightness" Address="1/2/3" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kitchen worktop LED brightness" Address="1/2/11" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kitchen island pendants brightness" Address="1/2/12" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom ceiling brightness" Address="1/2/20" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom bedside left brightness" Address="1/2/21" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom bedside right brightness" Address="1/2/22" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bath mirror CCT brightness" Address="1/2/26" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 ceiling brightness" Address="1/2/30" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 RGB accent brightness" Address="1/2/31" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 2 ceiling brightness" Address="1/2/40" DPTs="DPST-5-1" />
+      <GroupAddress Name="Staircase LED steps brightness" Address="1/2/65" DPTs="DPST-5-1" />
+    </GroupRange>
+    <GroupRange Name="Colour/CCT (cmd)" RangeStart="2816" RangeEnd="3071">
+      <GroupAddress Name="Living room RGBW accent wall colour" Address="1/3/3" DPTs="DPST-251-600" />
+      <GroupAddress Name="Kitchen worktop LED colour temp" Address="1/3/11" DPTs="DPST-7-600" />
+      <GroupAddress Name="Master bath mirror CCT colour temp" Address="1/3/26" DPTs="DPST-7-600" />
+      <GroupAddress Name="Kids room 1 RGB accent colour" Address="1/3/31" DPTs="DPST-232-600" />
+    </GroupRange>
+    <GroupRange Name="Switch (status)" RangeStart="3072" RangeEnd="3327">
+      <GroupAddress Name="Living room ceiling spots status" Address="1/4/1" DPTs="DPST-1-11" />
+      <GroupAddress Name="Living room cove status" Address="1/4/2" DPTs="DPST-1-11" />
+      <GroupAddress Name="Living room RGBW accent wall status" Address="1/4/3" DPTs="DPST-1-11" />
+      <GroupAddress Name="Living room fireplace floor lamp status" Address="1/4/4" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kitchen main ceiling status" Address="1/4/10" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kitchen worktop LED status" Address="1/4/11" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kitchen island pendants status" Address="1/4/12" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bedroom ceiling status" Address="1/4/20" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bedroom bedside left status" Address="1/4/21" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bedroom bedside right status" Address="1/4/22" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bedroom wardrobe LED status" Address="1/4/23" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bath ceiling status" Address="1/4/25" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bath mirror CCT status" Address="1/4/26" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids room 1 ceiling status" Address="1/4/30" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids room 1 RGB accent status" Address="1/4/31" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids bath 1 ceiling status" Address="1/4/35" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids room 2 ceiling status" Address="1/4/40" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids room 2 desk light status" Address="1/4/41" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids bath 2 ceiling status" Address="1/4/45" DPTs="DPST-1-11" />
+      <GroupAddress Name="Laundry ceiling status" Address="1/4/55" DPTs="DPST-1-11" />
+      <GroupAddress Name="Corridor GF ceiling status" Address="1/4/60" DPTs="DPST-1-11" />
+      <GroupAddress Name="Corridor UF ceiling status" Address="1/4/61" DPTs="DPST-1-11" />
+      <GroupAddress Name="Staircase LED steps status" Address="1/4/65" DPTs="DPST-1-11" />
+    </GroupRange>
+    <GroupRange Name="Brightness (status)" RangeStart="3328" RangeEnd="3583">
+      <GroupAddress Name="Living room cove brightness status" Address="1/5/2" DPTs="DPST-5-1" />
+      <GroupAddress Name="Living room RGBW accent wall brightness status" Address="1/5/3" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kitchen island pendants brightness status" Address="1/5/12" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom ceiling brightness status" Address="1/5/20" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom bedside left brightness status" Address="1/5/21" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom bedside right brightness status" Address="1/5/22" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bath mirror CCT brightness status" Address="1/5/26" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 ceiling brightness status" Address="1/5/30" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 RGB accent brightness status" Address="1/5/31" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 2 ceiling brightness status" Address="1/5/40" DPTs="DPST-5-1" />
+      <GroupAddress Name="Staircase LED steps brightness status" Address="1/5/65" DPTs="DPST-5-1" />
+    </GroupRange>
+    <GroupRange Name="Colour/CCT (status)" RangeStart="3584" RangeEnd="3839">
+      <GroupAddress Name="Living room RGBW accent wall colour status" Address="1/6/3" DPTs="DPST-251-600" />
+      <GroupAddress Name="Kitchen worktop LED colour temp status" Address="1/6/11" DPTs="DPST-7-600" />
+      <GroupAddress Name="Master bath mirror CCT colour temp status" Address="1/6/26" DPTs="DPST-7-600" />
+      <GroupAddress Name="Kids room 1 RGB accent colour status" Address="1/6/31" DPTs="DPST-232-600" />
+    </GroupRange>
+  </GroupRange>
+  <GroupRange Name="Shutters / Blinds" RangeStart="4096" RangeEnd="6143">
+    <GroupRange Name="Up/Down" RangeStart="4096" RangeEnd="4351">
+      <GroupAddress Name="Living room window blind up/down" Address="2/0/1" DPTs="DPST-1-8" />
+      <GroupAddress Name="Living room terrace blind up/down" Address="2/0/2" DPTs="DPST-1-8" />
+      <GroupAddress Name="Master bedroom blind up/down" Address="2/0/10" DPTs="DPST-1-8" />
+      <GroupAddress Name="Kids room 1 blind up/down" Address="2/0/20" DPTs="DPST-1-8" />
+      <GroupAddress Name="Kids room 2 blind up/down" Address="2/0/30" DPTs="DPST-1-8" />
+    </GroupRange>
+    <GroupRange Name="Stop/Step" RangeStart="4352" RangeEnd="4607">
+      <GroupAddress Name="Living room window blind stop" Address="2/1/1" DPTs="DPST-1-10" />
+      <GroupAddress Name="Living room terrace blind stop" Address="2/1/2" DPTs="DPST-1-10" />
+      <GroupAddress Name="Master bedroom blind stop" Address="2/1/10" DPTs="DPST-1-10" />
+      <GroupAddress Name="Kids room 1 blind stop" Address="2/1/20" DPTs="DPST-1-10" />
+      <GroupAddress Name="Kids room 2 blind stop" Address="2/1/30" DPTs="DPST-1-10" />
+    </GroupRange>
+    <GroupRange Name="Position (cmd)" RangeStart="4608" RangeEnd="4863">
+      <GroupAddress Name="Living room window blind position" Address="2/2/1" DPTs="DPST-5-1" />
+      <GroupAddress Name="Living room terrace blind position" Address="2/2/2" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom blind position" Address="2/2/10" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 blind position" Address="2/2/20" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 2 blind position" Address="2/2/30" DPTs="DPST-5-1" />
+    </GroupRange>
+    <GroupRange Name="Slat (cmd)" RangeStart="4864" RangeEnd="5119">
+      <GroupAddress Name="Living room window blind slat" Address="2/3/1" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom blind slat" Address="2/3/10" DPTs="DPST-5-1" />
+    </GroupRange>
+    <GroupRange Name="Position (status)" RangeStart="5376" RangeEnd="5631">
+      <GroupAddress Name="Living room window blind position status" Address="2/5/1" DPTs="DPST-5-1" />
+      <GroupAddress Name="" Address="2/5/2" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom blind position status" Address="2/5/10" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 blind position status" Address="2/5/20" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 2 blind position status" Address="2/5/30" DPTs="DPST-5-1" />
+    </GroupRange>
+    <GroupRange Name="Slat (status)" RangeStart="5632" RangeEnd="5887">
+      <GroupAddress Name="Living room window blind slat status" Address="2/6/1" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom blind slat status" Address="2/6/10" DPTs="DPST-5-1" />
+    </GroupRange>
+  </GroupRange>
+  <GroupRange Name="HVAC (heating + cooling)" RangeStart="6144" RangeEnd="8191">
+    <GroupRange Name="Setpoint (cmd)" RangeStart="6144" RangeEnd="6399">
+      <GroupAddress Name="Living room heating setpoint" Address="3/0/1" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kitchen heating setpoint" Address="3/0/2" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bedroom heating setpoint" Address="3/0/3" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bath heating setpoint" Address="3/0/4" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 1 heating setpoint" Address="3/0/5" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids bath 1 heating setpoint" Address="3/0/6" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 2 heating setpoint" Address="3/0/7" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids bath 2 heating setpoint" Address="3/0/8" DPTs="DPST-9-1" />
+      <GroupAddress Name="Guest WC heating setpoint" Address="3/0/9" DPTs="DPST-9-1" />
+      <GroupAddress Name="Laundry heating setpoint" Address="3/0/10" DPTs="DPST-9-1" />
+      <GroupAddress Name="Corridor GF heating setpoint" Address="3/0/11" DPTs="DPST-9-1" />
+      <GroupAddress Name="Corridor UF heating setpoint" Address="3/0/12" DPTs="DPST-9-1" />
+      <GroupAddress Name="Living room AC setpoint" Address="3/0/21" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kitchen AC setpoint" Address="3/0/22" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bedroom AC setpoint" Address="3/0/23" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 1 AC setpoint" Address="3/0/25" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 2 AC setpoint" Address="3/0/27" DPTs="DPST-9-1" />
+    </GroupRange>
+    <GroupRange Name="Mode (cmd)" RangeStart="6400" RangeEnd="6655">
+      <GroupAddress Name="Living room HVAC mode" Address="3/1/1" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kitchen HVAC mode" Address="3/1/2" DPTs="DPST-20-102" />
+      <GroupAddress Name="Master bedroom HVAC mode" Address="3/1/3" DPTs="DPST-20-102" />
+      <GroupAddress Name="Master bath HVAC mode" Address="3/1/4" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kids room 1 HVAC mode" Address="3/1/5" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kids bath 1 HVAC mode" Address="3/1/6" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kids room 2 HVAC mode" Address="3/1/7" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kids bath 2 HVAC mode" Address="3/1/8" DPTs="DPST-20-102" />
+      <GroupAddress Name="Guest WC HVAC mode" Address="3/1/9" DPTs="DPST-20-102" />
+      <GroupAddress Name="Laundry HVAC mode" Address="3/1/10" DPTs="DPST-20-102" />
+      <GroupAddress Name="Corridor GF HVAC mode" Address="3/1/11" DPTs="DPST-20-102" />
+      <GroupAddress Name="Corridor UF HVAC mode" Address="3/1/12" DPTs="DPST-20-102" />
+      <GroupAddress Name="Living room AC mode" Address="3/1/21" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kitchen AC mode" Address="3/1/22" DPTs="DPST-20-102" />
+      <GroupAddress Name="Master bedroom AC mode" Address="3/1/23" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kids room 1 AC mode" Address="3/1/25" DPTs="DPST-20-102" />
+      <GroupAddress Name="Kids room 2 AC mode" Address="3/1/27" DPTs="DPST-20-102" />
+    </GroupRange>
+    <GroupRange Name="AC On/Off (cmd)" RangeStart="6656" RangeEnd="6911">
+      <GroupAddress Name="Living room AC on/off" Address="3/2/21" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kitchen AC on/off" Address="3/2/22" DPTs="DPST-1-1" />
+      <GroupAddress Name="Master bedroom AC on/off" Address="3/2/23" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids room 1 AC on/off" Address="3/2/25" DPTs="DPST-1-1" />
+      <GroupAddress Name="Kids room 2 AC on/off" Address="3/2/27" DPTs="DPST-1-1" />
+    </GroupRange>
+    <GroupRange Name="AC Fan (cmd)" RangeStart="6912" RangeEnd="7167">
+      <GroupAddress Name="Living room AC fan speed" Address="3/3/21" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kitchen AC fan speed" Address="3/3/22" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom AC fan speed" Address="3/3/23" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 AC fan speed" Address="3/3/25" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 2 AC fan speed" Address="3/3/27" DPTs="DPST-5-1" />
+    </GroupRange>
+    <GroupRange Name="Setpoint (status)" RangeStart="7168" RangeEnd="7423">
+      <GroupAddress Name="Living room heating setpoint status" Address="3/4/1" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kitchen heating setpoint status" Address="3/4/2" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bedroom heating setpoint status" Address="3/4/3" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bath heating setpoint status" Address="3/4/4" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 1 heating setpoint status" Address="3/4/5" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids bath 1 heating setpoint status" Address="3/4/6" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 2 heating setpoint status" Address="3/4/7" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids bath 2 heating setpoint status" Address="3/4/8" DPTs="DPST-9-1" />
+      <GroupAddress Name="Guest WC heating setpoint status" Address="3/4/9" DPTs="DPST-9-1" />
+      <GroupAddress Name="Laundry heating setpoint status" Address="3/4/10" DPTs="DPST-9-1" />
+      <GroupAddress Name="Corridor GF heating setpoint status" Address="3/4/11" DPTs="DPST-9-1" />
+      <GroupAddress Name="Corridor UF heating setpoint status" Address="3/4/12" DPTs="DPST-9-1" />
+      <GroupAddress Name="Living room AC setpoint status" Address="3/4/21" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kitchen AC setpoint status" Address="3/4/22" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bedroom AC setpoint status" Address="3/4/23" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 1 AC setpoint status" Address="3/4/25" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 2 AC setpoint status" Address="3/4/27" DPTs="DPST-9-1" />
+    </GroupRange>
+    <GroupRange Name="AC On/Off (status)" RangeStart="7424" RangeEnd="7679">
+      <GroupAddress Name="Living room AC on/off status" Address="3/5/21" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kitchen AC on/off status" Address="3/5/22" DPTs="DPST-1-11" />
+      <GroupAddress Name="Master bedroom AC on/off status" Address="3/5/23" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids room 1 AC on/off status" Address="3/5/25" DPTs="DPST-1-11" />
+      <GroupAddress Name="Kids room 2 AC on/off status" Address="3/5/27" DPTs="DPST-1-11" />
+    </GroupRange>
+    <GroupRange Name="Floor valve (status)" RangeStart="7680" RangeEnd="7935">
+      <GroupAddress Name="Living room floor valve status" Address="3/6/1" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kitchen floor valve status" Address="3/6/2" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bedroom floor valve status" Address="3/6/3" DPTs="DPST-5-1" />
+      <GroupAddress Name="Master bath floor valve status" Address="3/6/4" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 1 floor valve status" Address="3/6/5" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids bath 1 floor valve status" Address="3/6/6" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids room 2 floor valve status" Address="3/6/7" DPTs="DPST-5-1" />
+      <GroupAddress Name="Kids bath 2 floor valve status" Address="3/6/8" DPTs="DPST-5-1" />
+      <GroupAddress Name="Guest WC floor valve status" Address="3/6/9" DPTs="DPST-5-1" />
+      <GroupAddress Name="Laundry floor valve status" Address="3/6/10" DPTs="DPST-5-1" />
+      <GroupAddress Name="Corridor GF floor valve status" Address="3/6/11" DPTs="DPST-5-1" />
+      <GroupAddress Name="Corridor UF floor valve status" Address="3/6/12" DPTs="DPST-5-1" />
+    </GroupRange>
+  </GroupRange>
+  <GroupRange Name="Sensors" RangeStart="8192" RangeEnd="10239">
+    <GroupRange Name="Temperature" RangeStart="8192" RangeEnd="8447">
+      <GroupAddress Name="Living room temperature" Address="4/0/1" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kitchen temperature" Address="4/0/2" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bedroom temperature" Address="4/0/3" DPTs="DPST-9-1" />
+      <GroupAddress Name="Master bath temperature" Address="4/0/4" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 1 temperature" Address="4/0/5" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids bath 1 temperature" Address="4/0/6" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids room 2 temperature" Address="4/0/7" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kids bath 2 temperature" Address="4/0/8" DPTs="DPST-9-1" />
+      <GroupAddress Name="Kitchen temperature" Address="4/0/22" DPTs="DPST-9-2" />
+    </GroupRange>
+    <GroupRange Name="Humidity" RangeStart="8448" RangeEnd="8703">
+      <GroupAddress Name="Master bath humidity" Address="4/1/4" DPTs="DPST-9-7" />
+      <GroupAddress Name="Kids bath 1 humidity" Address="4/1/6" DPTs="DPST-9-7" />
+      <GroupAddress Name="Kids bath 2 humidity" Address="4/1/8" DPTs="DPST-9-7" />
+      <GroupAddress Name="Guest WC humidity" Address="4/1/9" DPTs="DPST-9-7" />
+      <GroupAddress Name="Laundry humidity" Address="4/1/10" DPTs="DPST-9-7" />
+    </GroupRange>
+    <GroupRange Name="CO2" RangeStart="8704" RangeEnd="8959">
+      <GroupAddress Name="Living room CO2" Address="4/2/1" />
+      <GroupAddress Name="Master bedroom CO2" Address="4/2/3" DPTs="DPST-9-8" />
+      <GroupAddress Name="Kids room 1 CO2" Address="4/2/5" DPTs="DPST-9-8" />
+      <GroupAddress Name="Kids room 2 CO2" Address="4/2/7" DPTs="DPST-9-8" />
+    </GroupRange>
+    <GroupRange Name="Brightness (lux)" RangeStart="8960" RangeEnd="9215">
+      <GroupAddress Name="Living room brightness" Address="4/3/1" DPTs="DPST-9-4" />
+      <GroupAddress Name="Corridor GF brightness" Address="4/3/11" DPTs="DPST-9-4" />
+      <GroupAddress Name="Corridor UF brightness" Address="4/3/12" DPTs="DPST-9-4" />
+      <GroupAddress Name="Staircase brightness" Address="4/3/13" DPTs="DPST-9-4" />
+    </GroupRange>
+    <GroupRange Name="Presence" RangeStart="9216" RangeEnd="9471">
+      <GroupAddress Name="Master bath presence" Address="4/4/4" DPTs="DPST-1-18" />
+      <GroupAddress Name="Kids bath 1 presence" Address="4/4/6" DPTs="DPST-1-18" />
+      <GroupAddress Name="Kids bath 2 presence" Address="4/4/8" DPTs="DPST-1-18" />
+      <GroupAddress Name="Guest WC presence" Address="4/4/9" DPTs="DPST-1-18" />
+      <GroupAddress Name="Laundry presence" Address="4/4/10" DPTs="DPST-1-18" />
+      <GroupAddress Name="Corridor GF presence" Address="4/4/11" DPTs="DPST-1-18" />
+      <GroupAddress Name="Corridor UF presence" Address="4/4/12" DPTs="DPST-1-18" />
+      <GroupAddress Name="Staircase presence" Address="4/4/13" DPTs="DPST-1-18" />
+    </GroupRange>
+    <GroupRange Name="Window/Door" RangeStart="9472" RangeEnd="9727">
+      <GroupAddress Name="Living room window contact" Address="4/5/1" DPTs="DPST-1-19" />
+      <GroupAddress Name="Master bedroom window contact" Address="4/5/3" DPTs="DPST-1-19" />
+    </GroupRange>
+  </GroupRange>
+  <GroupRange Name="Energy" RangeStart="10240" RangeEnd="12287">
+    <GroupRange Name="Active energy" RangeStart="10240" RangeEnd="10495">
+      <GroupAddress Name="House total energy" Address="5/0/0" DPTs="DPST-13-13" />
+      <GroupAddress Name="Lighting energy" Address="5/0/1" DPTs="DPST-13-13" />
+      <GroupAddress Name="HVAC energy" Address="5/0/2" DPTs="DPST-13-13" />
+    </GroupRange>
+    <GroupRange Name="Power" RangeStart="10496" RangeEnd="10751">
+      <GroupAddress Name="House total power" Address="5/1/0" DPTs="DPST-14-56" />
+    </GroupRange>
+  </GroupRange>
+  <GroupRange Name="Diagnostics" RangeStart="12288" RangeEnd="14335">
+    <GroupRange Name="Device online" RangeStart="12288" RangeEnd="12543">
+      <GroupAddress Name="Lighting actuator online" Address="6/0/1" DPTs="DPST-1-11" />
+      <GroupAddress Name="Shutter actuator online" Address="6/0/2" DPTs="DPST-1-11" />
+    </GroupRange>
+    <GroupRange Name="Device fault" RangeStart="12544" RangeEnd="12799">
+      <GroupAddress Name="HVAC controller fault" Address="6/1/1" DPTs="DPST-1-5" />
+    </GroupRange>
+  </GroupRange>
+</GroupAddress-Export>

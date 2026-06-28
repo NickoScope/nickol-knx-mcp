@@ -1,0 +1,204 @@
+# =============================================================================
+# Demo House — Layer 2: CLIMATE ENGINE (the showpiece)
+# KNX climate entities (mapped to demo .knxproj GAs) + a multi-factor target
+# setpoint that depends on: season · daypart · day-type · per-zone occupancy ·
+# home-mode · window contacts · outdoor temp · CO2 · comfort. Plus adaptive
+# pre-heat (rate model) and window/air interlocks. Two zones shown in full;
+# the same pattern repeats for all 13 zones.
+# =============================================================================
+
+knx:
+  climate:
+    - name: "Living room HVAC"
+      temperature_address: "4/0/1"               # current room temp (9.001)
+      target_temperature_address: "3/0/1"        # setpoint command (9.001)
+      target_temperature_state_address: "3/4/1"  # setpoint status
+      operation_mode_address: "3/1/1"            # HVAC mode (20.102)
+      operation_mode_state_address: "3/1/1"
+      command_value_state_address: "3/6/1"       # floor valve % (5.001)
+      min_temp: 12
+      max_temp: 28
+    - name: "Master bedroom HVAC"
+      temperature_address: "4/0/3"
+      target_temperature_address: "3/0/3"
+      target_temperature_state_address: "3/4/3"
+      operation_mode_address: "3/1/3"
+      operation_mode_state_address: "3/1/3"
+      command_value_state_address: "3/6/3"
+      min_temp: 12
+      max_temp: 28
+
+template:
+  # ----------------------------------------------------------------------- #
+  #  THE multi-factor target setpoint. Reads "everything".                  #
+  # ----------------------------------------------------------------------- #
+  - trigger:
+      - platform: state
+        entity_id:
+          - input_select.home_mode
+          - input_select.hvac_season_mode
+          - sensor.daypart
+          - sensor.season
+          - binary_sensor.is_weekend
+          - binary_sensor.living_room_occupied
+          - binary_sensor.living_room_window_contact
+          - sensor.outdoor_temperature
+      - platform: time_pattern
+        minutes: "/5"
+      - platform: homeassistant
+        event: start
+    sensor:
+      - name: Living target setpoint
+        unique_id: living_target_setpoint
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: >
+          {% set comfort = states('input_number.comfort_temp_living') | float(21.5) %}
+          {% set mode    = states('input_select.home_mode') %}
+          {% set hvac    = states('input_select.hvac_season_mode') %}
+          {% set season  = states('sensor.season') %}
+          {% set dp      = states('sensor.daypart') %}
+          {% set weekend = is_state('binary_sensor.is_weekend','on') %}
+          {% set occ     = is_state('binary_sensor.living_room_occupied','on') %}
+          {% set window  = is_state('binary_sensor.living_room_window_contact','on') %}
+          {% set eco     = states('input_number.eco_setback') | float(1.5) %}
+          {% set away    = states('input_number.away_setback') | float(3.0) %}
+          {% set frost   = states('input_number.frost_guard') | float(12.0) %}
+
+          {# --- 1. daypart base profile (heating reference) --- #}
+          {% set prof = {
+              'deep_night': comfort - 3.0, 'dawn': comfort - 1.5, 'morning': comfort,
+              'midday': comfort - 0.5, 'afternoon': comfort - 0.5, 'evening': comfort + 0.5,
+              'dusk': comfort, 'night': comfort - 2.5 } %}
+          {% set t = prof.get(dp, comfort) %}
+
+          {# --- 2. weekend holds morning comfort longer --- #}
+          {% if weekend and dp in ['morning','midday'] %}{% set t = comfort + 0.3 %}{% endif %}
+
+          {# --- 3. occupancy setback --- #}
+          {% if not occ %}{% set t = t - eco %}{% endif %}
+
+          {# --- 4. home-mode overrides --- #}
+          {% if mode == 'Away' %}{% set t = [t - away, 16.5] | max %}
+          {% elif mode == 'Vacation' %}{% set t = frost %}
+          {% elif mode == 'Eco' %}{% set t = t - eco %}
+          {% elif mode == 'Night' %}{% set t = t - 0.5 %}{% endif %}
+
+          {# --- 5. seasonal trim (winter slightly warmer, summer becomes cool target) --- #}
+          {% if season == 'winter' %}{% set t = t + 0.3 %}{% endif %}
+          {% if hvac == 'Cooling' %}{% set t = [comfort + 2.0, 24.0] | max %}{% endif %}
+
+          {# --- 6. window open → suspend (frost guard) --- #}
+          {% if window %}{% set t = frost %}{% endif %}
+
+          {{ [[t, 12.0] | max, 28.0] | min | round(1) }}
+        attributes:
+          basis: "{{ states('sensor.daypart') }} / {{ states('input_select.home_mode') }} / {{ states('sensor.season') }}"
+          cooling: "{{ is_state('input_select.hvac_season_mode','Cooling') }}"
+
+      - name: Bedroom target setpoint
+        unique_id: bedroom_target_setpoint
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: >
+          {% set comfort = states('input_number.comfort_temp_bedroom') | float(20.5) %}
+          {% set mode = states('input_select.home_mode') %}
+          {% set dp   = states('sensor.daypart') %}
+          {% set occ  = is_state('binary_sensor.master_bedroom_occupied','on') %}
+          {% set frost = states('input_number.frost_guard') | float(12.0) %}
+          {# bedrooms: cool for sleep, warm for wake #}
+          {% set prof = { 'deep_night': comfort - 2.0, 'dawn': comfort + 0.5, 'morning': comfort + 0.5,
+                          'night': comfort - 1.5 } %}
+          {% set t = prof.get(dp, comfort - 1.0) %}
+          {% if mode == 'Vacation' %}{% set t = frost %}
+          {% elif mode == 'Away' %}{% set t = comfort - 3.0 %}
+          {% elif mode == 'Night' and occ %}{% set t = comfort - 1.0 %}{% endif %}
+          {{ [[t, 12.0] | max, 26.0] | min | round(1) }}
+
+  # ----------------------------------------------------------------------- #
+  #  Adaptive pre-heat lead time = ΔT / heating-rate, stretched when cold.   #
+  # ----------------------------------------------------------------------- #
+  - sensor:
+      - name: Living preheat minutes
+        unique_id: living_preheat_minutes
+        unit_of_measurement: min
+        icon: mdi:fan-clock
+        state: >
+          {% set cur = states('sensor.living_room_temperature') | float(20) %}
+          {% set tgt = states('sensor.living_target_setpoint') | float(21) %}
+          {% set rate = states('input_number.preheat_rate_c_per_h') | float(1.4) %}
+          {% set outdoor = states('sensor.outdoor_temperature') | float(8) %}
+          {% set delta = [tgt - cur, 0] | max %}
+          {# colder outside ⇒ slower warm-up ⇒ longer lead #}
+          {% set penalty = [1 + (15 - outdoor) / 40, 1] | max %}
+          {{ (delta / rate * 60 * penalty) | round(0) }}
+
+automation:
+  # ---- Push computed setpoint to the KNX climate entity on any change ----
+  - id: climate_apply_living
+    alias: "Climate · apply Living setpoint"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: sensor.living_target_setpoint
+    condition:
+      - condition: template
+        value_template: "{{ states('sensor.living_target_setpoint') | float(0) > 0 }}"
+    action:
+      - service: climate.set_temperature
+        target: { entity_id: climate.living_room_hvac }
+        data:
+          temperature: "{{ states('sensor.living_target_setpoint') | float }}"
+
+  - id: climate_apply_bedroom
+    alias: "Climate · apply Bedroom setpoint"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: sensor.bedroom_target_setpoint
+    action:
+      - service: climate.set_temperature
+        target: { entity_id: climate.master_bedroom_hvac }
+        data:
+          temperature: "{{ states('sensor.bedroom_target_setpoint') | float }}"
+
+  # ---- Window interlock: open window pauses heating immediately ----
+  - id: climate_window_interlock
+    alias: "Climate · window-open interlock"
+    mode: parallel
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.living_room_window_contact
+        to: "on"
+    action:
+      - service: climate.set_temperature
+        target: { entity_id: climate.living_room_hvac }
+        data: { temperature: "{{ states('input_number.frost_guard') | float(12) }}" }
+      - service: notify.persistent_notification
+        data: { message: "Living window open — heating paused." }
+
+  # ---- Adaptive pre-heat: warm up before the work-week window opens ----
+  - id: climate_preheat
+    alias: "Climate · adaptive pre-heat"
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/10"
+    condition:
+      - condition: state
+        entity_id: input_select.hvac_season_mode
+        state: Heating
+      - condition: state
+        entity_id: input_select.home_mode
+        state: [Night, Away]
+      # within the lead window before 07:00 occupancy
+      - condition: template
+        value_template: >
+          {% set lead = states('sensor.living_preheat_minutes') | float(0) %}
+          {% set wake = today_at('07:00') %}
+          {% set start = wake - timedelta(minutes=lead) %}
+          {{ start <= now() < wake and lead > 0 }}
+    action:
+      - service: climate.set_temperature
+        target: { entity_id: climate.living_room_hvac }
+        data: { temperature: "{{ states('input_number.comfort_temp_living') | float(21.5) }}" }

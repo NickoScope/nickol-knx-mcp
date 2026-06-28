@@ -1,0 +1,165 @@
+# =============================================================================
+# Demo House — Layer 1: the home-mode state machine (the "brain stem")
+# Everything downstream (climate, light, stats) reads input_select.home_mode.
+# Transitions are driven by presence + schedule + time + CO2 + manual.
+# =============================================================================
+
+# Aggregate presence: any motion/presence GA in the house (native group)
+binary_sensor:
+  - platform: group
+    name: Anyone present
+    device_class: occupancy
+    entities:
+      - binary_sensor.corridor_gf_presence
+      - binary_sensor.corridor_uf_presence
+      - binary_sensor.staircase_presence
+      - binary_sensor.master_bath_presence
+      - binary_sensor.kids_bath_1_presence
+      - binary_sensor.kids_bath_2_presence
+      - binary_sensor.guest_wc_presence
+      - binary_sensor.laundry_presence
+
+automation:
+  # ---- HOME → AWAY : no presence for 20 min (unless on vacation) ----
+  - id: mode_to_away
+    alias: "Mode · go Away when empty"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.anyone_present
+        to: "off"
+        for: "00:20:00"
+    condition:
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: input_select.home_mode
+            state: [Away, Vacation]
+    action:
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: Away }
+
+  # ---- AWAY/ECO → HOME : presence returns ----
+  - id: mode_to_home
+    alias: "Mode · return Home on presence"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.anyone_present
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_select.home_mode
+        state: [Away, Eco]
+    action:
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: "{{ 'Guest' if is_state('input_boolean.guest_mode','on') else 'Home' }}" }
+
+  # ---- HOME → NIGHT : quiet hours begin and we are home ----
+  - id: mode_to_night
+    alias: "Mode · go Night at quiet hours"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: schedule.quiet_hours
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_select.home_mode
+        state: [Home, Guest, Eco]
+    action:
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: Night }
+
+  # ---- NIGHT → HOME : morning wake (work-week window opens + movement) ----
+  - id: mode_night_to_home
+    alias: "Mode · wake from Night"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: schedule.work_week
+        to: "on"
+      - platform: state
+        entity_id: binary_sensor.corridor_uf_presence
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_select.home_mode
+        state: Night
+      - condition: time
+        after: "05:30:00"
+    action:
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: Home }
+
+  # ---- → ECO : sustained high CO2 while present (air-quality driven) ----
+  - id: mode_to_eco_air
+    alias: "Mode · Eco on poor air"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.co2_high
+        to: "on"
+        for: "00:15:00"
+    condition:
+      - condition: state
+        entity_id: input_select.home_mode
+        state: Home
+    action:
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: Eco }
+      - service: notify.persistent_notification
+        data:
+          title: Air quality
+          message: "CO₂ high — switched to Eco; consider ventilating."
+
+  # ---- VACATION mirror from boolean ----
+  - id: mode_vacation_sync
+    alias: "Mode · Vacation from toggle"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_boolean.vacation_presence_sim
+        to: "on"
+    action:
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: Vacation }
+
+  # ---- SEASON CHANGEOVER : decide heat vs cool by season + outdoor temp ----
+  - id: hvac_changeover
+    alias: "HVAC · seasonal heat/cool changeover"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: [sensor.season, sensor.outdoor_temperature]
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/30"
+    action:
+      - variables:
+          season: "{{ states('sensor.season') }}"
+          outdoor: "{{ states('sensor.outdoor_temperature') | float(10) }}"
+          cool_above: "{{ states('input_number.cooling_changeover') | float(22) }}"
+          heat_below: "{{ states('input_number.heating_changeover') | float(15) }}"
+      - choose:
+          - conditions: "{{ season == 'winter' or outdoor < heat_below }}"
+            sequence:
+              - service: input_select.select_option
+                target: { entity_id: input_select.hvac_season_mode }
+                data: { option: Heating }
+          - conditions: "{{ season == 'summer' or outdoor > cool_above }}"
+            sequence:
+              - service: input_select.select_option
+                target: { entity_id: input_select.hvac_season_mode }
+                data: { option: Cooling }
+        default:
+          - service: input_select.select_option
+            target: { entity_id: input_select.hvac_season_mode }
+            data: { option: Off }

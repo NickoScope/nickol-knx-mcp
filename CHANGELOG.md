@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `examples/demo-home/` — a complete synthetic worked example: a 239-GA / 47-Function demo
+  `.knxproj`, the tool's generated report + Home Assistant entities + ETS export, and a
+  `ha-brain/` Home Assistant smart layer (circadian lighting, multi-factor climate, presence/
+  season/time logic, statistics). Includes 5 deliberate mistakes to show the checks (and an
+  honest note on the one the missing-status check doesn't yet catch).
+
 ## [0.1.2] — 2026-06-28
 
 **Home Assistant mapping quality** — a second hardening pass driven by running the tool

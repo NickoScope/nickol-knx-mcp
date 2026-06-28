@@ -1,0 +1,180 @@
+# =============================================================================
+# Demo House — Layer 0b: context / "senses"
+# Trigger-based template sensors for genuinely multi-factor derived context,
+# plus native integrations (statistics / derivative / trend / threshold) where
+# a built-in does the job better than a template.
+# =============================================================================
+
+template:
+  # -------- SEASON (meteorological, by month) --------
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time
+        at: "00:05:00"
+      - platform: time_pattern
+        hours: "/6"
+    sensor:
+      - name: Season
+        unique_id: demo_season
+        icon: mdi:sun-snowflake
+        state: >
+          {% set m = now().month %}
+          {% if m in [12,1,2] %}winter
+          {% elif m in [3,4,5] %}spring
+          {% elif m in [6,7,8] %}summer
+          {% else %}autumn{% endif %}
+
+  # -------- DAYPART (sun elevation + clock, 8 phases) --------
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id: sun.sun
+      - platform: time_pattern
+        minutes: "/10"
+    sensor:
+      - name: Daypart
+        unique_id: demo_daypart
+        icon: mdi:theme-light-dark
+        state: >
+          {% set elev = state_attr('sun.sun','elevation') | float(0) %}
+          {% set rising = is_state('sun.sun','above_horizon') and (state_attr('sun.sun','rising') | default(false)) %}
+          {% set h = now().hour %}
+          {% if h < 5 %}deep_night
+          {% elif elev < -6 and h < 12 %}dawn
+          {% elif elev < 6 and rising %}morning
+          {% elif elev >= 30 %}midday
+          {% elif elev >= 6 %}afternoon
+          {% elif elev >= -6 and not rising %}dusk
+          {% elif h < 23 %}evening
+          {% else %}night{% endif %}
+
+  # -------- DAY TYPE --------
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time
+        at: "00:01:00"
+      - platform: time_pattern
+        hours: "/3"
+    binary_sensor:
+      - name: Is weekend
+        unique_id: demo_is_weekend
+        state: "{{ now().weekday() >= 5 }}"
+
+  # -------- OUTDOOR TEMPERATURE (real weather if present, else sim knob) --------
+  - sensor:
+      - name: Outdoor temperature
+        unique_id: demo_outdoor_temp
+        device_class: temperature
+        unit_of_measurement: "°C"
+        state: >
+          {% set w = state_attr('weather.forecast_home','temperature') %}
+          {{ w if w is not none else states('input_number.outdoor_temp_sim') }}
+        availability: "{{ states('input_number.outdoor_temp_sim') not in ['unknown','unavailable'] }}"
+
+  # -------- PER-ZONE OCCUPANCY (presence + motion-hold timer + mode) --------
+  # Where the demo has a presence GA we trust it; elsewhere we infer from the
+  # hold timer (armed by motion automations in 40_lighting_engine).
+  - binary_sensor:
+      - name: Living room occupied
+        unique_id: occ_living
+        device_class: occupancy
+        delay_off: "00:10:00"
+        state: >
+          {{ is_state('input_select.home_mode','Home')
+             and (is_state('timer.occ_living','active')
+                  or is_state('binary_sensor.corridor_gf_presence','on')
+                  or states('sensor.daypart') in ['evening','dusk']) }}
+      - name: Master bedroom occupied
+        unique_id: occ_bedroom
+        device_class: occupancy
+        delay_off: "00:15:00"
+        state: >
+          {{ is_state('timer.occ_bedroom','active')
+             or (is_state('input_select.home_mode','Night')
+                 and is_state('binary_sensor.corridor_uf_presence','off')) }}
+      - name: Master bath occupied
+        unique_id: occ_bath_m
+        device_class: occupancy
+        delay_off: "00:03:00"
+        state: "{{ is_state('binary_sensor.master_bath_presence','on') or is_state('timer.occ_bath_m','active') }}"
+
+  # -------- COMFORT INDEX per room (temp + humidity + CO2 → 0..100) --------
+  - trigger:
+      - platform: state
+        entity_id:
+          - sensor.living_room_temperature
+          - sensor.master_bath_humidity
+          - sensor.master_bedroom_co2
+      - platform: time_pattern
+        minutes: "/5"
+    sensor:
+      - name: Living room comfort index
+        unique_id: comfort_living
+        unit_of_measurement: "%"
+        icon: mdi:emoticon-happy-outline
+        state: >
+          {% set t = states('sensor.living_room_temperature') | float(21) %}
+          {% set rh = states('sensor.master_bath_humidity') | float(45) %}
+          {% set co2 = states('sensor.master_bedroom_co2') | float(600) %}
+          {# penalise deviation from 22°C / 45% RH / 600 ppm #}
+          {% set pt = 100 - (((t - 22) | abs) * 9) %}
+          {% set ph = 100 - (((rh - 45) | abs) * 1.5) %}
+          {% set pc = 100 - ([co2 - 600, 0] | max) / 12 %}
+          {{ [[ (pt*0.5 + ph*0.2 + pc*0.3), 0] | max, 100] | min | round(0) }}
+        attributes:
+          temperature: "{{ states('sensor.living_room_temperature') }}"
+          co2: "{{ states('sensor.master_bedroom_co2') }}"
+
+# -------- NATIVE integrations (better than templates here) --------
+sensor:
+  # rolling 24h climate statistics
+  - platform: statistics
+    name: Living temp 24h
+    entity_id: sensor.living_room_temperature
+    state_characteristic: mean
+    max_age: { hours: 24 }
+  - platform: statistics
+    name: Bedroom CO2 peak 24h
+    entity_id: sensor.master_bedroom_co2
+    state_characteristic: value_max
+    max_age: { hours: 24 }
+  # temperature rate-of-change → drives adaptive pre-heat
+  - platform: derivative
+    name: Living temp slope
+    source: sensor.living_room_temperature
+    unit_time: h
+    time_window: "00:30:00"
+  # average house temperature across zones
+  - platform: min_max
+    name: House mean temperature
+    type: mean
+    entity_ids:
+      - sensor.living_room_temperature
+      - sensor.master_bedroom_temperature
+      - sensor.kids_room_1_temperature
+      - sensor.kids_room_2_temperature
+
+binary_sensor:
+  # CO2 rising fast (ventilation hint)
+  - platform: trend
+    sensors:
+      bedroom_co2_rising:
+        entity_id: sensor.master_bedroom_co2
+        sample_duration: 900
+        max_samples: 10
+        min_gradient: 0.15
+        device_class: problem
+
+# threshold helpers (built-in hysteresis)
+threshold:
+  - name: CO2 high
+    entity_id: sensor.master_bedroom_co2
+    upper: 1000
+    hysteresis: 75
+  - name: Living too dark
+    entity_id: sensor.living_room_brightness
+    lower: 60
+    hysteresis: 15

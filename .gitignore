@@ -22,6 +22,8 @@ knx-workspace/
 *.knxproj
 *.knxkeys
 *.keyring
+# ...except the curated synthetic demo (no real topology / no secrets)
+!examples/demo-home/demo-home.knxproj
 
 # OS / editors
 .DS_Store

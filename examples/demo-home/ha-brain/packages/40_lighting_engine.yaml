@@ -1,0 +1,255 @@
+# =============================================================================
+# Demo House — Layer 3: LIGHTING ENGINE
+# Circadian (human-centric) brightness + colour temperature, adaptive motion/
+# presence lighting (only when dark / allowed by mode), scene orchestration and
+# vacation presence simulation. Uses color_temp_kelvin (mireds removed in 2026.3).
+# =============================================================================
+
+template:
+  - trigger:
+      - platform: state
+        entity_id: [sun.sun, sensor.daypart, input_select.home_mode]
+      - platform: time_pattern
+        minutes: "/10"
+      - platform: homeassistant
+        event: start
+    sensor:
+      # Brightness 1..100 %, follows the sun, floors low at night.
+      - name: Circadian brightness
+        unique_id: circadian_brightness
+        unit_of_measurement: "%"
+        icon: mdi:brightness-percent
+        state: >
+          {% set elev = state_attr('sun.sun','elevation') | float(0) %}
+          {% set mode = states('input_select.home_mode') %}
+          {% if mode in ['Night'] %}{{ 8 }}
+          {% elif mode == 'Vacation' %}{{ 0 }}
+          {% else %}
+            {% set b = 100 if elev >= 25 else (40 + elev * 2.4) %}
+            {{ [[b, 12] | max, 100] | min | round(0) }}
+          {% endif %}
+      # Colour temperature: warm at night (2200K) → cool at midday (5000K).
+      - name: Circadian color temp
+        unique_id: circadian_color_temp_kelvin
+        unit_of_measurement: K
+        icon: mdi:temperature-kelvin
+        state: >
+          {% set elev = state_attr('sun.sun','elevation') | float(0) %}
+          {% set dp = states('sensor.daypart') %}
+          {% if dp in ['deep_night','night'] %}{{ 2200 }}
+          {% elif dp in ['evening','dusk'] %}{{ 2700 }}
+          {% else %}{{ [[2700 + elev * 80, 2700] | max, 5000] | min | round(0) }}{% endif %}
+
+script:
+  # Morning ramp: simulate a sunrise on bedroom + corridor over ~10 min.
+  morning_ramp:
+    alias: "Scene · Morning ramp"
+    mode: restart
+    sequence:
+      - repeat:
+          count: 10
+          sequence:
+            - service: light.turn_on
+              target: { entity_id: light.master_bedroom_ceiling }
+              data:
+                brightness_pct: "{{ repeat.index * 10 }}"
+                color_temp_kelvin: "{{ 2200 + repeat.index * 200 }}"
+            - delay: "00:01:00"
+
+  goodnight:
+    alias: "Scene · Goodnight"
+    mode: single
+    sequence:
+      - service: light.turn_off
+        target:
+          entity_id:
+            - light.living_room_cove
+            - light.living_room_rgbw_accent_wall
+            - light.kitchen_island_pendants
+      - service: switch.turn_off
+        target: { entity_id: switch.living_room_ceiling_spots }
+      - delay: "00:00:05"
+      - service: light.turn_on
+        target: { entity_id: light.staircase_led_steps }
+        data: { brightness_pct: 10, color_temp_kelvin: 2200 }
+      - service: input_select.select_option
+        target: { entity_id: input_select.home_mode }
+        data: { option: Night }
+
+  movie_mode:
+    alias: "Scene · Movie (Living)"
+    mode: single
+    sequence:
+      - service: switch.turn_off
+        target: { entity_id: switch.living_room_ceiling_spots }
+      - service: light.turn_on
+        target: { entity_id: light.living_room_cove }
+        data: { brightness_pct: 15, color_temp_kelvin: 2300 }
+      - service: light.turn_on
+        target: { entity_id: light.living_room_rgbw_accent_wall }
+        data: { brightness_pct: 40, rgbw_color: [60, 10, 120, 0] }
+      - service: cover.set_cover_position
+        target: { entity_id: cover.living_room_window_blind }
+        data: { position: 0 }
+
+automation:
+  # ---- Adaptive motion lights (corridors) — only when dark; dim at night ----
+  - id: light_corridor_gf
+    alias: "Light · Corridor GF (motion+adaptive)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.corridor_gf_presence
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.auto_light_enable
+        state: "on"
+      - condition: or
+        conditions:
+          - condition: state
+            entity_id: binary_sensor.living_too_dark
+            state: "on"
+          - condition: state
+            entity_id: input_select.home_mode
+            state: Night
+    action:
+      - service: timer.start
+        target: { entity_id: timer.occ_corridor }
+      - service: switch.turn_on
+        target: { entity_id: switch.corridor_gf_ceiling }
+  - id: light_corridor_gf_off
+    alias: "Light · Corridor GF off after hold"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.occ_corridor }
+    action:
+      - service: switch.turn_off
+        target: { entity_id: switch.corridor_gf_ceiling }
+
+  # ---- Staircase: adaptive dimmable, very dim at night ----
+  - id: light_staircase
+    alias: "Light · Staircase (motion+adaptive)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.staircase_presence
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.auto_light_enable
+        state: "on"
+    action:
+      - service: timer.start
+        target: { entity_id: timer.occ_staircase }
+      - service: light.turn_on
+        target: { entity_id: light.staircase_led_steps }
+        data:
+          brightness_pct: >
+            {{ 8 if is_state('input_select.home_mode','Night')
+               else states('sensor.circadian_brightness') | int(60) }}
+          color_temp_kelvin: "{{ states('sensor.circadian_color_temp_kelvin') | int(2700) }}"
+  - id: light_staircase_off
+    alias: "Light · Staircase off after hold"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.occ_staircase }
+    action:
+      - service: light.turn_off
+        target: { entity_id: light.staircase_led_steps }
+
+  # ---- Master bath: presence light, fan-free, off after hold ----
+  - id: light_bath_master
+    alias: "Light · Master bath (presence)"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.master_bath_presence
+        to: "on"
+    action:
+      - service: timer.start
+        target: { entity_id: timer.occ_bath_m }
+      - service: switch.turn_on
+        target: { entity_id: switch.master_bath_ceiling }
+  - id: light_bath_master_off
+    alias: "Light · Master bath off"
+    mode: single
+    trigger:
+      - platform: event
+        event_type: timer.finished
+        event_data: { entity_id: timer.occ_bath_m }
+    action:
+      - service: switch.turn_off
+        target: { entity_id: switch.master_bath_ceiling }
+
+  # ---- Living room: when occupied in the evening, set cove to circadian ----
+  - id: light_living_circadian
+    alias: "Light · Living circadian when occupied"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.living_room_occupied
+        to: "on"
+      - platform: state
+        entity_id: sensor.circadian_brightness
+    condition:
+      - condition: state
+        entity_id: binary_sensor.living_room_occupied
+        state: "on"
+      - condition: state
+        entity_id: input_select.home_mode
+        state: [Home, Guest]
+      - condition: state
+        entity_id: binary_sensor.living_too_dark
+        state: "on"
+    action:
+      - service: light.turn_on
+        target: { entity_id: light.living_room_cove }
+        data:
+          brightness_pct: "{{ states('sensor.circadian_brightness') | int(60) }}"
+
+  # ---- Whole-home reactions to mode changes ----
+  - id: light_mode_reactions
+    alias: "Light · react to home mode"
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_select.home_mode
+    action:
+      - choose:
+          - conditions: "{{ trigger.to_state.state == 'Away' }}"
+            sequence:
+              - service: light.turn_off
+                target: { entity_id: all }
+              - service: switch.turn_off
+                target: { entity_id: all }
+          - conditions: "{{ trigger.to_state.state == 'Night' }}"
+            sequence:
+              - service: script.goodnight
+
+  # ---- Vacation presence simulation: random rooms on/off in the evening ----
+  - id: light_vacation_sim
+    alias: "Light · Vacation simulation"
+    mode: single
+    trigger:
+      - platform: time_pattern
+        minutes: "/20"
+    condition:
+      - condition: state
+        entity_id: input_select.home_mode
+        state: Vacation
+      - condition: state
+        entity_id: sensor.daypart
+        state: [evening, dusk, night]
+    action:
+      - service: "{{ ['switch.turn_on','switch.turn_off'] | random }}"
+        target:
+          entity_id: >
+            {{ [ 'switch.living_room_ceiling_spots',
+                 'switch.kitchen_main_ceiling',
+                 'light.master_bedroom_ceiling',
+                 'switch.corridor_gf_ceiling' ] | random }}
