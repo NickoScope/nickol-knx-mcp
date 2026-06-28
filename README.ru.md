@@ -9,6 +9,22 @@
 
 ---
 
+<p align="center">
+  <a href="https://nickoscope.github.io/nickol-knx-mcp/">
+    <img src="docs/assets/banner.svg" alt="nickol-knx-mcp — живое интерактивное демо и дашборд" width="100%">
+  </a>
+</p>
+
+<h3 align="center">🎬 <a href="https://nickoscope.github.io/nickol-knx-mcp/">Живое интерактивное демо и дашборд&nbsp;→</a></h3>
+
+> **Новое — целый демо-дом.** В [`examples/demo-home`](examples/demo-home) лежит синтетический проект
+> на **239 GA / 47 Functions**, сгенерированные тулом отчёт + конфиг Home Assistant + ETS-экспорт, и полноценный
+> **«мозг»** умного дома — циркадный свет, **уставка климата из 8 факторов**, машина режимов
+> присутствие/сезон/время и статистика — с **дашбордом на 5 страниц**. Всё на
+> **[живом сайте&nbsp;↗](https://nickoscope.github.io/nickol-knx-mcp/)**.
+
+---
+
 ## 1. Зачем это и где оно в общей схеме
 
 На июнь 2026 готового официального **ETS6 ↔ Claude / MCP** инструмента не существует.

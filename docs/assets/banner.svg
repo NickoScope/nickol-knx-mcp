@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="nickol-knx-mcp — design-time KNX/ETS6 assistant with a live Home Assistant demo dashboard">
+  <defs>
+    <radialGradient id="g1" cx="82%" cy="8%" r="55%">
+      <stop offset="0%" stop-color="#1d3328" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#0d0f12" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="2%" cy="0%" r="50%">
+      <stop offset="0%" stop-color="#16202e" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0d0f12" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7bd88f"/><stop offset="100%" stop-color="#5fd0de"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff8a65"/><stop offset="100%" stop-color="#ffcb7d"/>
+    </linearGradient>
+    <linearGradient id="barb" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#83b9ff"/><stop offset="100%" stop-color="#5fd0de"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="#0d0f12"/>
+  <rect width="1200" height="600" fill="url(#g1)"/>
+  <rect width="1200" height="600" fill="url(#g2)"/>
+  <rect x="0.5" y="0.5" width="1199" height="599" fill="none" stroke="#222831" stroke-width="1"/>
+
+  <!-- ===== LEFT: text ===== -->
+  <g transform="translate(70 92)">
+    <!-- brand dot -->
+    <circle cx="8" cy="-2" r="6" fill="#7bd88f"/>
+    <text x="26" y="4" fill="#8b939e" font-size="20" font-weight="700" letter-spacing="0.5">nickol-knx-mcp</text>
+
+    <text x="0" y="78" fill="#e7eaef" font-size="58" font-weight="800" letter-spacing="-1">The missing</text>
+    <text x="0" y="142" font-size="58" font-weight="800" letter-spacing="-1"><tspan fill="url(#grad)">ETS6 &#8596; Claude</tspan></text>
+    <text x="0" y="206" fill="#e7eaef" font-size="58" font-weight="800" letter-spacing="-1">layer for KNX</text>
+
+    <text x="2" y="258" fill="#9aa0a8" font-size="22">Design-time KNX/ETS6 assistant · an MCP server.</text>
+    <text x="2" y="288" fill="#9aa0a8" font-size="22">Validate, generate Home Assistant + ETS — <tspan fill="#cdd2d8" font-weight="600">no live bus.</tspan></text>
+
+    <!-- stat chips -->
+    <g transform="translate(0 330)" font-size="16" font-weight="700">
+      <g><rect x="0" y="0" width="118" height="40" rx="20" fill="#161a20" stroke="#242a33"/><text x="59" y="26" text-anchor="middle" fill="#7bd88f">239 GA</text></g>
+      <g transform="translate(130 0)"><rect width="150" height="40" rx="20" fill="#161a20" stroke="#242a33"/><text x="75" y="26" text-anchor="middle" fill="#83b9ff">47 Functions</text></g>
+      <g transform="translate(292 0)"><rect width="128" height="40" rx="20" fill="#161a20" stroke="#242a33"/><text x="64" y="26" text-anchor="middle" fill="#ffcb7d">13 zones</text></g>
+    </g>
+
+    <!-- live demo pill -->
+    <g transform="translate(0 398)">
+      <rect width="360" height="46" rx="23" fill="#15241a" stroke="#274d36"/>
+      <circle cx="26" cy="23" r="6" fill="#7bd88f"/>
+      <text x="46" y="29" fill="#bfe9c9" font-size="17" font-weight="700">Live interactive demo &amp; dashboard &#8594;</text>
+    </g>
+    <text x="2" y="470" fill="#5c646e" font-size="15">nickoscope.github.io/nickol-knx-mcp</text>
+  </g>
+
+  <!-- ===== RIGHT: dashboard mock ===== -->
+  <g transform="translate(700 110)">
+    <rect width="430" height="380" rx="18" fill="#111317" stroke="#242a33"/>
+    <!-- bar -->
+    <circle cx="24" cy="30" r="5" fill="#7bd88f"/>
+    <text x="38" y="35" fill="#e7eaef" font-size="15" font-weight="700">Demo House</text>
+    <g font-size="12" fill="#8b939e">
+      <rect x="250" y="20" width="74" height="22" rx="7" fill="#262c34"/><text x="287" y="35" text-anchor="middle" fill="#fff">Overview</text>
+      <text x="345" y="35">Climate</text>
+    </g>
+    <line x1="0" y1="54" x2="430" y2="54" stroke="#242a33"/>
+
+    <!-- badges -->
+    <g transform="translate(18 70)" font-size="12" font-weight="600">
+      <g><rect width="78" height="26" rx="13" fill="#171a1f" stroke="#242a33"/><circle cx="16" cy="13" r="8" fill="#3949ab33"/><text x="46" y="17" text-anchor="middle" fill="#e7eaef">Home</text></g>
+      <g transform="translate(86 0)"><rect width="78" height="26" rx="13" fill="#171a1f" stroke="#242a33"/><circle cx="16" cy="13" r="8" fill="#4fc3f733"/><text x="47" y="17" text-anchor="middle" fill="#e7eaef">Winter</text></g>
+      <g transform="translate(172 0)"><rect width="86" height="26" rx="13" fill="#171a1f" stroke="#242a33"/><circle cx="16" cy="13" r="8" fill="#ffb74d33"/><text x="51" y="17" text-anchor="middle" fill="#e7eaef">Morning</text></g>
+      <g transform="translate(266 0)"><rect width="66" height="26" rx="13" fill="#171a1f" stroke="#242a33"/><circle cx="16" cy="13" r="8" fill="#26c6da33"/><text x="44" y="17" text-anchor="middle" fill="#e7eaef">8°C</text></g>
+    </g>
+
+    <!-- gauge card -->
+    <g transform="translate(18 112)">
+      <rect width="128" height="130" rx="13" fill="#181b21" stroke="#242a33"/>
+      <path d="M24 96 A40 40 0 0 1 104 96" fill="none" stroke="#2a2f37" stroke-width="8" stroke-linecap="round"/>
+      <path d="M24 96 A40 40 0 0 1 96 62" fill="none" stroke="#7bd88f" stroke-width="8" stroke-linecap="round"/>
+      <text x="64" y="86" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">78</text>
+      <text x="64" y="116" text-anchor="middle" fill="#8b939e" font-size="11">Comfort %</text>
+    </g>
+
+    <!-- scenes -->
+    <g transform="translate(158 112)" font-size="12" font-weight="600" fill="#cdd2d8">
+      <g><rect width="118" height="61" rx="13" fill="#181b21" stroke="#242a33"/><text x="59" y="28" text-anchor="middle" font-size="20">&#127916;</text><text x="59" y="48" text-anchor="middle">Movie</text></g>
+      <g transform="translate(130 0)"><rect width="118" height="61" rx="13" fill="#181b21" stroke="#242a33"/><text x="59" y="28" text-anchor="middle" font-size="20">&#127769;</text><text x="59" y="48" text-anchor="middle">Goodnight</text></g>
+      <g transform="translate(0 69)"><rect width="118" height="61" rx="13" fill="#181b21" stroke="#242a33"/><text x="59" y="28" text-anchor="middle" font-size="20">&#127749;</text><text x="59" y="48" text-anchor="middle">Morning</text></g>
+      <g transform="translate(130 69)"><rect width="118" height="61" rx="13" fill="#181b21" stroke="#242a33"/><text x="59" y="28" text-anchor="middle" font-size="20">&#127939;</text><text x="59" y="48" text-anchor="middle">Away</text></g>
+    </g>
+
+    <!-- climate card -->
+    <g transform="translate(18 254)">
+      <rect width="394" height="106" rx="13" fill="#181b21" stroke="#242a33"/>
+      <text x="16" y="28" fill="#e7eaef" font-size="14" font-weight="600">Living room</text>
+      <g transform="translate(300 14)"><rect width="80" height="22" rx="7" fill="#ff8a651a"/><text x="40" y="16" text-anchor="middle" fill="#ff8a65" font-size="11" font-weight="600">Heating</text></g>
+      <text x="16" y="62" fill="#e7eaef" font-size="22" font-weight="700">21.4&#176;<tspan fill="#5c636c" font-weight="400"> &#8594; </tspan><tspan fill="#ffcb7d">21.5&#176;</tspan></text>
+      <rect x="16" y="74" width="362" height="7" rx="3.5" fill="#23262d"/>
+      <rect x="16" y="74" width="253" height="7" rx="3.5" fill="url(#bar)"/>
+      <text x="16" y="98" fill="#8b939e" font-size="11.5">valve 70% · pre-heat 18 min · 8-factor setpoint</text>
+    </g>
+  </g>
+</svg>

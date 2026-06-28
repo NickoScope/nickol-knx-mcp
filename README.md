@@ -8,8 +8,25 @@ It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#-status--call-for-testers)
+[![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen?logo=homeassistant&logoColor=white)](https://nickoscope.github.io/nickol-knx-mcp/)
 
 🇷🇺 **Русская версия:** [README.ru.md](README.ru.md)
+
+---
+
+<p align="center">
+  <a href="https://nickoscope.github.io/nickol-knx-mcp/">
+    <img src="docs/assets/banner.svg" alt="nickol-knx-mcp — live interactive demo and dashboard" width="100%">
+  </a>
+</p>
+
+<h3 align="center">🎬 <a href="https://nickoscope.github.io/nickol-knx-mcp/">Explore the live interactive demo &amp; dashboard&nbsp;→</a></h3>
+
+> **New — a whole demo house.** [`examples/demo-home`](examples/demo-home) ships a synthetic
+> **239-GA / 47-Function** project, the tool's generated report + Home Assistant config + ETS export, and a
+> full smart-home **“brain”** — circadian lighting, an **8-factor climate setpoint**, a presence/season/time
+> state machine and statistics — driving a **5-view dashboard**. See it all on the
+> **[live site&nbsp;↗](https://nickoscope.github.io/nickol-knx-mcp/)**.
 
 ---
 
