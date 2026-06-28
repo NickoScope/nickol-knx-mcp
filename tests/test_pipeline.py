@@ -170,3 +170,31 @@ class _StubProject:
 _pairs = function_status_pairs(_StubProject())
 assert _pairs == {"0/0/1": "0/0/2"}, f"function pairing regression: {_pairs}"
 print("OK: SwitchOnOff <-> InfoOnOff paired via ETS Function role")
+
+# --------------------------------------------------------------------------- #
+# Regression: HA generation must never drop a GA silently ("no silent caps").
+# Every GA is either emitted in an entity or listed in the review.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: HA generation drops nothing silently ===")
+import yaml as _yaml
+_pkg = _yaml.safe_load(ha["yaml"].split("\n\n", 1)[1]) or {}
+_emitted = set()
+for _items in (_pkg.get("knx") or {}).values():
+    for _it in _items:
+        for _k, _v in _it.items():
+            if "address" in _k:
+                _emitted.add(_v)
+_reviewed = {r.get("address") for r in ha["review"]}
+_dropped = set(proj.gas) - _emitted - _reviewed
+assert not _dropped, f"GAs silently dropped from HA: {sorted(_dropped)}"
+print(f"OK: all {len(proj.gas)} GAs accounted for (emitted or in review)")
+
+# --------------------------------------------------------------------------- #
+# Regression: German/directional shutter keywords classify as shutter.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: shutter keyword classification ===")
+from nickol_knx_mcp.project import _refine_category
+for _name in ("Behang D auf/ab", "Lamelle B auf/ab"):
+    _cat = _refine_category(_name, "unknown")
+    assert _cat == "shutter", f"{_name!r} -> {_cat}, expected shutter"
+print("OK: 'Behang/Lamelle auf/ab' classified as shutter")

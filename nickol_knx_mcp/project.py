@@ -31,8 +31,9 @@ COMMAND_KEYWORDS = [
 # e.g. 5.001 = brightness OR shutter position; 1.001 = light OR generic).
 _CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "shutter": ["blind", "shutter", "jalousie", "roll", "rollo", "marqui",
-                "awning", "curtain", "position", "штор", "жалюзи", "рольставн",
-                "ролет", "ролл", "позиц"],
+                "awning", "curtain", "position", "behang", "lamelle",
+                "raffstore", "markise", "auf/ab", "ab/auf", "штор", "жалюзи",
+                "рольставн", "ролет", "ролл", "позиц", "вверх/вниз", "ламел"],
     "lighting": ["light", "lamp", "dimm", "led", "spot", "свет", "лампа",
                  "подсветк", "освещ", "люстра", "диммер"],
     "hvac": ["heat", "cool", "climate", "thermostat", "hvac", "valve", "fan",

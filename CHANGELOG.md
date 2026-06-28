@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- HA generation never drops a group address silently ("no silent caps"): every GA is
+  either emitted as an entity or listed in the `review` output, and the YAML header states
+  how many need manual review.
+- Shutter classification now recognises German/directional names (`Behang`, `Lamelle`,
+  `auf/ab`, `Raffstore`, `Markise`, plus RU equivalents). A shutter-looking command whose
+  DPT lacks a sub-type gets an actionable `shutter_incomplete_dpt` review hint (set 1.008 /
+  1.010 / 5.001 in ETS) instead of vanishing.
 - **ETS Function role pairing (the headline feature) is now actually wired up.**
   command↔status pairs are taken from ETS Function roles (e.g. `SwitchOnOff`↔`InfoOnOff`)
   in `pairing.function_status_pairs()`, used by both `check_missing_status` and the HA
