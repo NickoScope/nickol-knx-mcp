@@ -45,10 +45,15 @@ Inventory: 239 GAs · 47 Functions · 0 errors that block parsing. The HA genera
 
 ## ⚠️ Caveats (please read)
 
-- **Synthetic & generated.** This `.knxproj` was authored programmatically (ETS6 schema
-  `project/22`) — not exported from ETS. It parses cleanly with `xknxproject` (the library this
-  tool uses) and is intended for **tool validation and demonstration**. It has **not** been
-  verified to open in ETS6 itself; a real ETS-authored export is the gold standard for that.
+- **Synthetic & generated — does NOT import into stock ETS.** This `.knxproj` was authored
+  programmatically (ETS6 schema `project/22`) — not exported from ETS. It parses cleanly with
+  `xknxproject` (the library this tool uses) and is intended for **tool validation and
+  demonstration**. A professional KNX engineer confirmed that **ETS rejects it on import**
+  (*"Project file has no valid signature"*) — ETS cryptographically signs its own projects and
+  that signature can't be forged (by design). So: use this file with xknxproject-based tooling.
+  To get a real, ETS-signed project, **import the group-address export** (`generated/group-addresses.xml`)
+  into a fresh ETS project via *Import Group Addresses* and **export** from ETS — that file opens
+  everywhere and is the gold standard.
 - **The flaws are on purpose.** Do not "fix" them — they are the point.
 - **`ha-brain/` is a design demo.** Valid Home Assistant YAML built on best practices, but not
   deployed against a live bus here; entity IDs assume the names `generate_ha_package` produces.
