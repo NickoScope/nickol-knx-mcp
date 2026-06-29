@@ -5,6 +5,8 @@
 **Design-time ассистент KNX/ETS6 в виде MCP-сервера.**
 Читает `.knxproj`, анализирует group addresses / DPT / топологию, генерирует Home Assistant KNX YAML и ETS-импортируемые group-address файлы (XML/CSV), делает человекочитаемые отчёты — **никогда не подключаясь к живой шине KNX.**
 
+[![nickol-knx-mcp MCP server](https://glama.ai/mcp/servers/NickoScope/nickol-knx-mcp/badges/score.svg)](https://glama.ai/mcp/servers/NickoScope/nickol-knx-mcp)
+
 > ⚠️ **Статус: BETA.** Сервис проверен на синтетическом проекте (16 GA) и проходит end-to-end тест, но **на реальных `.knxproj` пока тестировался ограниченно**. Нужны тестировщики — см. [CONTRIBUTING.md](CONTRIBUTING.md).
 >
 > 💬 **[Присоединяйтесь к обсуждению →](https://github.com/NickoScope/nickol-knx-mcp/discussions/1)** — вопросы, идеи, и что инструмент нашёл на вашем проекте.

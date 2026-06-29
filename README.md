@@ -10,6 +10,7 @@ It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates 
 [![Status: beta](https://img.shields.io/badge/status-beta-orange.svg)](#-status--call-for-testers)
 [![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen?logo=homeassistant&logoColor=white)](https://nickoscope.github.io/nickol-knx-mcp/)
 [![Join the discussion](https://img.shields.io/badge/💬_join_the-discussion-8957e5?logo=github&logoColor=white)](https://github.com/NickoScope/nickol-knx-mcp/discussions/1)
+[![nickol-knx-mcp MCP server](https://glama.ai/mcp/servers/NickoScope/nickol-knx-mcp/badges/score.svg)](https://glama.ai/mcp/servers/NickoScope/nickol-knx-mcp)
 
 🇷🇺 **Русская версия:** [README.ru.md](README.ru.md)
 
