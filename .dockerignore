@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+docs
+examples
+tests
+*.knxproj
+*.knxkeys
+__pycache__
+*.egg-info
+.pytest_cache
+.DS_Store
