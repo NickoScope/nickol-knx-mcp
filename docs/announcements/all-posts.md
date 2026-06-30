@@ -1,6 +1,8 @@
 # Launch announcements — ready-to-post (EN + RU)
 
-Repo: https://github.com/NickoScope/nickol-knx-mcp · Site: https://nickoscope.github.io/nickol-knx-mcp/
+Repo: https://github.com/NickoScope/nickol-knx-mcp · Site: https://nickoscope.github.io/nickol-knx-mcp/ · Case study: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.md
+
+**Current: v0.2.0** — adds colour-light (RGBW/RGB/CCT) + `climate` entity assembly and GA-intent noise reduction. Plus a spec-PDF → **96%-match** GA-structure case study. The posts below are updated to lead with those.
 
 Etiquette reminder: disclose you're the author, lead with value, be online to answer for a few hours after posting. Don't cross-post everything in one hour — space it out (home base → targeted forums → Reddit/Discord → social).
 
@@ -53,74 +55,72 @@ MIT · Python 3.10+. Спасибо, что заглянули 🙏
 ## 2) KNX User Forum (knx-user-forum.de) — English section
 
 ### EN
-**Subject:** [Open source] Design-time ETS review + Home Assistant export via an MCP/AI assistant — beta, testers wanted
+**Subject:** [Open source] Design-time KNX/ETS assistant + a spec-PDF → 96%-match GA-structure experiment — beta, testers wanted
 
 Hi all,
 
-I've built an open-source **design-time** assistant for KNX and I'd value this community's critical eye. It's an MCP server that an AI client (Claude) drives, but the important part is what it does to a project file, not the AI:
+I've built an open-source **design-time** assistant for KNX and I'd value this community's critical eye. It's an MCP server an AI client (Claude) drives — but the important part is what it does to a project, not the AI:
 
 - Reads a `.knxproj` **read-only** — **no bus access at all** (no KNX/IP or networking libraries in the dependency tree; it physically cannot reach an installation).
-- Checks **naming**, **DPT consistency**, and **missing status objects**, pairing command↔status primarily from **ETS Function roles**.
-- Generates a **Home Assistant** KNX package and **ETS-importable** GA exports (XML / CSV), plus a Markdown report to review **before** import.
+- Checks **naming**, **DPT consistency** and **missing status objects**; pairs command↔status from **ETS Function roles** (with a name-based fallback for projects that don't use Functions).
+- Classifies **reserve / logic / scratch** group addresses so the report stops "crying wolf" on real installs.
+- Generates a **Home Assistant** package — now assembling **colour lights (RGBW/RGB/CCT)** and **`climate`** entities — plus **ETS-importable** GA exports (XML/CSV) and a Markdown report to review **before** import.
 
-I've hardened it against public ETS 4.2 / 5.0 / 5.5 / 6 test projects (it found and I fixed several real bugs, each now covered by a regression test), and there's a full 239-GA demo project + dashboard so you can see input → output.
+The experiment that surprised me: from a **42-page project spec (PDF) alone**, an AI assistant grounded in the **KNX Association standard** designed the full GA structure; the tool validated it (**0 errors**) and produced the HA package. Versus a professional reference implementation of the same flat: **96% structural match · 10/10 domain taxonomy · 118 byte-identical names · in minutes**. The routine "skeleton" auto-designs to near-pro quality; the project-specific logic stays the engineer's craft.
 
-It is **beta** and I'd genuinely like it tested against real projects. It's read-only and never connects to a bus, so trying it is safe.
+It's **beta** and read-only (safe to try on a real `.knxproj`). Honest, technical feedback — including "this is wrong because…" — is exactly what I'm after.
 
-Repo: https://github.com/NickoScope/nickol-knx-mcp · Demo/screenshots: https://nickoscope.github.io/nickol-knx-mcp/ · MIT.
-
-Honest, technical feedback (including "this is wrong because…") is exactly what I'm after. Thanks!
+Repo: https://github.com/NickoScope/nickol-knx-mcp · Case study: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.md · Demo: https://nickoscope.github.io/nickol-knx-mcp/ · MIT.
 
 *Not affiliated with the KNX Association; KNX/ETS are trademarks of the KNX Association cc.*
 
 ### RU
-**Тема:** [Open source] Design-time проверка ETS + экспорт в Home Assistant через MCP/AI-ассистента — бета, нужны тестировщики
+**Тема:** [Open source] Design-time ассистент KNX/ETS + эксперимент «ТЗ в PDF → GA-структура с 96% совпадения» — бета, нужны тестировщики
 
 Всем привет,
 
-Сделал открытый **design-time** ассистент для KNX и хотел бы критики от сообщества. Это MCP-сервер, которым управляет AI-клиент (Claude), но суть — в том, что он делает с файлом проекта, а не в AI:
+Сделал открытый **design-time** ассистент для KNX и хотел бы критики сообщества. Это MCP-сервер, которым управляет AI-клиент (Claude), но суть — в том, что он делает с проектом, а не в AI:
 
-- Читает `.knxproj` **только на чтение** — **без доступа к шине** (в зависимостях нет KNX/IP и сетевых библиотек; он физически не может достучаться до инсталляции).
-- Проверяет **именование**, **согласованность DPT** и **отсутствующие статусные объекты**, паря команда↔статус прежде всего по ролям **ETS Functions**.
-- Генерирует **Home Assistant** KNX-пакет и **ETS-импортируемые** экспорты GA (XML / CSV) + Markdown-отчёт для ревью **до** импорта.
+- Читает `.knxproj` **только на чтение** — **без доступа к шине** (в зависимостях нет KNX/IP и сетевых библиотек; физически не достучится до инсталляции).
+- Проверяет **именование**, **согласованность DPT** и **отсутствующие статусы**; паря команда↔статус по ролям **ETS Functions** (с откатом на нейминг для проектов без Functions).
+- Классифицирует **резерв / логику / мусор**, чтобы отчёт не «кричал волки» на реальных объектах.
+- Генерирует пакет **Home Assistant** — теперь собирает **цветной свет (RGBW/RGB/CCT)** и сущности **`climate`** — плюс **ETS-импортируемые** экспорты GA (XML/CSV) и Markdown-отчёт для ревью **до** импорта.
 
-Обкатал на публичных проектах ETS 4.2 / 5.0 / 5.5 / 6 (нашёл и поправил несколько реальных багов, на каждый — регресс-тест), есть полный демо-проект из 239 GA + дашборд, чтобы видеть вход → выход.
+Что удивило: **из одного 42-страничного ТЗ (PDF)** AI-ассистент, заземлённый на **стандарт KNX Association**, спроектировал полную GA-структуру; инструмент проверил её (**0 ошибок**) и выдал HA-пакет. В сравнении с профессиональной эталонной реализацией той же квартиры — **96% структурного совпадения · 10/10 доменов · 118 дословных имён · за минуты**. Стандартный «скелет» проектируется автоматически почти на уровне профи; проектная логика остаётся ремеслом инженера.
 
-Это **бета**, и я правда хочу проверки на реальных проектах. Только чтение, к шине не подключается — пробовать безопасно.
+Это **бета**, только чтение (на реальном `.knxproj` пробовать безопасно). Честная техническая критика — в т.ч. «вот тут неправильно, потому что…» — именно то, что нужно.
 
-Репозиторий: https://github.com/NickoScope/nickol-knx-mcp · Демо/скриншоты: https://nickoscope.github.io/nickol-knx-mcp/ · MIT.
-
-Честная техническая критика (в т.ч. «вот тут неправильно, потому что…») — именно то, что нужно. Спасибо!
+Репозиторий: https://github.com/NickoScope/nickol-knx-mcp · Кейс: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.ru.md · Демо: https://nickoscope.github.io/nickol-knx-mcp/ · MIT.
 
 ---
 
 ## 3) Home Assistant Community forum (community.home-assistant.io → Share your Projects)
 
 ### EN
-**Title:** I built an MCP server that turns your KNX/ETS project into a Home Assistant package (open source, read-only)
+**Title:** An MCP server that turns your KNX/ETS project into a Home Assistant package — now with colour lights + climate (open source, read-only)
 
 If you run KNX under Home Assistant, the worst part is the **handoff**: hand-copying hundreds of group addresses into YAML and hoping you didn't miss a status address.
 
-**nickol-knx-mcp** automates that. It's an open-source MCP server that reads your `.knxproj` **read-only** (it has no bus access at all), validates naming/DPT/missing-status, pairs command↔status from your ETS Functions, and **generates the KNX package YAML for you** — with a review report and a `review` list so nothing is dropped silently.
+**nickol-knx-mcp** automates that. It's an open-source MCP server that reads your `.knxproj` **read-only** (no bus access at all), validates naming/DPT/missing-status, pairs command↔status from your ETS Functions, and **generates the KNX package YAML for you** — with a review list so nothing is dropped silently. **v0.2.0** now assembles **colour lights (RGBW/RGB/CCT)** and **`climate`** entities (keys verified against the HA KNX docs), and classifies reserve/logic "noise" so the report stays focused on real devices.
 
-To show the whole stack, there's a demo house with a Home-Assistant **"brain"**: circadian lighting, an 8-factor climate setpoint, a presence/season/time state machine, statistics — driving a 5-view dashboard (real screenshots on the site).
+There's a demo house with a Home-Assistant **"brain"** (circadian lighting, an 8-factor climate setpoint, presence/season/time logic, statistics) driving a 5-view dashboard — real screenshots on the site. And a fun result: from a project **spec PDF alone** it auto-designed a full GA structure that matched a professional reference **96%** (case study linked).
 
 🔗 Demo + dashboard: https://nickoscope.github.io/nickol-knx-mcp/
-💻 Repo (MIT): https://github.com/NickoScope/nickol-knx-mcp
+💻 Repo (MIT): https://github.com/NickoScope/nickol-knx-mcp · 📐 Case study: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.md
 
 It's beta — I'd love folks with real KNX setups to try it and tell me how the generated YAML compares to your hand-written config. Feedback very welcome!
 
 ### RU
-**Заголовок:** Сделал MCP-сервер, который превращает ваш KNX/ETS-проект в пакет Home Assistant (open source, только чтение)
+**Заголовок:** MCP-сервер, который превращает ваш KNX/ETS-проект в пакет Home Assistant — теперь с цветным светом и климатом (open source, только чтение)
 
 Если у вас KNX под Home Assistant, худшее — это **передача проекта**: вручную перебивать сотни групповых адресов в YAML и надеяться, что не пропустил статусный адрес.
 
-**nickol-knx-mcp** это автоматизирует. Это открытый MCP-сервер: читает `.knxproj` **только на чтение** (доступа к шине нет вообще), проверяет именование/DPT/отсутствие статусов, паря команда↔статус по вашим ETS Functions, и **генерирует KNX-пакет YAML за вас** — с отчётом для ревью и списком `review`, чтобы ничего не терялось молча.
+**nickol-knx-mcp** это автоматизирует. Открытый MCP-сервер: читает `.knxproj` **только на чтение** (доступа к шине нет вообще), проверяет именование/DPT/отсутствие статусов, паря команда↔статус по вашим ETS Functions, и **генерирует KNX-пакет YAML за вас** — со списком `review`, чтобы ничего не терялось молча. **v0.2.0** теперь собирает **цветной свет (RGBW/RGB/CCT)** и сущности **`climate`** (ключи сверены по докам HA KNX) и отделяет «шум» (резервы/логику), чтобы отчёт был про реальные устройства.
 
-Чтобы показать весь стек, есть демо-дом с HA-«мозгом»: циркадный свет, уставка климата из 8 факторов, машина состояний присутствие/сезон/время, статистика — и дашборд на 5 экранов (реальные скриншоты на сайте).
+Есть демо-дом с HA-«мозгом» (циркадный свет, уставка климата из 8 факторов, логика присутствие/сезон/время, статистика) и дашборд на 5 экранов — реальные скриншоты на сайте. И любопытный результат: **из одного ТЗ (PDF)** инструмент сам спроектировал полную GA-структуру, совпавшую с профессиональной эталонной на **96%** (кейс по ссылке).
 
 🔗 Демо + дашборд: https://nickoscope.github.io/nickol-knx-mcp/
-💻 Репозиторий (MIT): https://github.com/NickoScope/nickol-knx-mcp
+💻 Репозиторий (MIT): https://github.com/NickoScope/nickol-knx-mcp · 📐 Кейс: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.ru.md
 
 Это бета — буду рад, если люди с реальным KNX попробуют и сравнят сгенерированный YAML со своим ручным конфигом. Обратная связь очень приветствуется!
 
@@ -128,21 +128,39 @@ It's beta — I'd love folks with real KNX setups to try it and tell me how the 
 
 ## 4) Reddit — r/homeassistant (and r/knx)
 
-### EN
-**Title:** I built an open-source AI assistant that reviews your KNX/ETS project and writes your Home Assistant config (read-only, never touches the bus)
+### EN — r/homeassistant
+**Title:** Open-source AI assistant that reviews your KNX/ETS project and writes your Home Assistant config — now does colour lights + climate (read-only, never touches the bus)
 
 Body:
-KNX is the wired backbone a lot of us run under HA, but designing it in ETS and handing it off to Home Assistant is manual and easy to get wrong (missing status objects, inconsistent DPTs, hand-copying GAs).
+KNX is the wired backbone a lot of us run under HA, but handing the ETS project off to Home Assistant is manual and easy to get wrong (missing status objects, inconsistent DPTs, hand-copying GAs).
 
-So I made **nickol-knx-mcp** — an MCP server that reads your `.knxproj` **read-only**, validates it (naming / DPT / command↔status from ETS Functions), and generates a HA KNX package + ETS exports + a review report. It has **zero bus libraries**, so it physically can't touch your installation.
+**nickol-knx-mcp** is an MCP server that reads your `.knxproj` **read-only**, validates it (naming / DPT / command↔status from ETS Functions), and generates a HA KNX package + ETS exports + a review report. It has **zero bus libraries**, so it physically can't touch your installation. v0.2.0 now assembles **colour lights (RGBW/RGB/CCT)** and **`climate`** entities, and filters out reserve/logic "noise" so the report stays useful on real installs.
 
-There's a full demo house with a circadian-lighting / 8-factor-climate "brain" and a 5-view dashboard (real screenshots). I tested it on public ETS4/5/6 fixtures and it found its own bugs (now fixed + regression-tested).
-
-It's beta and I'm looking for people to try it on **real** `.knxproj` files. Read-only, MIT.
+Full demo house with a circadian-lighting / 8-factor-climate "brain" + 5-view dashboard (real screenshots). Beta, looking for people to try it on **real** `.knxproj` files. Read-only, MIT.
 
 🔗 Demo: https://nickoscope.github.io/nickol-knx-mcp/ · Repo: https://github.com/NickoScope/nickol-knx-mcp
 
-*(r/knx variant: drop the HA-handoff emphasis, lead with the ETS validation — "validates naming/DPT/missing-status and pairs command↔status from ETS Functions".)*
+### EN — r/knx (lead with the design result)
+**Title:** [OSS] From a project spec PDF to a 96%-match KNX group-address structure — a design-time ETS assistant
+
+Body:
+I built an open-source **design-time** assistant for KNX (an MCP server, read-only on the `.knxproj`, **no bus access at all**). It validates naming / DPT consistency / missing status, pairs command↔status from **ETS Function roles**, classifies reserve/logic noise, and exports ETS-importable GA XML/CSV + a Home Assistant package.
+
+The result I wanted to share: from a **42-page project spec (PDF) alone**, grounded in the **KNX Association standard**, it auto-designed a full group-address structure — **662 GA, 10 domains, 0 validation errors** — and vs a professional reference of the same flat: **96% structural match, 118 byte-identical names, in minutes**. The standard "skeleton" auto-designs to near-pro quality; the project-specific logic stays the engineer's craft.
+
+Beta, MIT. Case study + repo: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.md · https://github.com/NickoScope/nickol-knx-mcp
+
+### RU
+**Заголовок:** Open-source AI-ассистент, который проверяет ваш KNX/ETS-проект и пишет конфиг Home Assistant — теперь с цветным светом и климатом (только чтение, к шине не подключается)
+
+Текст:
+KNX — проводная основа, которую многие держат под HA, но передавать ETS-проект в Home Assistant — ручная и легко ошибиться (нет статусов, рассогласованные DPT, перебивание GA руками).
+
+**nickol-knx-mcp** — MCP-сервер: читает `.knxproj` **только на чтение**, проверяет (именование / DPT / команда↔статус по ETS Functions) и генерирует HA KNX-пакет + ETS-экспорты + отчёт. **Нет шинных библиотек** — физически не тронет инсталляцию. v0.2.0 собирает **цветной свет (RGBW/RGB/CCT)** и сущности **`climate`**, и отделяет «шум» (резервы/логику).
+
+Есть демо-дом с «мозгом» (циркадный свет, климат из 8 факторов) и дашбордом на 5 экранов (реальные скрины). А ещё: **из одного ТЗ (PDF)** инструмент сам спроектировал GA-структуру, совпавшую с профессиональной эталонной на **96%** (кейс по ссылке). Бета, только чтение, MIT.
+
+🔗 Демо: https://nickoscope.github.io/nickol-knx-mcp/ · Репо: https://github.com/NickoScope/nickol-knx-mcp · 📐 Кейс: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.ru.md
 
 ### RU
 **Заголовок:** Сделал open-source AI-ассистента, который проверяет ваш KNX/ETS-проект и пишет конфиг Home Assistant (только чтение, к шине не подключается)
