@@ -103,9 +103,17 @@ The recommended full setup is four layers; only one needs to be built from scrat
   tokens rather than by middle-group adjacency).
 - **Catches DPT problems**: missing DPT, mismatch between a Communication Object and its GA, and
   the same logical name carrying different DPTs.
-- **Generates Home Assistant KNX YAML** — category by category, conservatively: covers → lights →
-  switches → sensors/binary. Ambiguous items (e.g. DPT 5.001 — brightness vs blind position) are
-  **not guessed**; they go into a `review` list instead.
+- **Classifies GA purpose to cut noise** — every group address is tagged `functional` / `reserve` /
+  `logic` / `scratch`. Intentional non-functional GAs (spare "Reserve" placeholders, internal logic
+  signals, scratch leftovers) are kept out of the error and missing-status checks, so the report
+  doesn't cry wolf on real projects (e.g. a 685-GA Zennio project: false errors 29 → 6).
+- **Generates Home Assistant KNX YAML** — category by category, conservatively: covers →
+  **colour / dimmable lights** → switches → **climate** → sensors/binary. Multi-address entities are
+  **assembled**: lights gather on/off + brightness + **RGBW / RGB / colour-temperature** + their
+  statuses; `climate` entities gather current temp, target-temp status, operation/controller mode and
+  valve command-value (emitted only when the HA-required keys are present, else sent to review).
+  Ambiguous items (e.g. DPT 5.001 — brightness vs blind position) are **not guessed**; they go into a
+  `review` list instead.
 - **Generates ETS-importable** group addresses in **XML** (the recommended `knx.org/xml/ga-export/01`
   schema) and **CSV** (ETS's native layout).
 - **Writes a Markdown report** (inventory + 🔴🟡🔵 findings + HA-mapping preview + next steps) for
