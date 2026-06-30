@@ -79,7 +79,7 @@ The recommended full setup is four layers; only one needs to be built from scrat
 | Layer | Purpose | What to use | Build it? |
 |-------|---------|-------------|-----------|
 | 1. Live | states, control, debugging a running house | **official Home Assistant MCP Server** + KNX (XKNX) integration | No, already exists |
-| 2. **Design-time** | parse `.knxproj`, validate DPT/naming/status, generate HA YAML & ETS XML/CSV | **`nickol-knx-mcp` (this package)** | **YES — this is the gap** |
+| 2. **Design-time** | parse `.knxproj`, validate DPT/naming/status + GA-intent de-noise, generate HA YAML (colour lights + climate assembled) & ETS XML/CSV | **`nickol-knx-mcp` (this package)** | **YES — this is the gap** |
 | 3. Files + Git | YAML/CSV/XML, versioning the address schema | standard filesystem + git MCP servers | No, already exists |
 | 4. Skill | design rules (GA structure, naming, DPT, scenes) | `CLAUDE.md` in this package | No, included |
 
