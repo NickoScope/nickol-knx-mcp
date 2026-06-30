@@ -177,8 +177,8 @@
   </div>
   <div class="grid g3" style="margin-top:18px">
     <div class="card"><h3>🔒 No bus access</h3><p>Zero networking/bus libraries in the dependency tree. <code>bus_access: false</code> — structural, not a promise.</p></div>
-    <div class="card"><h3>🧩 12 MCP tools</h3><p>load · analyze (naming/DPT/status) · generate HA YAML · generate ETS XML/CSV · report. All read-only on your project.</p></div>
-    <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Tested across ETS 4.2 / 5.0 / 5.5 / 6 fixtures.</p></div>
+    <div class="card"><h3>🧩 12 MCP tools</h3><p>load · analyze (naming / DPT / status / GA-intent de-noise) · generate HA YAML (<b>colour lights + climate</b> assembled) · generate ETS XML/CSV · report. All read-only on your project.</p></div>
+    <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Validated on ETS 4.2 / 5.0 / 5.5 / 6 fixtures, a real <b>signed ETS6 round-trip</b>, and a <b>685-GA Zennio</b> project (false errors there: 29 → 6).</p></div>
   </div>
 </div></section>
 
@@ -215,13 +215,14 @@
   <div class="eyebrow">Live in Home Assistant</div>
   <h2>The dashboard</h2>
   <p class="lead">The KNX I/O drives a 5-view Home Assistant dashboard. These are <b>real screenshots from a
-  live Home Assistant</b> running the demo (simulated sensors that drift over time) — note how Summer flipped the
-  whole house to <b>Cooling</b> at 92% comfort. Below them, an interactive preview lets you click through the views.</p>
+  live Home Assistant</b> running the demo (simulated sensors that drift over time) — now showing the
+  <b>assembled colour lights</b> (RGBW / RGB / CCT) and <b>six floor-heating climate zones</b> the tool
+  generates. Below them, an interactive preview lets you click through the views.</p>
 
   <div class="shots">
-    <a class="hero" href="assets/screenshots/overview.png"><img src="assets/screenshots/overview.png" alt="Overview view: home mode, comfort gauge, scenes, climate snapshot" loading="lazy"><span><b>Overview</b> — at a glance · scenes · climate snapshot (Summer · Cooling · 92% comfort)</span></a>
-    <a href="assets/screenshots/climate.png"><img src="assets/screenshots/climate.png" alt="Climate view" loading="lazy"><span><b>Climate</b> — zones &amp; the computed “brain”, targets &amp; valve</span></a>
-    <a href="assets/screenshots/lighting.png"><img src="assets/screenshots/lighting.png" alt="Lighting view" loading="lazy"><span><b>Lighting</b> — circadian 71% @ 3750K · dimmers · blinds 41/59%</span></a>
+    <a class="hero" href="assets/screenshots/overview.png"><img src="assets/screenshots/overview.png" alt="Overview view: home mode, comfort gauge, scenes, climate snapshot" loading="lazy"><span><b>Overview</b> — at a glance · scenes · climate snapshot incl. floor-heating zones</span></a>
+    <a href="assets/screenshots/climate.png"><img src="assets/screenshots/climate.png" alt="Climate view" loading="lazy"><span><b>Climate</b> — 6 floor-heating zones (target · mode · valve %) &amp; the computed “brain”</span></a>
+    <a href="assets/screenshots/lighting.png"><img src="assets/screenshots/lighting.png" alt="Lighting view" loading="lazy"><span><b>Lighting</b> — RGBW / RGB / CCT colour lights · circadian dimmers · blinds</span></a>
     <a href="assets/screenshots/energy.png"><img src="assets/screenshots/energy.png" alt="Energy view" loading="lazy"><span><b>Energy &amp; stats</b> — gauges · runtime · air quality</span></a>
     <a href="assets/screenshots/presence.png"><img src="assets/screenshots/presence.png" alt="Presence view" loading="lazy"><span><b>Presence</b> — mode machine · occupancy · schedules</span></a>
   </div>

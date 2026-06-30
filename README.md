@@ -34,9 +34,9 @@ It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates 
 
 ## 🖥️ The dashboard — live in Home Assistant
 
-Real screenshots from a live Home Assistant running the demo house. Note the brain at work: **Summer**
-flipped the whole house to **Cooling** at **92 % comfort**, lights follow a **circadian** curve (71 % @ 3750 K),
-and the climate setpoints are **computed**, not set by hand.
+Real screenshots from a live Home Assistant running the demo house. They show the tool's assembled
+entities at work: **RGBW / RGB / CCT colour lights**, **six floor-heating climate zones** (target, mode
+and valve %), a **circadian** lighting curve and a **computed** climate setpoint — not set by hand.
 
 <p align="center">
   <img src="docs/assets/screenshots/overview.png" alt="Overview — home mode, comfort gauge, scenes, climate snapshot" width="78%">
