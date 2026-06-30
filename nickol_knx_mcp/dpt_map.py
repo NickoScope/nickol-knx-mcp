@@ -94,7 +94,14 @@ _EXACT: dict[tuple[int, Optional[int]], DptInfo] = {
     (14, 56): {"category": CATEGORY_ENERGY, "kind": KIND_SENSOR, "ha_platform": "sensor", "value_type": "power", "label": "Power (W)"},
     (17, 1): {"category": CATEGORY_SCENE, "kind": KIND_COMMAND, "ha_platform": "scene", "value_type": None, "label": "Scene number"},
     (18, 1): {"category": CATEGORY_SCENE, "kind": KIND_COMMAND, "ha_platform": "scene", "value_type": None, "label": "Scene control"},
-    (20, 102): {"category": CATEGORY_HVAC, "kind": KIND_COMMAND, "ha_platform": "climate", "value_type": None, "label": "HVAC mode"},
+    (20, 102): {"category": CATEGORY_HVAC, "kind": KIND_COMMAND, "ha_platform": "climate", "value_type": None, "label": "HVAC operation mode (comfort/standby/economy/frost)"},
+    (20, 105): {"category": CATEGORY_HVAC, "kind": KIND_COMMAND, "ha_platform": "climate", "value_type": None, "label": "HVAC controller mode (auto/heat/cool)"},
+    (1, 100): {"category": CATEGORY_HVAC, "kind": KIND_COMMAND, "ha_platform": "climate", "value_type": None, "label": "Heat/Cool"},
+    # Colour control — assembled into a light entity by the HA generator.
+    (7, 600): {"category": CATEGORY_LIGHTING, "kind": KIND_COMMAND, "ha_platform": "light", "value_type": None, "label": "Colour temperature (absolute K)"},
+    (232, 600): {"category": CATEGORY_LIGHTING, "kind": KIND_COMMAND, "ha_platform": "light", "value_type": None, "label": "RGB colour"},
+    (242, 600): {"category": CATEGORY_LIGHTING, "kind": KIND_COMMAND, "ha_platform": "light", "value_type": None, "label": "xyY colour"},
+    (251, 600): {"category": CATEGORY_LIGHTING, "kind": KIND_COMMAND, "ha_platform": "light", "value_type": None, "label": "RGBW colour"},
 }
 
 # Whole-main-group fallbacks when an exact (main, sub) is not known.

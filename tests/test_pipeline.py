@@ -313,3 +313,73 @@ assert "9/2/0" not in _msD, "scratch GA wrongly flagged missing_status"
 # the real functional switch with no status IS still flagged
 assert "1/0/0" in _msD, "real functional command lost its missing-status warning!"
 print("OK: reserve/logic/scratch de-noised; real DPT + status problems preserved")
+
+# --------------------------------------------------------------------------- #
+# Regression (Track A): colour light assembly + B1 (no borrowed brightness_state)
+# + climate assembly. Patterns from the real signed demo / Minsk projects.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: colour light + B1 status borrow + climate (Track A) ===")
+
+# -- A-colour: dimmable RGBW + colour-temperature light assembles fully --------
+_rawC = {"group_addresses": {
+    "1/0/3": ga("1/0/3", "Living RGBW accent on/off", 1, 1),
+    "1/4/3": ga("1/4/3", "Living RGBW accent status", 1, 11),
+    "1/2/3": ga("1/2/3", "Living RGBW accent brightness", 5, 1),
+    "1/5/3": ga("1/5/3", "Living RGBW accent brightness status", 5, 1),
+    "1/3/3": ga("1/3/3", "Living RGBW accent colour", 251, 600),
+    "1/6/3": ga("1/6/3", "Living RGBW accent colour status", 251, 600),
+    "1/3/9": ga("1/3/9", "Living RGBW accent colour temperature", 7, 600),
+}}
+_pC = build_loaded_from_raw(_rawC, "mem")
+_haC = generate_ha_yaml(_pC)
+_lC = _yaml.safe_load(_haC["yaml"].split("\n\n", 1)[1])["knx"]["light"]
+assert len(_lC) == 1, f"expected 1 colour light, got {_lC}"
+_e = _lC[0]
+for _k in ("address", "state_address", "brightness_address", "brightness_state_address",
+           "rgbw_address", "rgbw_state_address", "color_temperature_address"):
+    assert _k in _e, f"colour light missing {_k}: {_e}"
+assert _e["rgbw_address"] == "1/3/3" and _e["rgbw_state_address"] == "1/6/3", _e
+assert _e["color_temperature_mode"] == "absolute", _e
+print("OK: RGBW + colour-temp assembled into one light entity")
+
+# -- B1: a light with no own brightness status must NOT borrow a sibling's -----
+_rawB = {"group_addresses": {
+    "1/2/11": ga("1/2/11", "Kitchen worktop LED brightness", 5, 1),   # no own status
+    "1/2/12": ga("1/2/12", "Kitchen island pendants brightness", 5, 1),
+    "1/5/12": ga("1/5/12", "Kitchen island pendants brightness status", 5, 1),
+}}
+_pB = build_loaded_from_raw(_rawB, "mem")
+_lB = _yaml.safe_load(generate_ha_yaml(_pB)["yaml"].split("\n\n", 1)[1])["knx"]["light"]
+_byname = {l["name"]: l for l in _lB}
+_worktop = _byname["Kitchen worktop LED brightness"]
+_island = _byname["Kitchen island pendants brightness"]
+assert "brightness_state_address" not in _worktop, \
+    f"B1 regression: worktop borrowed a status: {_worktop}"
+assert _island.get("brightness_state_address") == "1/5/12", _island
+print("OK: B1 — worktop took no status; island kept its own (no cross-borrow)")
+
+# -- A-climate: thermostat zone assembles; a mode-only zone goes to review -----
+_rawT = {"group_addresses": {
+    # full zone -> valid climate
+    "3/0/1": ga("3/0/1", "Living floor temperature", 9, 1),
+    "3/1/1": ga("3/1/1", "Living floor target temperature", 9, 1),
+    "3/2/1": ga("3/2/1", "Living floor target temperature status", 9, 1),
+    "3/3/1": ga("3/3/1", "Living floor HVAC mode", 20, 102),
+    "3/4/1": ga("3/4/1", "Living floor HVAC mode status", 20, 102),
+    "3/6/1": ga("3/6/1", "Living floor valve status", 5, 1),
+    # mode-only zone -> review, never an invalid entity
+    "3/3/2": ga("3/3/2", "Garage HVAC mode", 20, 102),
+}}
+_pT = build_loaded_from_raw(_rawT, "mem")
+_haT = generate_ha_yaml(_pT)
+_cT = _yaml.safe_load(_haT["yaml"].split("\n\n", 1)[1])["knx"].get("climate", [])
+assert len(_cT) == 1, f"expected 1 climate, got {_cT}"
+_cl = _cT[0]
+assert _cl["temperature_address"] == "3/0/1"
+assert _cl["target_temperature_state_address"] == "3/2/1"
+assert _cl["operation_mode_address"] == "3/3/1"
+assert _cl["operation_mode_state_address"] == "3/4/1"
+assert _cl["command_value_state_address"] == "3/6/1"
+assert any(r["reason"] == "manual_climate" and r["address"] == "3/3/2" for r in _haT["review"]), \
+    "mode-only zone should go to review, not emit an invalid climate"
+print("OK: full zone -> valid climate; mode-only zone -> review")

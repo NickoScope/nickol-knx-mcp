@@ -66,6 +66,9 @@ _FUNC_WORDS = {
     "state", "status", "stat", "fb", "feedback", "rm", "pct", "percent",
     "up", "down", "move", "stop", "step", "pos", "position", "set", "control",
     "schalt", "schalten", "steuer", "wert", "helligkeit", "rueck", "rück", "soll",
+    # colour function words: ignored so a colour GA pairs to its zone's light
+    "colour", "color", "rgb", "rgbw", "rgbww", "hue", "saturation", "sat",
+    "white", "warm", "cct", "kelvin", "temp", "temperature", "xyy", "farbe",
 }
 
 
@@ -73,6 +76,45 @@ def _pair_ident(name: str) -> set:
     """Device/zone identity tokens for command<->status pairing."""
     return {t for t in base_tokens(name)
             if t not in _FUNC_WORDS and not t.endswith("%")}
+
+
+def _identity_match(a_name: str, b_name: str) -> bool:
+    """True when two names share the SAME device/zone identity.
+
+    One identity must contain the other — a single shared zone token (e.g.
+    "kitchen") is NOT enough. This stops a command from borrowing a sibling's
+    status when it has none of its own (bug B1: "worktop LED" must not grab
+    "island pendants" status just because both are "kitchen")."""
+    a, b = _pair_ident(a_name), _pair_ident(b_name)
+    if not a or not b:
+        return False
+    return a <= b or b <= a
+
+
+# Colour command DPT -> (HA address key, HA state-address key).
+_COLOUR_DPT: dict[tuple[int, int], tuple[str, str]] = {
+    (232, 600): ("color_address", "color_state_address"),       # RGB
+    (251, 600): ("rgbw_address", "rgbw_state_address"),          # RGBW
+    (242, 600): ("xyy_address", "xyy_state_address"),            # xyY
+}
+
+# Words marking a target/setpoint temperature (vs the current room temperature).
+_TARGET_WORDS = ("target", "setpoint", "soll", "sollwert", "уставк", "задан",
+                 "целев", "зад.", "устав")
+
+# HVAC function qualifiers stripped from a climate anchor's name to leave only
+# the zone/location tokens — climate members (current temp, target, mode, valve)
+# share the LOCATION, not the full identity, so they are gathered by location.
+_CLIMATE_QUALIFIERS = {
+    "hvac", "mode", "controller", "operation", "heat", "cool", "heating",
+    "cooling", "climate", "thermostat", "ac", "тп", "режим", "отопл", "климат",
+    "термостат", "конвектор", "тёплый", "теплый", "пол",
+}
+
+
+def _has(name: str, words) -> bool:
+    low = name.lower()
+    return any(w in low for w in words)
 
 
 def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
@@ -100,17 +142,21 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             return project.gas[paired]
         cid = _pair_ident(cmd.name)
         if not cid:
-            cands = [s for s in status_gas if s.dpt_main == want_main]
+            cands = [s for s in status_gas
+                     if s.dpt_main == want_main and s.address not in consumed]
             same_main = [s for s in cands if s.main == cmd.main]
             return find_status(cmd, same_main) or find_status(cmd, cands)
         best, best_score = None, 0
         for s in status_gas:
             if s.dpt_main != want_main or s.address == cmd.address:
                 continue
-            overlap = len(cid & _pair_ident(s.name))
-            if not overlap:
+            if s.address in consumed:   # a status maps to exactly one entity
                 continue
-            score = overlap + (2 if s.main == cmd.main else 0)
+            # B1: require a full identity match, not just a shared zone token,
+            # so a command never borrows a sibling's status.
+            if not _identity_match(cmd.name, s.name):
+                continue
+            score = len(cid & _pair_ident(s.name)) + (2 if s.main == cmd.main else 0)
             if score > best_score:
                 best, best_score = s, score
         return best
@@ -118,11 +164,40 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     def same_main_gas(cmd: GARecord):
         return [g for g in project.gas.values() if g.main == cmd.main]
 
+    def attach_colour(entity: dict, ref: GARecord) -> None:
+        """Attach RGB / RGBW / xyY / colour-temperature GAs (and their statuses)
+        of the same zone identity to a light entity."""
+        for sib in same_main_gas(ref):
+            if sib.address in consumed or sib.kind != "command":
+                continue
+            if not _identity_match(ref.name, sib.name):
+                continue
+            key = (sib.dpt_main, sib.dpt_sub)
+            if key in _COLOUR_DPT:
+                a_key, s_key = _COLOUR_DPT[key]
+                if a_key in entity:
+                    continue
+                entity[a_key] = sib.address
+                consumed.add(sib.address)
+                cst = status_for_dpt(sib, sib.dpt_main)
+                if cst:
+                    entity[s_key] = cst.address
+                    consumed.add(cst.address)
+            elif key == (7, 600) and "color_temperature_address" not in entity:
+                entity["color_temperature_address"] = sib.address
+                entity["color_temperature_mode"] = "absolute"
+                consumed.add(sib.address)
+                cst = status_for_dpt(sib, 7)
+                if cst:
+                    entity["color_temperature_state_address"] = cst.address
+                    consumed.add(cst.address)
+
     switches: list[dict] = []
     binary_sensors: list[dict] = []
     sensors: list[dict] = []
     lights: list[dict] = []
     covers: list[dict] = []
+    climates: list[dict] = []
     review: list[dict[str, Any]] = []
     consumed: set[str] = set()
 
@@ -184,7 +259,7 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                 if sib.address in consumed:
                     continue
                 if sib.category == "lighting" and sib.dpt_main == 1 and sib.kind == "command" \
-                        and (_pair_ident(ga.name) & _pair_ident(sib.name)):
+                        and _identity_match(ga.name, sib.name):
                     entity["address"] = sib.address
                     s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
                     if s1:
@@ -192,8 +267,36 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                         consumed.add(s1.address)
                     consumed.add(sib.address)
                     break
+            attach_colour(entity, ga)   # RGB/RGBW/xyY/colour-temp of this zone
             lights.append(entity)
             consumed.add(ga.address)
+
+    # ---- 2b. Colour lights that have no separate 5.001 brightness channel ----
+    for ga in project.gas.values():
+        if ga.address in consumed:
+            continue
+        if ga.category != "lighting" or ga.kind != "command":
+            continue
+        if (ga.dpt_main, ga.dpt_sub) not in _COLOUR_DPT and (ga.dpt_main, ga.dpt_sub) != (7, 600):
+            continue
+        onoff = next((s for s in same_main_gas(ga)
+                      if s.address not in consumed and s.dpt_main == 1 and s.dpt_sub == 1
+                      and s.kind == "command" and _identity_match(ga.name, s.name)), None)
+        if onoff is None:
+            review.append({"reason": "color_light_without_switch", "address": ga.address,
+                           "name": ga.name, "dpt": ga.dpt,
+                           "hint": "Colour GA with no on/off switch in its zone — attach it "
+                                   "to a light's color/rgbw address manually."})
+            consumed.add(ga.address)
+            continue
+        entity = {"name": ga.name, "address": onoff.address}
+        s1 = status_for_dpt(onoff, 1)
+        if s1:
+            entity["state_address"] = s1.address
+            consumed.add(s1.address)
+        consumed.add(onoff.address)
+        attach_colour(entity, ga)
+        lights.append(entity)
 
     # ---- 3. SWITCHES (1.001 command) ----
     for ga in project.gas.values():
@@ -215,6 +318,70 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                                "address": ga.address, "name": ga.name})
             switches.append(entity)
             consumed.add(ga.address)
+
+    # ---- 3b. CLIMATE — anchored on an HVAC mode (DPT 20.102/20.105). Zone
+    # members are matched project-wide by identity (the current temperature often
+    # lives in a different main group than the mode). Emitted only when the HA-
+    # required minimum is present (current temp + target-temp status); otherwise
+    # the zone goes to review so we never write an invalid climate entity. ----
+    built_climate: list[set] = []
+    for ga in project.gas.values():
+        if ga.address in consumed:
+            continue
+        if ga.category != "hvac" or ga.kind != "command" or ga.dpt_main != 20:
+            continue
+        zone_loc = _pair_ident(ga.name) - _CLIMATE_QUALIFIERS
+        if zone_loc and any(zone_loc == d for d in built_climate):
+            continue  # this zone already produced a climate entity
+        zone = [g for g in project.gas.values()
+                if g.address not in consumed and zone_loc and zone_loc <= _pair_ident(g.name)]
+
+        def _pick(pred):
+            return next((g for g in zone if pred(g)), None)
+
+        # Temperature GAs must be DPT 9.001 specifically — DPT main 9 also covers
+        # humidity (9.007), CO2 (9.008), lux (9.004); never treat those as a setpoint.
+        cur = _pick(lambda g: (g.dpt_main, g.dpt_sub) == (9, 1) and g.kind == "sensor"
+                    and not _has(g.name, _TARGET_WORDS))
+        tgt_state = _pick(lambda g: (g.dpt_main, g.dpt_sub) == (9, 1) and _is_status_ga(g)
+                          and _has(g.name, _TARGET_WORDS))
+        tgt_cmd = _pick(lambda g: (g.dpt_main, g.dpt_sub) == (9, 1) and not _is_status_ga(g)
+                        and _has(g.name, _TARGET_WORDS))
+        op_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 102 and g.kind == "command")
+        op_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 102 and _is_status_ga(g))
+        ctrl_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and g.kind == "command")
+        ctrl_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and _is_status_ga(g))
+        valve = _pick(lambda g: g.dpt_main == 5 and _is_status_ga(g))
+
+        if not (cur and tgt_state):
+            review.append({"reason": "manual_climate", "address": ga.address,
+                           "name": ga.name, "dpt": ga.dpt,
+                           "hint": "HVAC mode found, but no clean current-temp + target-temp-"
+                                   "status pair in this zone — map the climate entity manually."})
+            consumed.add(ga.address)
+            continue
+
+        ent = {"name": ga.name,
+               "temperature_address": cur.address,
+               "target_temperature_state_address": tgt_state.address}
+        if tgt_cmd:
+            ent["target_temperature_address"] = tgt_cmd.address
+        if op_cmd:
+            ent["operation_mode_address"] = op_cmd.address
+        if op_state:
+            ent["operation_mode_state_address"] = op_state.address
+        if ctrl_cmd:
+            ent["controller_mode_address"] = ctrl_cmd.address
+        if ctrl_state:
+            ent["controller_mode_state_address"] = ctrl_state.address
+        if valve:
+            ent["command_value_state_address"] = valve.address
+        for m in (cur, tgt_state, tgt_cmd, op_cmd, op_state, ctrl_cmd, ctrl_state, valve):
+            if m:
+                consumed.add(m.address)
+        climates.append(ent)
+        if zone_loc:
+            built_climate.append(zone_loc)
 
     # ---- 4. SENSORS / BINARY SENSORS (read-only) ----
     for ga in project.gas.values():
@@ -273,6 +440,8 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         knx["light"] = lights
     if covers:
         knx["cover"] = covers
+    if climates:
+        knx["climate"] = climates
     if binary_sensors:
         knx["binary_sensor"] = binary_sensors
     if sensors:
@@ -290,6 +459,7 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     )
     counts = {
         "switch": len(switches), "light": len(lights), "cover": len(covers),
+        "climate": len(climates),
         "binary_sensor": len(binary_sensors), "sensor": len(sensors),
         "review": len(review),
     }

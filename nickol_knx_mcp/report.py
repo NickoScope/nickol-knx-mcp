@@ -97,6 +97,7 @@ def build_report(project: LoadedProject,
     md.append(
         f"Entities that can be generated now: switch **{c['switch']}**, "
         f"light **{c['light']}**, cover **{c['cover']}**, "
+        f"climate **{c.get('climate', 0)}**, "
         f"binary_sensor **{c['binary_sensor']}**, sensor **{c['sensor']}**.\n"
     )
     if ha["review"]:

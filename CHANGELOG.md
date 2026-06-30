@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Colour lights, climate entities and a status-pairing fix** (Track A), driven by the real
+  signed demo and a 685-GA Zennio project.
+  - **Colour control** is assembled into the `light` entity: RGB (DPT 232.600 →
+    `color_address`), RGBW (251.600 → `rgbw_address`), xyY (242.600 → `xyy_address`) and
+    absolute colour-temperature (7.600 → `color_temperature_address` + `color_temperature_mode`),
+    each with its status, matched to the zone's light by identity. A colour GA with no on/off
+    in its zone is routed to review instead of dropped.
+  - **Climate** entities are now generated: anchored on an HVAC mode (DPT 20.102/20.105), the
+    zone's current temperature (9.001), target-temperature status, operation/controller modes
+    and valve `command_value_state` are gathered by location and emitted **only** when the HA-
+    required minimum (`temperature_address` + `target_temperature_state_address`) is present —
+    otherwise the zone goes to review, so an invalid climate entity is never written. Keys
+    verified against the Home Assistant KNX docs. (Real files: demo 6, Zennio 7 climate zones.)
+  - **B1 fix — no borrowed status.** A command now only takes a status whose identity nests
+    with its own (a shared zone token like "kitchen" is not enough), and a status maps to
+    exactly one entity. This stopped "worktop LED" inheriting "island pendants" brightness and
+    removed all shared-status addresses on the real files.
+  - New DPTs: 232.600 / 251.600 / 242.600 / 7.600 (colour), 20.105 (controller mode), 1.100
+    (heat/cool). New regression tests cover colour assembly, the B1 borrow guard and climate
+    (valid zone emitted, mode-only zone reviewed).
 - **GA-intent classification — noise reduction on real projects** (`intent.py`). Every group
   address is now classified as `functional` / `reserve` / `logic` / `scratch`. Intentional
   non-functional GAs no longer "cry wolf": reserve spares with no DPT become an INFO note
