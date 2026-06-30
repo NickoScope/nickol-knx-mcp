@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GA-intent classification — noise reduction on real projects** (`intent.py`). Every group
+  address is now classified as `functional` / `reserve` / `logic` / `scratch`. Intentional
+  non-functional GAs no longer "cry wolf": reserve spares with no DPT become an INFO note
+  (`reserve_without_dpt`) instead of a 🔴 error; reserve names repeated across different DPTs
+  are not flagged `duplicate_name` / `inconsistent_dpt`; internal logic / virtual signals and
+  scratch leftovers are excluded from missing-status warnings. The `dpt_mismatch_co` check and
+  every real functional finding are untouched. Driven by a real 685-GA Zennio project where
+  this cut false errors **29 → 6** and missing-status noise **79 → 45** while preserving all
+  12 real `dpt_mismatch_co` catches. `list_group_addresses`, the report inventory and the
+  `analyze_all` summary now expose the intent breakdown. New regression test covers the
+  reserve / logic / scratch patterns (and proves real DPT + status problems still surface).
 - `docs/` — a self-contained GitHub Pages landing site (project overview, two-layer
   architecture, demo-house stats, an interactive 5-tab dashboard preview, the HA "brain",
   and a call for testers).

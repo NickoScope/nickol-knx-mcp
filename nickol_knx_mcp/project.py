@@ -15,6 +15,7 @@ from xknxproject import XKNXProj
 from xknxproject.models import KNXProject
 
 from .dpt_map import classify_dpt, dpt_key
+from .intent import classify_intent, INTENT_FUNCTIONAL
 
 
 # Multilingual keyword sets (EN / DE / RU) used by the heuristic fallbacks.
@@ -71,6 +72,10 @@ class GARecord:
     ha_platform: str
     value_type: Optional[str]
     label: str
+    # Purpose of the GA: functional / reserve / logic / scratch. Non-functional
+    # GAs are intentional noise (spares, internal logic, leftovers) and the
+    # checks reclassify them instead of raising false errors/warnings.
+    intent: str = INTENT_FUNCTIONAL
     # 3-level decomposition
     main: Optional[int] = None
     middle: Optional[int] = None
@@ -203,6 +208,7 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
             ha_platform=ha_platform,
             value_type=info["value_type"],
             label=info["label"],
+            intent=classify_intent(ga.get("name", "")),
             main=m, middle=mid, sub=s,
             main_name=range_names.get(str(m), "") if m is not None else "",
             middle_name=range_names.get(f"{m}/{mid}", "") if m is not None and mid is not None else "",

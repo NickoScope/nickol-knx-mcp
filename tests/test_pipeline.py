@@ -250,3 +250,66 @@ _covers7 = _pkg7.get("cover", [])
 assert len(_covers7) == 1 and _covers7[0].get("move_short_address") == "2/0/1", _covers7
 assert any(r["reason"] == "manual_datetime" for r in _ha7["review"]), "datetime not routed to review"
 print("OK: full light entity (no dup switch); 1.001/1.017 cover; datetime -> review")
+
+# --------------------------------------------------------------------------- #
+# Regression (Track D): GA-intent classification removes real-project NOISE.
+# Patterns taken verbatim from the real Minsk (Zennio) project, where reserve
+# spares + internal logic GAs produced ~29 false errors and dozens of false
+# missing-status warnings. Non-functional GAs must be reclassified, while a real
+# functional problem must STILL be flagged (no over-suppression).
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: GA-intent noise reduction (reserve / logic / scratch) ===")
+from nickol_knx_mcp.intent import (
+    classify_intent, INTENT_RESERVE, INTENT_LOGIC, INTENT_SCRATCH, INTENT_FUNCTIONAL,
+)
+
+# Direct classifier checks on real names.
+assert classify_intent("Резерв") == INTENT_RESERVE
+assert classify_intent("РЕЗЕРВ") == INTENT_RESERVE
+assert classify_intent("Промежуточный результат логики индикации") == INTENT_LOGIC
+assert classify_intent("Метеостанция - Запрос температуры") == INTENT_LOGIC
+assert classify_intent("суммарный сигнал включения групп света") == INTENT_LOGIC
+assert classify_intent("1") == INTENT_SCRATCH
+assert classify_intent("Новый групповой адрес") == INTENT_SCRATCH
+assert classify_intent("Kitchen ceiling light switch") == INTENT_FUNCTIONAL
+
+_rawD = {"group_addresses": {
+    # reserve spares: no DPT (intentional) + same name, different DPTs
+    "0/1/8": ga("0/1/8", "Резерв", None, None),
+    "1/2/49": ga("1/2/49", "Резерв", 5, 1),
+    "1/2/50": ga("1/2/50", "Резерв", 1, 3),
+    # internal logic command with no status (should NOT be flagged)
+    "1/1/7": ga("1/1/7", "Промежуточный результат логики индикации", 1, 1),
+    "8/0/18": ga("8/0/18", "Метеостанция - Запрос температуры", 1, 17),
+    # scratch leftover
+    "9/2/0": ga("9/2/0", "1", 1, 1),
+    # a REAL functional problem that must survive: missing DPT + missing status
+    "3/1/21": ga("3/1/21", "07. Спальня - выход Д СО - порог 2", None, None),
+    "1/0/0": ga("1/0/0", "Kitchen ceiling light switch", 1, 1),
+}}
+_pD = build_loaded_from_raw(_rawD, "mem")
+assert _pD.gas["0/1/8"].intent == INTENT_RESERVE
+assert _pD.gas["1/1/7"].intent == INTENT_LOGIC
+
+_dptD = detect_dpt_issues(_pD)
+_codes = {(f["code"], f["address"]) for f in _dptD}
+# reserve with no DPT -> INFO reserve_without_dpt, NOT a missing_dpt error
+assert ("reserve_without_dpt", "0/1/8") in _codes, _codes
+assert ("missing_dpt", "0/1/8") not in _codes, "reserve wrongly raised a DPT error"
+# functional missing DPT still a real error
+assert ("missing_dpt", "3/1/21") in _codes, "real missing DPT was suppressed!"
+# "Резерв" reused with different DPTs is NOT an inconsistency
+assert not any(f["code"] == "inconsistent_dpt" for f in _dptD), "reserve flagged inconsistent_dpt"
+
+_naflD = validate_naming(_pD)
+# reserve dupes + scratch short name must not raise naming warnings
+assert not any(f["code"] == "duplicate_name" for f in _naflD), "reserve flagged duplicate_name"
+assert not any(f["code"] == "name_too_short" for f in _naflD), "scratch '1' flagged name_too_short"
+
+_msD = {f["address"] for f in detect_missing_status(_pD)}
+assert "1/1/7" not in _msD, "logic GA wrongly flagged missing_status"
+assert "8/0/18" not in _msD, "weather request wrongly flagged missing_status"
+assert "9/2/0" not in _msD, "scratch GA wrongly flagged missing_status"
+# the real functional switch with no status IS still flagged
+assert "1/0/0" in _msD, "real functional command lost its missing-status warning!"
+print("OK: reserve/logic/scratch de-noised; real DPT + status problems preserved")

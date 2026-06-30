@@ -103,7 +103,7 @@ def list_group_addresses(category: Optional[str] = None,
             continue
         out.append({
             "address": ga.address, "name": ga.name, "dpt": ga.dpt,
-            "category": ga.category, "kind": ga.kind,
+            "category": ga.category, "kind": ga.kind, "intent": ga.intent,
             "ha_platform": ga.ha_platform, "secure": ga.data_secure,
             "description": ga.description,
         })

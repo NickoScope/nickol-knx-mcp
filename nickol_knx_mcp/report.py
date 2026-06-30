@@ -43,8 +43,10 @@ def build_report(project: LoadedProject,
 
     cat_counts = Counter(ga.category for ga in gas.values())
     kind_counts = Counter(ga.kind for ga in gas.values())
+    intent_counts = Counter(ga.intent for ga in gas.values())
     no_dpt = sum(1 for ga in gas.values() if ga.dpt_main is None)
     secure = sum(1 for ga in gas.values() if ga.data_secure)
+    non_functional = sum(v for k, v in intent_counts.items() if k != "functional")
 
     all_findings = naming + status + dpts
     sev_counts = Counter(f["severity"] for f in all_findings)
@@ -71,6 +73,14 @@ def build_report(project: LoadedProject,
               ", ".join(f"{k}={v}" for k, v in sorted(cat_counts.items())) + "\n")
     md.append("**By kind:** " +
               ", ".join(f"{k}={v}" for k, v in sorted(kind_counts.items())) + "\n")
+    if non_functional:
+        md.append(
+            "**By purpose:** " +
+            ", ".join(f"{k}={v}" for k, v in sorted(intent_counts.items())) +
+            f" — {non_functional} non-functional GA(s) (reserve / logic / scratch) "
+            "are excluded from error and missing-status checks to keep the report "
+            "focused on real device addresses.\n"
+        )
 
     md.append("\n## 2. Findings\n")
     md.append(
@@ -112,6 +122,7 @@ def build_report(project: LoadedProject,
         "warnings": sev_counts.get("warning", 0),
         "info": sev_counts.get("info", 0),
         "missing_status": len(status),
+        "intent": dict(intent_counts),
         "ha_entities": {k: v for k, v in c.items() if k != "review"},
         "ha_review": c["review"],
     }

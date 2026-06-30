@@ -16,6 +16,7 @@ from typing import Any, Optional
 
 from .project import LoadedProject, GARecord, STATUS_KEYWORDS
 from .pairing import find_status, function_status_pairs
+from .intent import INTENT_FUNCTIONAL, INTENT_RESERVE, INTENT_SCRATCH
 
 SEVERITY_ERROR = "error"
 SEVERITY_WARN = "warning"
@@ -56,6 +57,12 @@ def validate_naming(project: LoadedProject,
                 SEVERITY_ERROR, "empty_name", addr,
                 "Group address has no name.",
             ))
+            continue
+
+        # Reserve / logic / scratch GAs are intentional placeholders — short
+        # names, repeated "Резерв", non-conventional names are expected, so they
+        # must not raise naming warnings (that is the noise we are removing).
+        if ga.intent != INTENT_FUNCTIONAL:
             continue
 
         seen_names[name.lower()].append(addr)
@@ -180,6 +187,8 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
     for addr, ga in project.gas.items():
         if addr in covered:
             continue
+        if ga.intent != INTENT_FUNCTIONAL:
+            continue  # reserve / logic / scratch GAs need no status by design
         if ga.kind != "command":
             continue
         if ga.dpt_main is None:
@@ -207,12 +216,22 @@ def detect_dpt_issues(project: LoadedProject) -> list[dict[str, Any]]:
     # 1. missing DPT
     for addr, ga in project.gas.items():
         if ga.dpt_main is None:
-            findings.append(_finding(
-                SEVERITY_ERROR, "missing_dpt", addr,
-                f"'{ga.name}' has no DPT assigned. Home Assistant requires a DPT "
-                "to decode this group address.",
-                name=ga.name,
-            ))
+            # A reserve / scratch GA with no DPT is intentional (a spare), so it
+            # is an INFO note, not a 🔴 error that blocks the project.
+            if ga.intent in (INTENT_RESERVE, INTENT_SCRATCH):
+                findings.append(_finding(
+                    SEVERITY_INFO, "reserve_without_dpt", addr,
+                    f"'{ga.name}' is a {ga.intent} placeholder with no DPT — "
+                    "intentional, assign a DPT only when you start using it.",
+                    name=ga.name, intent=ga.intent,
+                ))
+            else:
+                findings.append(_finding(
+                    SEVERITY_ERROR, "missing_dpt", addr,
+                    f"'{ga.name}' has no DPT assigned. Home Assistant requires a DPT "
+                    "to decode this group address.",
+                    name=ga.name,
+                ))
 
     # 2. CO <-> GA dpt mismatch
     cos = project.raw.get("communication_objects", {})
@@ -242,6 +261,10 @@ def detect_dpt_issues(project: LoadedProject) -> list[dict[str, Any]]:
         if ga.name.strip():
             by_name[ga.name.strip().lower()].append(ga)
     for low, recs in by_name.items():
+        # Reserve / logic / scratch GAs intentionally share a generic name
+        # ("Резерв") across different DPTs — not an inconsistency.
+        if recs[0].intent != INTENT_FUNCTIONAL:
+            continue
         dpts = {r.dpt for r in recs if r.dpt}
         if len(dpts) > 1:
             findings.append(_finding(
