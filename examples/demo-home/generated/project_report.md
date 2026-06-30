@@ -1,6 +1,6 @@
 # KNX Project Report — Nikolay Demo House
 
-- **Source:** `demo-home.knxproj`
+- **Source:** `examples/demo-home/demo-home.knxproj`
 - **GA style:** ThreeLevel
 - **ETS tool version:** 6.1.5686.0  (xknxproject 3.9.0)
 - **Last modified:** 2026-06-28T10:00:00Z
@@ -15,9 +15,9 @@
 - KNX Data Secure GAs: **0**
 
 
-**By category:** diagnostics=10, energy=2, hvac=77, lighting=100, scene=4, sensor=15, shutter=26, unknown=5
+**By category:** diagnostics=10, energy=2, hvac=77, lighting=106, scene=4, sensor=13, shutter=26, unknown=1
 
-**By kind:** command=100, sensor=55, status=81, unknown=3
+**By kind:** command=104, sensor=53, status=81, unknown=1
 
 
 ## 2. Findings
@@ -51,10 +51,10 @@ Totals: 🔴 errors **2**, 🟡 warnings **10**, 🔵 info **0**
 
 ## 3. Home Assistant mapping preview
 
-Entities that can be generated now: switch **19**, light **13**, cover **6**, binary_sensor **13**, sensor **63**.
+Entities that can be generated now: switch **19**, light **13**, cover **6**, climate **6**, binary_sensor **13**, sensor **41**.
 
 
-**Needs manual review (65):**
+**Needs manual review (50):**
 
 - `0/1/2` All blinds down — verify_cover_mapping
 - `2/0/1` Living room window blind up/down — verify_cover_mapping
@@ -63,26 +63,17 @@ Entities that can be generated now: switch **19**, light **13**, cover **6**, bi
 - `2/0/20` Kids room 1 blind up/down — verify_cover_mapping
 - `2/0/30` Kids room 2 blind up/down — verify_cover_mapping
 - `0/1/1` All lights off — switch_without_status
-- `0/0/1` Scene All off — manual_scene
-- `0/0/2` Scene Movie — manual_scene
-- `0/0/3` Scene Night — manual_scene
-- `0/0/4` Scene Away — manual_scene
-- `1/3/3` Living room RGBW accent wall colour — unmapped_dpt
-- `1/3/31` Kids room 1 RGB accent colour — unmapped_dpt
-- `1/6/3` Living room RGBW accent wall colour status — unmapped_dpt
-- `1/6/31` Kids room 1 RGB accent colour status — unmapped_dpt
-- `3/1/1` Living room HVAC mode — manual_climate
-- `3/1/2` Kitchen HVAC mode — manual_climate
-- `3/1/3` Master bedroom HVAC mode — manual_climate
-- `3/1/4` Master bath HVAC mode — manual_climate
-- `3/1/5` Kids room 1 HVAC mode — manual_climate
-- `3/1/6` Kids bath 1 HVAC mode — manual_climate
-- `3/1/7` Kids room 2 HVAC mode — manual_climate
-- `3/1/8` Kids bath 2 HVAC mode — manual_climate
+- `1/0/50` Guest WC ceiling switch — switch_without_status
 - `3/1/9` Guest WC HVAC mode — manual_climate
 - `3/1/10` Laundry HVAC mode — manual_climate
 - `3/1/11` Corridor GF HVAC mode — manual_climate
 - `3/1/12` Corridor UF HVAC mode — manual_climate
+- `0/0/1` Scene All off — manual_scene
+- `0/0/2` Scene Movie — manual_scene
+- `0/0/3` Scene Night — manual_scene
+- `0/0/4` Scene Away — manual_scene
+- `3/1/7` Kids room 2 HVAC mode — manual_climate
+- `3/1/8` Kids bath 2 HVAC mode — manual_climate
 - `3/1/21` Living room AC mode — manual_climate
 - `3/1/22` Kitchen AC mode — manual_climate
 - `3/1/23` Master bedroom AC mode — manual_climate
@@ -102,11 +93,19 @@ Entities that can be generated now: switch **19**, light **13**, cover **6**, bi
 - `1/1/65` Staircase LED steps dim — not_mapped
 - `2/3/1` Living room window blind slat — shutter_slat_unattached
 - `2/3/10` Master bedroom blind slat — shutter_slat_unattached
-- `2/6/10` Master bedroom blind slat status — shutter_slat_unattached
 - `3/3/21` Living room AC fan speed — not_mapped
 - `3/3/22` Kitchen AC fan speed — not_mapped
 - `3/3/23` Master bedroom AC fan speed — not_mapped
-- … and 15 more
+- `3/3/25` Kids room 1 AC fan speed — not_mapped
+- `3/3/27` Kids room 2 AC fan speed — not_mapped
+- `3/6/3` Master bedroom floor valve status — not_mapped
+- `3/6/7` Kids room 2 floor valve status — not_mapped
+- `3/6/8` Kids bath 2 floor valve status — not_mapped
+- `3/6/9` Guest WC floor valve status — not_mapped
+- `3/6/10` Laundry floor valve status — not_mapped
+- `3/6/11` Corridor GF floor valve status — not_mapped
+- `3/6/12` Corridor UF floor valve status — not_mapped
+- `4/2/1` Living room CO2 — not_mapped
 
 
 ## 4. Next steps

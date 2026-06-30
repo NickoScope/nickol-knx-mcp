@@ -2,7 +2,7 @@
 # Source project: Nikolay Demo House
 # REVIEW before use: command/status pairing is inferred heuristically.
 # Multi-GA fixtures (light/cover/climate) and scenes need manual verification.
-# 65 group address(es) need manual review (see the 'review' list); nothing is dropped silently.
+# 50 group address(es) need manual review (see the 'review' list); nothing is dropped silently.
 
 knx:
   switch:
@@ -11,24 +11,24 @@ knx:
   - name: Living room fireplace on/off
     address: 0/3/0
     state_address: 0/4/0
-  - name: Kitchen island pendants switch
-    address: 1/0/12
-    state_address: 1/4/12
-  - name: Master bath mirror CCT switch
-    address: 1/0/26
-    state_address: 1/4/26
-  - name: Kids room 1 ceiling switch
-    address: 1/0/30
-    state_address: 1/4/30
-  - name: Kids room 1 RGB accent switch
-    address: 1/0/31
-    state_address: 1/4/31
+  - name: Living room ceiling spots switch
+    address: 1/0/1
+    state_address: 1/4/1
+  - name: Living room fireplace floor lamp switch
+    address: 1/0/4
+    state_address: 1/4/4
+  - name: Kitchen main ceiling switch
+    address: 1/0/10
+    state_address: 1/4/10
+  - name: Master bedroom wardrobe LED switch
+    address: 1/0/23
+    state_address: 1/4/23
+  - name: Master bath ceiling switch
+    address: 1/0/25
+    state_address: 1/4/25
   - name: Kids bath 1 ceiling switch
     address: 1/0/35
     state_address: 1/4/35
-  - name: Kids room 2 ceiling switch
-    address: 1/0/40
-    state_address: 1/4/40
   - name: Kids room 2 desk light switch
     address: 1/0/41
     state_address: 1/4/41
@@ -37,7 +37,6 @@ knx:
     state_address: 1/4/45
   - name: Guest WC ceiling switch
     address: 1/0/50
-    state_address: 1/4/1
   - name: Laundry ceiling switch
     address: 1/0/55
     state_address: 1/4/55
@@ -66,23 +65,27 @@ knx:
   - name: Living room cove brightness
     brightness_address: 1/2/2
     brightness_state_address: 1/5/2
-    address: 1/0/1
-    state_address: 1/4/1
+    address: 1/0/2
+    state_address: 1/4/2
   - name: Living room RGBW accent wall brightness
     brightness_address: 1/2/3
     brightness_state_address: 1/5/3
-    address: 1/0/2
-    state_address: 1/4/2
+    address: 1/0/3
+    state_address: 1/4/3
+    rgbw_address: 1/3/3
+    rgbw_state_address: 1/6/3
   - name: Kitchen worktop LED brightness
     brightness_address: 1/2/11
-    brightness_state_address: 1/5/12
-    address: 1/0/10
-    state_address: 1/4/10
+    address: 1/0/11
+    state_address: 1/4/11
+    color_temperature_address: 1/3/11
+    color_temperature_mode: absolute
+    color_temperature_state_address: 1/6/11
   - name: Kitchen island pendants brightness
     brightness_address: 1/2/12
     brightness_state_address: 1/5/12
-    address: 1/0/11
-    state_address: 1/4/11
+    address: 1/0/12
+    state_address: 1/4/12
   - name: Master bedroom ceiling brightness
     brightness_address: 1/2/20
     brightness_state_address: 1/5/20
@@ -101,23 +104,28 @@ knx:
   - name: Master bath mirror CCT brightness
     brightness_address: 1/2/26
     brightness_state_address: 1/5/26
-    address: 1/0/23
-    state_address: 1/4/23
+    address: 1/0/26
+    state_address: 1/4/26
+    color_temperature_address: 1/3/26
+    color_temperature_mode: absolute
+    color_temperature_state_address: 1/6/26
   - name: Kids room 1 ceiling brightness
     brightness_address: 1/2/30
     brightness_state_address: 1/5/30
-    address: 1/0/3
-    state_address: 1/4/3
+    address: 1/0/30
+    state_address: 1/4/30
   - name: Kids room 1 RGB accent brightness
     brightness_address: 1/2/31
     brightness_state_address: 1/5/31
-    address: 1/0/4
-    state_address: 1/4/4
+    address: 1/0/31
+    state_address: 1/4/31
+    color_address: 1/3/31
+    color_state_address: 1/6/31
   - name: Kids room 2 ceiling brightness
     brightness_address: 1/2/40
     brightness_state_address: 1/5/40
-    address: 1/0/25
-    state_address: 1/4/25
+    address: 1/0/40
+    state_address: 1/4/40
   - name: Staircase LED steps brightness
     brightness_address: 1/2/65
     brightness_state_address: 1/5/65
@@ -153,6 +161,43 @@ knx:
     move_short_address: 2/1/30
     position_address: 2/2/30
     position_state_address: 2/6/1
+  climate:
+  - name: Living room HVAC mode
+    temperature_address: 4/0/1
+    target_temperature_state_address: 3/4/1
+    target_temperature_address: 3/0/1
+    operation_mode_address: 3/1/1
+    command_value_state_address: 3/6/1
+  - name: Kitchen HVAC mode
+    temperature_address: 4/0/2
+    target_temperature_state_address: 3/4/2
+    target_temperature_address: 3/0/2
+    operation_mode_address: 3/1/2
+    command_value_state_address: 3/6/2
+  - name: Master bedroom HVAC mode
+    temperature_address: 4/0/3
+    target_temperature_state_address: 3/4/3
+    target_temperature_address: 3/0/3
+    operation_mode_address: 3/1/3
+    command_value_state_address: 2/6/10
+  - name: Master bath HVAC mode
+    temperature_address: 4/0/4
+    target_temperature_state_address: 3/4/4
+    target_temperature_address: 3/0/4
+    operation_mode_address: 3/1/4
+    command_value_state_address: 3/6/4
+  - name: Kids room 1 HVAC mode
+    temperature_address: 4/0/5
+    target_temperature_state_address: 3/4/5
+    target_temperature_address: 3/0/5
+    operation_mode_address: 3/1/5
+    command_value_state_address: 3/6/5
+  - name: Kids bath 1 HVAC mode
+    temperature_address: 4/0/6
+    target_temperature_state_address: 3/4/6
+    target_temperature_address: 3/0/6
+    operation_mode_address: 3/1/6
+    command_value_state_address: 3/6/6
   binary_sensor:
   - name: Master bath presence
     state_address: 4/4/4
@@ -181,36 +226,6 @@ knx:
   - name: HVAC controller fault
     state_address: 6/1/1
   sensor:
-  - name: Kitchen worktop LED colour temp
-    state_address: 1/3/11
-    type: 2byte_unsigned
-  - name: Master bath mirror CCT colour temp
-    state_address: 1/3/26
-    type: 2byte_unsigned
-  - name: Kitchen worktop LED colour temp status
-    state_address: 1/6/11
-    type: 2byte_unsigned
-  - name: Master bath mirror CCT colour temp status
-    state_address: 1/6/26
-    type: 2byte_unsigned
-  - name: Living room heating setpoint
-    state_address: 3/0/1
-    type: temperature
-  - name: Kitchen heating setpoint
-    state_address: 3/0/2
-    type: temperature
-  - name: Master bedroom heating setpoint
-    state_address: 3/0/3
-    type: temperature
-  - name: Master bath heating setpoint
-    state_address: 3/0/4
-    type: temperature
-  - name: Kids room 1 heating setpoint
-    state_address: 3/0/5
-    type: temperature
-  - name: Kids bath 1 heating setpoint
-    state_address: 3/0/6
-    type: temperature
   - name: Kids room 2 heating setpoint
     state_address: 3/0/7
     type: temperature
@@ -244,24 +259,6 @@ knx:
   - name: Kids room 2 AC setpoint
     state_address: 3/0/27
     type: temperature
-  - name: Living room heating setpoint status
-    state_address: 3/4/1
-    type: temperature
-  - name: Kitchen heating setpoint status
-    state_address: 3/4/2
-    type: temperature
-  - name: Master bedroom heating setpoint status
-    state_address: 3/4/3
-    type: temperature
-  - name: Master bath heating setpoint status
-    state_address: 3/4/4
-    type: temperature
-  - name: Kids room 1 heating setpoint status
-    state_address: 3/4/5
-    type: temperature
-  - name: Kids bath 1 heating setpoint status
-    state_address: 3/4/6
-    type: temperature
   - name: Kids room 2 heating setpoint status
     state_address: 3/4/7
     type: temperature
@@ -294,24 +291,6 @@ knx:
     type: temperature
   - name: Kids room 2 AC setpoint status
     state_address: 3/4/27
-    type: temperature
-  - name: Living room temperature
-    state_address: 4/0/1
-    type: temperature
-  - name: Kitchen temperature
-    state_address: 4/0/2
-    type: temperature
-  - name: Master bedroom temperature
-    state_address: 4/0/3
-    type: temperature
-  - name: Master bath temperature
-    state_address: 4/0/4
-    type: temperature
-  - name: Kids room 1 temperature
-    state_address: 4/0/5
-    type: temperature
-  - name: Kids bath 1 temperature
-    state_address: 4/0/6
     type: temperature
   - name: Kids room 2 temperature
     state_address: 4/0/7
