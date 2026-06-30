@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-30
+
+**Colour/climate entity assembly and GA-intent noise reduction.** Two feature tracks
+shipped together, both driven by real ETS projects: full colour-light (RGBW/RGB/CCT) and
+KNX `climate` entity generation with a status-pairing (B1) correctness fix, and a GA-intent
+classifier that stops intentional non-functional addresses from raising false errors. On a
+real 685-GA Zennio project the intent work cut false errors **29 → 6** and missing-status
+noise **79 → 45** while preserving all 12 genuine `dpt_mismatch_co` catches.
+
 ### Added
 - **Colour lights, climate entities and a status-pairing fix** (Track A), driven by the real
   signed demo and a 685-GA Zennio project.
@@ -127,7 +136,8 @@ Initial public beta.
 - Tested end-to-end on a synthetic project only; real-world `.knxproj` testing is ongoing
   (see the call for testers in the README).
 
-[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/NickoScope/nickol-knx-mcp/releases/tag/v0.1.0

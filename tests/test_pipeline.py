@@ -253,7 +253,7 @@ print("OK: full light entity (no dup switch); 1.001/1.017 cover; datetime -> rev
 
 # --------------------------------------------------------------------------- #
 # Regression (Track D): GA-intent classification removes real-project NOISE.
-# Patterns taken verbatim from the real Minsk (Zennio) project, where reserve
+# Patterns taken verbatim from a real large Zennio project, where reserve
 # spares + internal logic GAs produced ~29 false errors and dozens of false
 # missing-status warnings. Non-functional GAs must be reclassified, while a real
 # functional problem must STILL be flagged (no over-suppression).
@@ -316,7 +316,7 @@ print("OK: reserve/logic/scratch de-noised; real DPT + status problems preserved
 
 # --------------------------------------------------------------------------- #
 # Regression (Track A): colour light assembly + B1 (no borrowed brightness_state)
-# + climate assembly. Patterns from the real signed demo / Minsk projects.
+# + climate assembly. Patterns from the real signed demo / a real Zennio project.
 # --------------------------------------------------------------------------- #
 print("\n=== REGRESSION: colour light + B1 status borrow + climate (Track A) ===")
 
