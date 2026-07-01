@@ -518,3 +518,40 @@ assert _sp["keyring_required"] is True
 assert len(_sp["mixed_middle_groups"]) >= 1, "mixed secure/plaintext middle not flagged"
 assert any("keyring" in s.lower() for s in _sp["checklist"]), "no keyring step"
 print("OK: secure posture — counts, mixed-middle flag, keyring checklist")
+
+# --------------------------------------------------------------------------- #
+# Regression (v0.5.0): A2 relative-only dimming · A3 cover invert · B1 repairs.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: A2 relative-dim + A3 cover invert + B1 repair engine ===")
+from nickol_knx_mcp.repair import suggest_repairs
+# A2
+_a2raw = {"group_addresses": {
+    "1/0/0": ga("1/0/0", "Кухня свет - Относительное диммирование", 3, 7),   # no abs -> flag
+    "2/0/0": ga("2/0/0", "Зал свет - Относительное диммирование", 3, 7),
+    "2/0/1": ga("2/0/1", "Зал свет - Значение яркости", 5, 1),               # abs present -> ok
+}}
+_a2 = {(f["code"], f["address"]) for f in detect_dpt_issues(build_loaded_from_raw(_a2raw, "mem"))}
+assert ("relative_only_dimming", "1/0/0") in _a2, "relative-only dimmer not flagged"
+assert ("relative_only_dimming", "2/0/0") not in _a2, "false positive: zone has abs brightness"
+print("OK: A2 — relative-only dimmer flagged; dimmer with absolute brightness clean")
+# A3
+_a3raw = {"group_addresses": {
+    "2/0/0": ga("2/0/0", "Спальня штора - Вверх/вниз", 1, 8),
+    "2/1/0": ga("2/1/0", "Спальня штора - Позиция", 5, 1),
+}}
+_a3 = generate_ha_yaml(build_loaded_from_raw(_a3raw, "mem"))["review"]
+assert any(r["reason"] == "verify_cover_invert" and "invert_position" in r.get("note", "") for r in _a3), \
+    "cover invert/travel review note missing"
+print("OK: A3 — cover surfaces invert/travel flags for review")
+# B1
+_b1raw = {"group_addresses": {
+    "3/0/0": ga("3/0/0", "Спальня свет - Вкл/выкл", None, None),   # missing DPT -> set_dpt
+    "4/0/0": ga("4/0/0", "Холл выключатель", 1, 1),               # no status -> add_ga
+}}
+_r = suggest_repairs(build_loaded_from_raw(_b1raw, "mem"))
+_acts = {p["action"] for p in _r["proposals"]}
+assert "set_dpt" in _acts, "no set_dpt proposal for missing_dpt"
+assert any(p["action"] == "add_ga" and "статус" in p["name"] for p in _r["proposals"]), "no status add_ga"
+_sd = [p for p in _r["proposals"] if p["action"] == "set_dpt"][0]
+assert _sd["dpt"] == "1.001", _sd
+print("OK: B1 — repair engine proposes set_dpt + synthesised status GA")

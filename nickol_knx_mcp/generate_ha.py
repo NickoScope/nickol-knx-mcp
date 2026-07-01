@@ -242,8 +242,16 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                 consumed.add(sib.address)
         covers.append(entity)
         consumed.add(ga.address)
-        review.append({"reason": "verify_cover_mapping", "address": ga.address,
-                       "name": ga.name})
+        # A3: surface the actuator-dependent flags that are NOT in the .knxproj —
+        # the three invert flags (position / up-down / angle) and travel times —
+        # so the installer sets them; and whether position lacks its state address.
+        note = ("set actuator-dependent flags not in the .knxproj: "
+                "invert_position / invert_updown / invert_angle, and "
+                "travelling_time_up / travelling_time_down")
+        if "position_address" in entity and "position_state_address" not in entity:
+            note += " — position has NO position_state_address (HA will guess position)"
+        review.append({"reason": "verify_cover_invert", "address": ga.address,
+                       "name": ga.name, "note": note})
 
     # ---- 2. LIGHTS (brightness 5.001 command, lighting category) ----
     for ga in project.gas.values():

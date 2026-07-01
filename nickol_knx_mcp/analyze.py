@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from .project import LoadedProject, GARecord, STATUS_KEYWORDS
-from .pairing import find_status, function_status_pairs
+from .pairing import find_status, function_status_pairs, base_tokens
 from .intent import INTENT_FUNCTIONAL, INTENT_RESERVE, INTENT_SCRATCH
 
 SEVERITY_ERROR = "error"
@@ -359,6 +359,27 @@ def detect_dpt_issues(project: LoadedProject) -> list[dict[str, Any]]:
                 f"'{ga.name}' looks like a {em}.{es:03d} value but its DPT main is "
                 f"{ga.dpt_main} (DPT {ga.dpt or '?'}) — expected main {em}.",
                 name=ga.name, found=ga.dpt, expected=f"{em}.{es:03d}",
+            ))
+
+    # 5. relative-only dimming (A2) — a 3.007 relative dimmer with no 5.001
+    #    absolute-brightness GA in the same zone: Home Assistant cannot set a level.
+    abs5 = [g for g in project.gas.values() if g.dpt_main == 5]
+    for addr, ga in project.gas.items():
+        if ga.intent != INTENT_FUNCTIONAL or ga.dpt_main != 3:
+            continue
+        toks = base_tokens(ga.name)
+        if not toks:
+            continue
+        need = min(2, len(toks))
+        has_abs = any(g.main == ga.main and len(toks & base_tokens(g.name)) >= need
+                      for g in abs5)
+        if not has_abs:
+            findings.append(_finding(
+                SEVERITY_WARN, "relative_only_dimming", addr,
+                f"'{ga.name}' has relative dimming (3.007) but no absolute-brightness "
+                "(5.001) GA in its zone — Home Assistant cannot set a brightness level; "
+                "add an absolute-brightness group address.",
+                name=ga.name,
             ))
 
     return findings

@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-07-01
+
+**From validator to repairer.** Previous releases *flagged* problems in a `.knxproj`; this one
+starts *proposing the fix*. The headline is a repair-suggestion engine that turns each finding
+into a concrete, reviewable change, alongside two new detectors for gaps that silently break the
+Home Assistant layer: relative-only dimmers and actuator-dependent cover behaviour.
+
+### Added
+- **B1 — repair-suggestion engine** (`repair.py`, new module; new MCP tool `suggest_repairs`).
+  For each finding it proposes a concrete fix rather than only naming the problem: infer a DPT for
+  a group address that has none, correct a suspect sub-DPT, synthesise a status/feedback GA in a
+  free address slot, or add an absolute-brightness GA for a relative-only dimmer. Suggestions only
+  — a human reviews them, and accepted new GAs feed `generate_ets_group_addresses`; the server
+  never writes to ETS or the bus. On a real 3646-GA project it produced **145 proposals**: 32
+  set-DPT, 1 change-DPT, and 112 synthesised status GAs.
+- **A2 — relative-only-dimming detector** (`analyze.py`, `relative_only_dimming` finding). A
+  `3.007` relative dimmer with no `5.001` absolute-brightness GA in its zone is flagged, because
+  Home Assistant cannot set a brightness level from relative dimming alone.
+- **A3 — cover invert / travel-time surfacing** (`generate_ha.py`). The cover review reason is now
+  `verify_cover_invert` and carries a note listing the actuator-dependent flags that are *not* in
+  the `.knxproj` (`invert_position` / `invert_updown` / `invert_angle`, `travelling_time_up` /
+  `travelling_time_down`), plus a warning when a cover's position lacks a state address.
+
 ## [0.4.0] — 2026-07-01
 
 **Two new lint dimensions: does the DPT sub-type match what the name promises, and is the

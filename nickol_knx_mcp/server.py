@@ -23,6 +23,7 @@ from .generate_ets import generate_ets_csv, generate_ets_xml
 from .report import build_report
 from .handover import build_handover
 from .device_library import decompose_device as _decompose_device, list_recipes
+from .repair import suggest_repairs as _suggest_repairs
 
 mcp = FastMCP("nickol-knx")
 
@@ -162,6 +163,19 @@ def check_missing_status() -> list[dict[str, Any]]:
 def check_dpt() -> list[dict[str, Any]]:
     """Detect missing, inconsistent or mismatched DPTs."""
     return detect_dpt_issues(_project())
+
+
+@mcp.tool()
+def suggest_repairs() -> dict[str, Any]:
+    """Propose concrete fixes for the project's findings — repair, don't just flag.
+
+    For each issue it suggests a reviewable fix: infer a DPT for a GA that has none,
+    correct a suspect sub-DPT, synthesise a status/feedback GA in a free address slot,
+    or add an absolute-brightness GA for a relative-only dimmer. Suggestions only —
+    a human reviews them; accepted new GAs feed generate_ets_group_addresses. The
+    server never writes to ETS or the bus.
+    """
+    return _suggest_repairs(_project())
 
 
 @mcp.tool()
