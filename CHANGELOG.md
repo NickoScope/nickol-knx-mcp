@@ -6,12 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**Noise-reduction refinements from a 3646-GA multi-vendor villa.** Validated the tool on a
-second real signed Zennio project (5× larger, no ETS Functions). Three de-noising rules,
-each downgrading a false alarm to INFO without hiding any real problem — on that project
-errors fell **36 → 32** and warnings **179 → 139**.
+**Project handover pack + noise-reduction refinements**, both driven by a second real signed
+Zennio project (a 3646-GA multi-vendor villa, 5× larger, no ETS Functions).
 
 ### Added
+- **`generate_handover_pack` — the as-built commissioning deliverable** (Track B). From a
+  read-only `.knxproj` it assembles `handover.md` (equipment inventory by manufacturer,
+  group-address map by domain, command/status feedback coverage %, KNX Secure scope, QA state),
+  a standalone **`topology.svg`** area/line/device diagram, the full `group-addresses.csv` and
+  the `ha-package.yaml`. On the villa: 275 devices across 8 manufacturers, 14 domains, 93 %
+  feedback coverage — one command produces the whole handover bundle.
 - **Divider/separator scratch detection** — commissioning placeholder names made only of
   punctuation (`---`, `=====`) or a marker wrapped in it (`-----addition------`) now classify
   as `scratch` intent, so a missing DPT on them is an INFO note, not a 🔴 error.

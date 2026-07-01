@@ -20,6 +20,7 @@ from .analyze import validate_naming, detect_missing_status, detect_dpt_issues
 from .generate_ha import generate_ha_yaml
 from .generate_ets import generate_ets_csv, generate_ets_xml
 from .report import build_report
+from .handover import build_handover
 
 mcp = FastMCP("nickol-knx")
 
@@ -229,6 +230,37 @@ def project_report(output_path: Optional[str] = None,
         out["written"] = _safe_write(output_path, rep["markdown"])
     else:
         out["markdown"] = rep["markdown"]
+    return out
+
+
+@mcp.tool()
+def generate_handover_pack(output_dir: Optional[str] = None) -> dict[str, Any]:
+    """Generate a project handover pack (as-built deliverable for commissioning).
+
+    Assembles an equipment inventory, group-address map by domain, command/status
+    coverage, KNX Secure scope and QA state into ``handover.md``, plus a
+    ``topology.svg`` diagram, the full ``group-addresses.csv`` and the
+    ``ha-package.yaml``. When ``output_dir`` is given (a folder inside the
+    workspace) all files are written there and the paths returned; otherwise the
+    handover markdown + SVG are returned inline.
+    """
+    proj = _project()
+    pack = build_handover(proj)
+    out: dict[str, Any] = {"summary": pack["summary"]}
+    if output_dir:
+        d = output_dir.rstrip("/")
+        written = {
+            "handover": _safe_write(f"{d}/handover.md", pack["markdown"]),
+            "topology_svg": _safe_write(f"{d}/topology.svg", pack["svg"]),
+            "group_addresses_csv": _safe_write(f"{d}/group-addresses.csv",
+                                               generate_ets_csv(proj)),
+            "ha_package": _safe_write(f"{d}/ha-package.yaml",
+                                      generate_ha_yaml(proj)["yaml"]),
+        }
+        out["written"] = written
+    else:
+        out["markdown"] = pack["markdown"]
+        out["svg"] = pack["svg"]
     return out
 
 

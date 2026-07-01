@@ -438,3 +438,33 @@ assert _cl["command_value_state_address"] == "3/6/1"
 assert any(r["reason"] == "manual_climate" and r["address"] == "3/3/2" for r in _haT["review"]), \
     "mode-only zone should go to review, not emit an invalid climate"
 print("OK: full zone -> valid climate; mode-only zone -> review")
+
+# --------------------------------------------------------------------------- #
+# Regression (Track B): handover pack assembles a document + valid SVG diagram.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: handover pack (Track B) ===")
+from nickol_knx_mcp.handover import build_handover, build_topology_svg
+
+_hp = build_handover(proj)
+_hmd = _hp["markdown"]
+# all seven sections present
+for _sec in ("# KNX Handover Pack", "## 1. Topology", "## 2. Equipment inventory",
+             "## 3. Group-address map by domain", "## 4. Command / status coverage",
+             "## 5. KNX Secure scope", "## 6. QA state at handover", "## 7. Pack contents"):
+    assert _sec in _hmd, f"handover missing section: {_sec}"
+# equipment inventory picked up the synthetic MDT device + its order number
+assert "MDT" in _hmd and "AKK-0416.03" in _hmd, "device inventory not rendered"
+# summary shape
+_hs = _hp["summary"]
+for _k in ("ga_count", "devices", "manufacturers", "lines", "domains",
+           "feedback_coverage_pct", "secure_gas", "errors", "warnings"):
+    assert _k in _hs, f"handover summary missing {_k}"
+assert _hs["devices"] == 1 and _hs["manufacturers"] == 1, _hs
+# valid, standalone SVG
+_svg = _hp["svg"]
+assert _svg.startswith("<svg") and _svg.rstrip().endswith("</svg>"), "SVG malformed"
+assert "KNX topology" in _svg
+# it parses as XML (well-formed)
+import xml.dom.minidom as _mdom
+_mdom.parseString(_svg)
+print("OK: handover pack — 7 sections, inventory, summary, well-formed SVG")
