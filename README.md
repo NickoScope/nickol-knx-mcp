@@ -298,7 +298,7 @@ nickol-knx-mcp/
 │   ├── generate_ha.py    # Home Assistant KNX YAML generation
 │   ├── generate_ets.py   # ETS XML + CSV generation
 │   ├── report.py         # Markdown report
-│   └── server.py         # FastMCP server, 12 tools, confined writes
+│   └── server.py         # FastMCP server, 24 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── CLAUDE.md             # ETS Assistant skill / playbook
