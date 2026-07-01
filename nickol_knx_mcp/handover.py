@@ -25,23 +25,41 @@ from .intent import INTENT_FUNCTIONAL
 # --------------------------------------------------------------------------- #
 # Structure helpers
 # --------------------------------------------------------------------------- #
+def _range_names(project: LoadedProject) -> tuple[dict[int, str], dict[tuple[int, int], str]]:
+    """Authoritative main/middle names from the project's GroupRanges.
+
+    ``GARecord.main_name`` from the parser can mislabel (it may carry a middle
+    range's name), so the domain map reads names straight from ``group_ranges``.
+    """
+    main_names: dict[int, str] = {}
+    mid_names: dict[tuple[int, int], str] = {}
+    for mkey, mrange in (project.raw.get("group_ranges") or {}).items():
+        head = str(mkey).split("/")[0]
+        if not head.isdigit():
+            continue
+        mi = int(head)
+        main_names[mi] = mrange.get("name") or ""
+        for skey, srange in (mrange.get("group_ranges") or {}).items():
+            parts = str(skey).split("/")
+            if len(parts) >= 2 and parts[1].isdigit():
+                mid_names[(mi, int(parts[1]))] = srange.get("name") or ""
+    return main_names, mid_names
+
+
 def _domain_map(project: LoadedProject) -> dict[int, dict[str, Any]]:
     """main -> {name, count, middles: {middle -> {name, count}}}, sorted-ready."""
+    main_names, mid_names = _range_names(project)
     mains: dict[int, dict[str, Any]] = {}
     for ga in project.gas.values():
         if ga.main is None:
             continue
-        m = mains.setdefault(ga.main, {"name": ga.main_name or "", "count": 0, "middles": {}})
+        m = mains.setdefault(
+            ga.main, {"name": main_names.get(ga.main, ""), "count": 0, "middles": {}})
         m["count"] += 1
-        if not m["name"] and ga.main_name:
-            m["name"] = ga.main_name
+        midkey = ga.middle if ga.middle is not None else -1
         mid = m["middles"].setdefault(
-            ga.middle if ga.middle is not None else -1,
-            {"name": ga.middle_name or "", "count": 0},
-        )
+            midkey, {"name": mid_names.get((ga.main, midkey), ""), "count": 0})
         mid["count"] += 1
-        if not mid["name"] and ga.middle_name:
-            mid["name"] = ga.middle_name
     return mains
 
 

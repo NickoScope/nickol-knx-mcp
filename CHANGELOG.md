@@ -26,6 +26,12 @@ Zennio project (a 3646-GA multi-vendor villa, 5× larger, no ETS Functions).
   `Все шторы - Стоп`) surface as INFO `central_macro_no_status` instead of a
   `missing_status_address` warning, since a fan-out broadcast has no single state to read back.
 
+### Fixed
+- **Handover domain names** — the group-address map now reads main/middle range names straight
+  from the project's `GroupRanges` instead of `GARecord.main_name`, which the parser could
+  mislabel (a middle range's name leaking into the main). Domains now render correctly
+  (e.g. `[1] Освещение 1 этаж`, `[5] Климат`) instead of a middle-group name.
+
 ## [0.2.0] — 2026-06-30
 
 **Colour/climate entity assembly and GA-intent noise reduction.** Two feature tracks
