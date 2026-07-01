@@ -6,6 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-01
+
+**Completes the roadmap** — the tool now validates, repairs, generates (HA / ETS / handover / IoT),
+diffs, grades and drafts acceptance protocols, all design-time & read-only.
+
+### Added — B-tier
+
+- **B2 — climate-correctness review** (`generate_ha.py`). Climate generation now emits an explicit
+  review note: controller/operation modes made explicit, setpoint-shift command **and** state paired,
+  and a flag raised for any mode object that lacks a corresponding state address.
+- **B3 — semantic project diff** (`diffproj.py`, new module; new MCP tools `diff_projects` /
+  `diff_loaded`). Compares two `.knxproj` versions and reports added / removed / DPT-changed /
+  renamed / security-changed group addresses — a reviewable delta between as-designed revisions.
+- **B4 — acceptance test protocol** (`advanced.py`; new MCP tool `generate_test_protocol`).
+  Produces a per-function acceptance checklist in Markdown for commissioning sign-off.
+- **B5 — Matter readiness** (`advanced.py`; new MCP tool `check_matter`). Reports which functions
+  round-trip cleanly to a Matter cluster and which do not.
+- **B6 — energy scaffold** (`advanced.py`; new MCP tool `check_energy`). Checks metering / energy
+  DPT coverage and scaffolds PV / battery / EVSE structure.
+
+### Added — C-tier
+
+- **C1 — KNX IoT semantic export** (`iot.py`, new module; new MCP tool `generate_knx_iot`).
+  Emits a KNX IoT Turtle / RDF skeleton for the project.
+- **C2 — naming suggestions** (`advanced.py`; new MCP tool `suggest_names`). Naming-hygiene
+  proposals for group addresses that drift from the zone + function convention.
+- **C3 — as-built completeness grader** (`advanced.py`; new MCP tool `grade_completeness`).
+  Grades a project from bare functional skeleton to as-built, by presence of professional patterns
+  (central macros, motion tuning, astro/meteo, monitoring, deep metering, scenes, reserves, debug).
+
+### Added — A-tier quick wins
+
+- **A5 — Areas / voice note** (`generate_ha.py`). Documents that HA Areas and voice assignment are
+  UI-only concerns, not derivable from the `.knxproj`.
+- **A6 — time/date expose** (`generate_ha.py`). Emits a KNX `expose` block for DPT-19.001 clock
+  broadcast so HA can serve time/date to the bus.
+
 ## [0.5.0] — 2026-07-01
 
 **From validator to repairer.** Previous releases *flagged* problems in a `.knxproj`; this one

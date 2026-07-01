@@ -555,3 +555,42 @@ assert any(p["action"] == "add_ga" and "статус" in p["name"] for p in _r["
 _sd = [p for p in _r["proposals"] if p["action"] == "set_dpt"][0]
 assert _sd["dpt"] == "1.001", _sd
 print("OK: B1 — repair engine proposes set_dpt + synthesised status GA")
+
+# --------------------------------------------------------------------------- #
+# Regression (v0.6.0): B3 diff · B4 protocol · B5 matter · B6 energy · C1/C2/C3
+# + A5 areas / A6 expose.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: v0.6.0 advanced (B3/B4/B5/B6/C1/C2/C3 + A5/A6) ===")
+from nickol_knx_mcp.advanced import (matter_readiness, completeness_grade,
+                                     energy_scaffold, test_protocol, suggest_naming)
+from nickol_knx_mcp.diffproj import diff_loaded
+from nickol_knx_mcp.iot import generate_knx_iot_turtle
+# C3 completeness grade
+_cg = completeness_grade(proj)
+assert "grade" in _cg and 0 <= _cg["score"] <= 100
+# B5 matter readiness
+_mr = matter_readiness(proj)
+assert "controllable_functions" in _mr and "matter_ready" in _mr
+# B6 energy (demo has "Total energy" 13.013)
+_en = energy_scaffold(proj)
+assert _en["metering_gas"] >= 1 and _en["scaffold"]
+# C2 naming (demo has an empty-name GA)
+_nm = suggest_naming(proj)
+assert _nm["count"] >= 1
+# B4 protocol
+_tp = test_protocol(proj)
+assert "# Functional acceptance protocol" in _tp["markdown"]
+# C1 turtle
+_tt = generate_knx_iot_turtle(proj)
+assert _tt.startswith("@prefix") and "knx:Datapoint" in _tt and "knx:groupAddress" in _tt
+# B3 diff
+_d1 = {"group_addresses": {"1/0/0": ga("1/0/0", "Light", 1, 1), "1/0/1": ga("1/0/1", "Temp", 9, 1)}}
+_d2 = {"group_addresses": {"1/0/0": ga("1/0/0", "Light", 1, 1), "1/0/1": ga("1/0/1", "Temp", 9, 4),
+                           "2/0/0": ga("2/0/0", "New GA", 1, 1)}}
+_df = diff_loaded(build_loaded_from_raw(_d1, "a"), build_loaded_from_raw(_d2, "b"))
+assert _df["added"] == 1 and _df["dpt_changed"] == 1, _df
+# A6 expose (datetime GA present)
+_ex = generate_ha_yaml(build_loaded_from_raw({"group_addresses": {
+    "10/0/0": ga("10/0/0", "System - Date/Time", 19, 1)}}, "mem"))
+assert any(r["reason"] == "verify_expose" for r in _ex["review"]), "no time/date expose"
+print("OK: v0.6.0 — matter, completeness, energy, naming, protocol, turtle, diff, expose")

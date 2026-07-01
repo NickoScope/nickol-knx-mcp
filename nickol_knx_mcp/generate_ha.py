@@ -390,6 +390,22 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         climates.append(ent)
         if zone_loc:
             built_climate.append(zone_loc)
+        # B2 climate correctness: mode-command-without-state makes the mode unshowable;
+        # controller/operation mode lists auto-detect wrong; setpoint-shift needs cmd+state.
+        issues = []
+        if op_cmd and not op_state:
+            issues.append("operation_mode has a command but no state address")
+        if ctrl_cmd and not ctrl_state:
+            issues.append("controller_mode has a command but no state address")
+        if not tgt_cmd:
+            issues.append("setpoint is read-only (no target_temperature command)")
+        note = ("set `controller_modes`/`operation_modes` explicitly — HA auto-detection is "
+                "often wrong; if this zone uses setpoint-shift, provide BOTH the command and "
+                "state addresses and set `setpoint_shift_mode`")
+        if issues:
+            note += " — " + "; ".join(issues)
+        review.append({"reason": "verify_climate", "address": ga.address,
+                       "name": ga.name, "note": note})
 
     # ---- 4. SENSORS / BINARY SENSORS (read-only) ----
     for ga in project.gas.values():
@@ -441,6 +457,31 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                             "so it can map to a Home Assistant cover.")
         review.append(item)
 
+    # A6: time/date broadcast — if the project has a DateTime/time/date GA, expose
+    #     Home Assistant's clock to it so KNX devices get the time from HA.
+    expose: list[dict] = []
+    clock = next((g for g in project.gas.values()
+                  if g.dpt_main == 19
+                  or (g.dpt_main in (10, 11) and any(
+                      t in g.name.lower() for t in
+                      ("время", "дата", "time", "date", "uhr", "zeit", "clock")))), None)
+    if clock:
+        etype = ("datetime" if clock.dpt_main == 19
+                 else "time" if clock.dpt_main == 10 else "date")
+        expose.append({"type": etype, "address": clock.address,
+                       "entity_id": "sensor.date_time_iso"})
+        review.append({"reason": "verify_expose", "address": clock.address, "name": clock.name,
+                       "note": f"exposes Home Assistant's {etype} to this KNX GA (clock "
+                       "broadcast); point entity_id at a real HA 'Date & Time' helper. "
+                       "`expose` cannot use passive-address lists."})
+
+    # A5: Areas / voice — surface the UI-only limitation once.
+    if switches or lights or covers or climates:
+        review.append({"reason": "areas_ui_only", "address": "-",
+                       "note": "Home Assistant Areas cannot be set in KNX YAML (assign each "
+                       "entity to an Area in the HA UI); and entity `name`s drive voice/Assist "
+                       "matching — keep them descriptive and unique."})
+
     knx: dict[str, Any] = {}
     if switches:
         knx["switch"] = switches
@@ -454,6 +495,8 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         knx["binary_sensor"] = binary_sensors
     if sensors:
         knx["sensor"] = sensors
+    if expose:
+        knx["expose"] = expose
 
     package = {"knx": knx}
     text = (

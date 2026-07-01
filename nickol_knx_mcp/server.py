@@ -24,6 +24,10 @@ from .report import build_report
 from .handover import build_handover
 from .device_library import decompose_device as _decompose_device, list_recipes
 from .repair import suggest_repairs as _suggest_repairs
+from .advanced import (matter_readiness, completeness_grade, energy_scaffold,
+                       test_protocol, suggest_naming)
+from .diffproj import diff_projects as _diff_projects
+from .iot import generate_knx_iot_turtle
 
 mcp = FastMCP("nickol-knx")
 
@@ -309,6 +313,67 @@ def decompose_device(order_number: str, channels: int = 1) -> dict[str, Any]:
 def list_device_recipes() -> list[dict[str, Any]]:
     """List the device decomposition recipes in the built-in device library."""
     return list_recipes()
+
+
+@mcp.tool()
+def check_matter() -> dict[str, Any]:
+    """Matter-readiness lint: which controllable functions round-trip to a Matter
+    cluster (have command + status + a decodable DPT) and which won't."""
+    return matter_readiness(_project())
+
+
+@mcp.tool()
+def grade_completeness() -> dict[str, Any]:
+    """Grade the project: bare functional skeleton vs as-built grade — by the presence
+    of the professional patterns (central macros, device tuning, astro/meteo, monitoring,
+    deep metering, scenes, reserves, a debug main)."""
+    return completeness_grade(_project())
+
+
+@mcp.tool()
+def check_energy() -> dict[str, Any]:
+    """Check the metering/energy domain (energy DPTs 13.x / 14.056) and suggest a
+    per-circuit / PV / battery / EVSE structure for the HA energy dashboard."""
+    return energy_scaffold(_project())
+
+
+@mcp.tool()
+def suggest_names() -> dict[str, Any]:
+    """Naming hygiene suggestions (empty names, status GAs missing a status keyword)."""
+    return suggest_naming(_project())
+
+
+@mcp.tool()
+def generate_test_protocol(output_path: Optional[str] = None) -> dict[str, Any]:
+    """Draft a functional acceptance protocol (per function: command → expected status,
+    pass/fail/sign-off) as Markdown. Execution is manual/on-site; this only drafts it."""
+    res = test_protocol(_project())
+    out: dict[str, Any] = {"functions": res["functions"]}
+    if output_path:
+        out["written"] = _safe_write(output_path, res["markdown"])
+    else:
+        out["markdown"] = res["markdown"]
+    return out
+
+
+@mcp.tool()
+def diff_projects(path_a: str, path_b: str,
+                  password_a: Optional[str] = None,
+                  password_b: Optional[str] = None) -> dict[str, Any]:
+    """Semantic diff between two .knxproj files (path_a = base/old, path_b = new):
+    added / removed GAs, DPT changes, renames, security-flag changes. Read-only."""
+    return _diff_projects(path_a, path_b, password_a=password_a, password_b=password_b)
+
+
+@mcp.tool()
+def generate_knx_iot(output_path: Optional[str] = None) -> dict[str, Any]:
+    """Export a KNX IoT semantic view (Turtle/RDF) of the project's functional
+    datapoints — a pragmatic skeleton for the IP-native model, for review."""
+    proj = _project()
+    turtle = generate_knx_iot_turtle(proj)
+    if output_path:
+        return {"written": _safe_write(output_path, turtle)}
+    return {"turtle": turtle}
 
 
 @mcp.tool()
