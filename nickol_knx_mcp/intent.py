@@ -46,6 +46,14 @@ _SCRATCH_EXACT = (
     "neue gruppenadresse",
 )
 
+# Commissioning divider / marker words that appear wrapped in punctuation
+# ("-----addition------", "--- разделитель ---"). Checked after stripping the
+# surrounding separators.
+_SCRATCH_CORE = ("addition", "разделитель", "separator", "divider")
+
+# Characters used to draw separators / dividers in GA names.
+_SEP_CHARS = "-–—_=+*.•·~<>| \t"
+
 
 def classify_intent(name: str) -> str:
     """Return one of functional / reserve / logic / scratch for a GA name."""
@@ -61,6 +69,13 @@ def classify_intent(name: str) -> str:
         return INTENT_SCRATCH
     # Bare numeric placeholders like "1", "5", "12" — classic leftovers.
     if re.fullmatch(r"\d{1,3}", raw):
+        return INTENT_SCRATCH
+    # Divider / separator placeholders: a name that is only punctuation ("---",
+    # "=====") or a marker word wrapped in it ("-----addition------"). These are
+    # commissioning scratch, not functional GAs, so a missing DPT on them is
+    # intentional rather than a 🔴 error.
+    core = raw.strip(_SEP_CHARS)
+    if not core or core.lower() in _SCRATCH_CORE:
         return INTENT_SCRATCH
 
     if any(t in low for t in _RESERVE_TOKENS):

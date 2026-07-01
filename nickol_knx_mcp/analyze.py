@@ -156,6 +156,20 @@ def _is_status_ga(ga: GARecord) -> bool:
     return any(k in low for k in STATUS_KEYWORDS)
 
 
+# Central / group-macro command names ("Общее освещение - Все группы", "Все
+# шторы - стоп", "Групповое включение"). A broadcast that fans out to many
+# actuators has no single state to read back, so a missing status is expected
+# rather than a defect — surfaced as INFO, not a 🟡 warning.
+_CENTRAL_MACRO_TOKENS = (
+    "общее", "групповое", "все ", "всё", "central", "all groups", "all lights",
+)
+
+
+def _is_central_macro(name: str) -> bool:
+    low = (name or "").lower()
+    return any(t in low for t in _CENTRAL_MACRO_TOKENS)
+
+
 # command DPT main -> acceptable status DPT mains
 _STATUS_COMPAT = {
     1: {1},            # switch command -> 1.x status
@@ -197,12 +211,20 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
         same_main = [s for s in status_gas if s.main == ga.main]
         match = find_status(ga, same_main) or find_status(ga, status_gas)
         if match is None:
-            findings.append(_finding(
-                SEVERITY_WARN, "missing_status_address", addr,
-                f"Command '{ga.name}' (DPT {ga.dpt or '?'}, {ga.label}) has no "
-                "status/feedback GA. Home Assistant cannot read real state.",
-                name=ga.name, dpt=ga.dpt, category=ga.category,
-            ))
+            if _is_central_macro(ga.name):
+                findings.append(_finding(
+                    SEVERITY_INFO, "central_macro_no_status", addr,
+                    f"Central/group macro '{ga.name}' has no status GA — expected "
+                    "for an all-groups broadcast; there is no single state to read back.",
+                    name=ga.name, dpt=ga.dpt, category=ga.category,
+                ))
+            else:
+                findings.append(_finding(
+                    SEVERITY_WARN, "missing_status_address", addr,
+                    f"Command '{ga.name}' (DPT {ga.dpt or '?'}, {ga.label}) has no "
+                    "status/feedback GA. Home Assistant cannot read real state.",
+                    name=ga.name, dpt=ga.dpt, category=ga.category,
+                ))
 
     return findings
 
@@ -247,6 +269,20 @@ def detect_dpt_issues(project: LoadedProject) -> list[dict[str, Any]]:
                 continue
             mains = {d.get("main") for d in co_dpts}
             if ga.dpt_main not in mains:
+                co_name = (co.get("name") or "").strip()
+                # Zennio Logic-Function data-entry objects ("[LF] (2-Byte) Data
+                # Entry N") are intentionally type-agnostic raw containers; wiring
+                # a typed GA (9.x temperature, etc.) into one is expected design,
+                # not a DPT bug. Surface it as INFO instead of a 🟡 warning.
+                if co_name.lower().startswith("[lf]"):
+                    findings.append(_finding(
+                        SEVERITY_INFO, "dpt_on_logic_object", addr,
+                        f"GA DPT main {ga.dpt_main} links a type-agnostic logic-function "
+                        f"object '{co_name}' (DPT main {sorted(m for m in mains if m is not None)}) "
+                        "— expected for LF data-entry blocks, not a mismatch.",
+                        name=ga.name,
+                    ))
+                    break
                 findings.append(_finding(
                     SEVERITY_WARN, "dpt_mismatch_co", addr,
                     f"GA DPT main {ga.dpt_main} differs from linked communication "

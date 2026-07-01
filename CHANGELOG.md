@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Noise-reduction refinements from a 3646-GA multi-vendor villa.** Validated the tool on a
+second real signed Zennio project (5× larger, no ETS Functions). Three de-noising rules,
+each downgrading a false alarm to INFO without hiding any real problem — on that project
+errors fell **36 → 32** and warnings **179 → 139**.
+
+### Added
+- **Divider/separator scratch detection** — commissioning placeholder names made only of
+  punctuation (`---`, `=====`) or a marker wrapped in it (`-----addition------`) now classify
+  as `scratch` intent, so a missing DPT on them is an INFO note, not a 🔴 error.
+- **Logic-function object awareness** — a typed GA (e.g. 9.x temperature) wired into a Zennio
+  `[LF] … Data Entry` container (intentionally type-agnostic, raw 2-byte) surfaces as INFO
+  `dpt_on_logic_object` instead of a false `dpt_mismatch_co` warning.
+- **Central-macro status tolerance** — all-groups broadcast commands (`Общее …`, `Все группы`,
+  `Все шторы - Стоп`) surface as INFO `central_macro_no_status` instead of a
+  `missing_status_address` warning, since a fan-out broadcast has no single state to read back.
+
 ## [0.2.0] — 2026-06-30
 
 **Colour/climate entity assembly and GA-intent noise reduction.** Two feature tracks

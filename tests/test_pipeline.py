@@ -271,7 +271,13 @@ assert classify_intent("Метеостанция - Запрос температ
 assert classify_intent("суммарный сигнал включения групп света") == INTENT_LOGIC
 assert classify_intent("1") == INTENT_SCRATCH
 assert classify_intent("Новый групповой адрес") == INTENT_SCRATCH
+# divider / separator commissioning scratch (large-villa refinement)
+assert classify_intent("-----addition------") == INTENT_SCRATCH
+assert classify_intent("---") == INTENT_SCRATCH
+assert classify_intent("=====") == INTENT_SCRATCH
 assert classify_intent("Kitchen ceiling light switch") == INTENT_FUNCTIONAL
+# a real name that merely CONTAINS dashes must stay functional
+assert classify_intent("01. Кухня - Свет - Вкл/выкл") == INTENT_FUNCTIONAL
 
 _rawD = {"group_addresses": {
     # reserve spares: no DPT (intentional) + same name, different DPTs
@@ -313,6 +319,55 @@ assert "9/2/0" not in _msD, "scratch GA wrongly flagged missing_status"
 # the real functional switch with no status IS still flagged
 assert "1/0/0" in _msD, "real functional command lost its missing-status warning!"
 print("OK: reserve/logic/scratch de-noised; real DPT + status problems preserved")
+
+# --------------------------------------------------------------------------- #
+# Regression (large-villa refinements): [LF] logic-object DPT + central-macro status.
+# From a real 3646-GA villa where (a) typed GAs wired into Zennio "[LF] Data
+# Entry" objects produced false DPT-mismatch warnings, and (b) central "Все
+# группы"/"Общее" broadcast commands produced false missing-status warnings.
+# Both must be downgraded to INFO while REAL mismatches / gaps still warn.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: [LF] logic-object + central-macro de-noise (large villa) ===")
+
+_rawLF = {
+    "communication_objects": {
+        "CO-LF": {"name": "[LF] (2-Byte) Data Entry 1", "number": 1, "text": "",
+                  "function_text": "", "description": "", "device_address": "1.1.9",
+                  "device_application": None, "module": None, "channel": None,
+                  "dpts": [{"main": 7, "sub": 1}], "object_size": "2 bytes",
+                  "group_address_links": ["5/0/0"], "flags": {}, "dpas": None},
+        "CO-REAL": {"name": "Operation status", "number": 2, "text": "",
+                    "function_text": "", "description": "", "device_address": "1.1.9",
+                    "device_application": None, "module": None, "channel": None,
+                    "dpts": [{"main": 7, "sub": 1}], "object_size": "2 bytes",
+                    "group_address_links": ["6/1/13"], "flags": {}, "dpas": None},
+    },
+    "group_addresses": {
+        # typed temperature GA wired into an [LF] container -> INFO, not warning
+        "5/0/0": ga("5/0/0", "01. Холл - АТ - Воздух", 9, 1, co_ids=["CO-LF"]),
+        # real bitfield-vs-object mismatch on a normal object -> still a warning
+        "6/1/13": ga("6/1/13", "Основная В/У - Статус работы", 237, 600, co_ids=["CO-REAL"]),
+    },
+}
+_lf = detect_dpt_issues(build_loaded_from_raw(_rawLF, "mem"))
+_lfc = {(f["code"], f["address"]) for f in _lf}
+assert ("dpt_on_logic_object", "5/0/0") in _lfc, _lfc
+assert ("dpt_mismatch_co", "5/0/0") not in _lfc, "[LF] object wrongly warned as mismatch"
+assert ("dpt_mismatch_co", "6/1/13") in _lfc, "real DPT mismatch was suppressed!"
+
+_rawCM = {"group_addresses": {
+    "0/0/1": ga("0/0/1", "Общее освещение - Все группы", 1, 1),   # central macro
+    "0/1/0": ga("0/1/0", "Все шторы - Стоп", 1, 10),              # central macro
+    "1/0/9": ga("1/0/9", "Гостиная - Бра - Вкл", 1, 1),          # normal cmd, no status
+}}
+_cm = detect_missing_status(build_loaded_from_raw(_rawCM, "mem"))
+_cmc = {(f["code"], f["address"]) for f in _cm}
+assert ("central_macro_no_status", "0/0/1") in _cmc, _cmc
+assert ("missing_status_address", "0/0/1") not in _cmc, "central macro wrongly warned"
+assert ("central_macro_no_status", "0/1/0") in _cmc, _cmc
+# a normal command with no status MUST still warn (no over-suppression)
+assert ("missing_status_address", "1/0/9") in _cmc, "real missing-status lost!"
+print("OK: [LF] objects + central macros de-noised; real mismatches/gaps preserved")
 
 # --------------------------------------------------------------------------- #
 # Regression (Track A): colour light assembly + B1 (no borrowed brightness_state)
