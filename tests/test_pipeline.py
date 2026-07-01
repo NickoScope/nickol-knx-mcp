@@ -468,3 +468,22 @@ assert "KNX topology" in _svg
 import xml.dom.minidom as _mdom
 _mdom.parseString(_svg)
 print("OK: handover pack — 7 sections, inventory, summary, well-formed SVG")
+
+# --------------------------------------------------------------------------- #
+# Regression: device-library decomposition recipes.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: device-library decompose_device ===")
+from nickol_knx_mcp.device_library import decompose_device, list_recipes
+_dim=decompose_device("ZDIDBDX4", channels=4)          # DIMinBOX DX4, 4 channels
+assert _dim["matched"] and _dim["type"]=="dimmer_channel", _dim
+assert any(o["dpt"]=="3.007" for o in _dim["objects"]), "dimmer must expose 3.007 rel-dim"
+assert any(o["dpt"]=="5.001" for o in _dim["objects"]), "dimmer must expose 5.001 abs"
+assert _dim["total_ga"]==_dim["objects_per_unit"]*4
+_sh=decompose_device("JRA/S")                          # ABB shutter alias
+assert _sh["type"]=="shutter_channel" and any(o["dpt"]=="1.008" for o in _sh["objects"])
+_p=decompose_device("Z50")                             # panel → 0 new GAs
+assert _p["type"]=="panel" and _p["objects_per_unit"]==0, "panel should create 0 GAs"
+_miss=decompose_device("totally-unknown-xyz")
+assert _miss["matched"] is False
+assert len(list_recipes())>=10
+print("OK: decompose_device — dimmer 3.007+5.001, shutter 1.008, panel=0, unknown handled")

@@ -21,6 +21,7 @@ from .generate_ha import generate_ha_yaml
 from .generate_ets import generate_ets_csv, generate_ets_xml
 from .report import build_report
 from .handover import build_handover
+from .device_library import decompose_device as _decompose_device, list_recipes
 
 mcp = FastMCP("nickol-knx")
 
@@ -262,6 +263,25 @@ def generate_handover_pack(output_dir: Optional[str] = None) -> dict[str, Any]:
         out["markdown"] = pack["markdown"]
         out["svg"] = pack["svg"]
     return out
+
+
+@mcp.tool()
+def decompose_device(order_number: str, channels: int = 1) -> dict[str, Any]:
+    """Expand a device into its group-address decomposition recipe.
+
+    A KNX actuator channel is not one GA — it expands into command/status/dimming/
+    position/mode objects, each with its DPT. Given a device order number, type or
+    alias (e.g. 'ZIO-MB24', 'dimmer', 'JRA/S', 'presence detector') and a channel
+    count, returns the objects a professional wires per channel and the total GA
+    count. Use when turning a spec/ТЗ device list into a group-address structure.
+    """
+    return _decompose_device(order_number, channels=channels)
+
+
+@mcp.tool()
+def list_device_recipes() -> list[dict[str, Any]]:
+    """List the device decomposition recipes in the built-in device library."""
+    return list_recipes()
 
 
 @mcp.tool()

@@ -6,10 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**Project handover pack + noise-reduction refinements**, both driven by a second real signed
-Zennio project (a 3646-GA multi-vendor villa, 5× larger, no ETS Functions).
+_Nothing yet._
+
+## [0.3.0] — 2026-07-01
+
+**Spec→structure: a device library and a design methodology, plus the as-built handover pack.**
+This release turns the tool from a `.knxproj` *validator* into a *design* aid: from a project
+spec you can now expand each device into its group-address recipe and reason about the whole
+structure. Shipped alongside the Track B project handover pack and a set of noise-reduction
+refinements, the latter two driven by a second real signed Zennio project (a 3646-GA
+multi-vendor villa, 5× larger, no ETS Functions).
 
 ### Added
+- **Device library + `decompose_device` — one device is not one GA** (`device_library.py`, new
+  MCP tools `decompose_device` + `list_device_recipes`). Each actuator channel expands into a
+  set of communication objects — command, status, dimming (3.007), absolute value/position
+  (5.001), HVAC mode (20.102/20.105), colour (232.600/251.600) — each with its own DPT. Given a
+  manufacturer order number, device type or alias (e.g. `ZDIDBDX4`, `dimmer`, `JRA/S`,
+  `presence detector`) and a channel count, the tool returns the objects a professional
+  typically wires per channel and the total GA count, so a spec/ТЗ device list can be turned
+  into a group-address structure. Recipes cover switch, dimmer, RGBW LED, shutter/blind,
+  floor-heating, AC gateway, DALI, presence, metering, leak and touch-panel families across
+  Zennio + ABB. Recipes are **generic vendor facts** compiled from KNX manufacturer ETS product
+  databases and public documentation — the *typical-wired* subset, not the full selectable
+  master menu. New regression tests cover the dimmer/shutter/panel/unknown paths.
+- **`docs/spec-to-structure.md` — the spec→structure methodology.** Documents the reverse of
+  validation (design a group-address structure from a spec), the `decompose_device` pipeline,
+  and an honest, measured account of what is reproducible from a spec (~90 %: taxonomy, domains,
+  logic structure, command/status pairing, DPT discipline) versus what is not (the exact
+  per-device object count — an integrator parameterisation choice that varies 2–9× between
+  projects; predict a range, never a false-precise number).
 - **`generate_handover_pack` — the as-built commissioning deliverable** (Track B). From a
   read-only `.knxproj` it assembles `handover.md` (equipment inventory by manufacturer,
   group-address map by domain, command/status feedback coverage %, KNX Secure scope, QA state),
@@ -162,7 +188,8 @@ Initial public beta.
 - Tested end-to-end on a synthetic project only; real-world `.knxproj` testing is ongoing
   (see the call for testers in the README).
 
-[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.1.0...v0.1.1
