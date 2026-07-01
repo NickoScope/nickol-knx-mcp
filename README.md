@@ -2,7 +2,7 @@
 
 **A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
 
-It reads your `.knxproj`, analyzes group addresses / DPTs / topology, generates Home Assistant KNX YAML and ETS-importable group-address files (XML/CSV), and produces human-readable reports — **without ever touching the live KNX bus.**
+It reads your `.knxproj` and **validates** it (naming · DPT & sub-DPT · command↔status · KNX Secure · Matter-readiness), **repairs** it (proposes concrete fixes — infers DPTs, synthesises missing status GAs), **decomposes devices** into their group-address recipes, **diffs** two project versions, **grades** completeness, and **generates** Home Assistant YAML, ETS-importable exports (XML/CSV), an as-built **handover pack**, an acceptance test protocol and a KNX IoT semantic export — all **without ever touching the live KNX bus.**
 
 [![CI](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -120,6 +120,24 @@ The recommended full setup is four layers; only one needs to be built from scrat
 - **Writes a Markdown report** (inventory + 🔴🟡🔵 findings + HA-mapping preview + next steps) for
   human review **before** any import.
 
+**Beyond validation — the design & repair layer (v0.3–v0.6):**
+
+- **Repairs, not just flags** (`suggest_repairs`) — for every finding it proposes a concrete fix:
+  infer a DPT from the name, correct a suspect sub-DPT, synthesise a status GA in a free slot, add an
+  absolute-brightness GA. Suggestions only; accepted GAs feed the ETS export.
+- **Device library** (`decompose_device`) — a KNX actuator channel is not one GA; each channel expands
+  into command/status/dimming/position/mode objects. Given an order number or type it returns the
+  decomposition recipe (Zennio + ABB families) so a spec/ТЗ device list becomes a GA structure.
+- **As-built handover pack** (`generate_handover_pack`) — equipment inventory, group-address map by
+  domain, command↔status coverage %, KNX Secure posture + keyring checklist, itemised QA and a
+  standalone topology SVG, in one command.
+- **Sub-DPT sanity, KNX Secure posture, Matter-readiness, energy-domain** checks; a **semantic project
+  diff**, a **completeness grade** (skeleton vs as-built), an **acceptance test-protocol** draft, and a
+  **KNX IoT (Turtle/RDF)** semantic export.
+- Design methodology: [`docs/spec-to-structure.md`](docs/spec-to-structure.md) — reconstruct a
+  group-address structure from a project spec (~90 % of the taxonomy/logic is reproducible; the exact
+  per-device object count is the integrator's parameterisation).
+
 All writes go only into the workspace directory (`NICKOL_KNX_WORKSPACE`, default `./knx-workspace`);
 writes outside it are rejected.
 
@@ -183,20 +201,45 @@ keyring handling, and the recommended workflow).
 
 ---
 
-## MCP tools (12)
+## MCP tools (24)
 
+**Read**
 | Tool | Purpose |
 |------|---------|
 | `load_project(path, password?, language?)` | parse a `.knxproj` (read-only) and cache it |
 | `list_group_addresses(category?, kind?)` | list GAs with classification and filters |
 | `get_devices()` | devices + their communication objects |
 | `get_topology()` | topology (areas / lines / devices) |
-| `check_naming(name_regex?)` | validate naming / structure |
+
+**Validate**
+| Tool | Purpose |
+|------|---------|
+| `check_naming(name_regex?)` | validate naming / 3-level structure |
 | `check_missing_status()` | actuators lacking a status object |
-| `check_dpt()` | missing / inconsistent DPTs |
+| `check_dpt()` | missing / inconsistent DPTs **+ sub-DPT sanity** (temp→9.001, power→14.056…) |
+| `check_secure()` | KNX Data Secure posture + keyring handover checklist |
+| `check_matter()` | Matter-readiness lint (which functions round-trip to a Matter cluster) |
+| `check_energy()` | metering/energy DPT check + PV/battery/EVSE scaffold |
 | `analyze_all(name_regex?)` | run every check at once |
-| `generate_ha_package(output_path?)` | HA KNX YAML + review list |
+
+**Repair & design**
+| Tool | Purpose |
+|------|---------|
+| `suggest_repairs()` | **propose fixes, not just flag** — infer DPTs, synthesise status/brightness GAs |
+| `suggest_names()` | naming-hygiene suggestions |
+| `decompose_device(order_number, channels?)` | device → group-address decomposition recipe |
+| `list_device_recipes()` | the built-in device library (Zennio + ABB families) |
+| `grade_completeness()` | grade a project: bare skeleton vs as-built |
+| `diff_projects(path_a, path_b, …)` | semantic diff between two `.knxproj` versions |
+
+**Generate**
+| Tool | Purpose |
+|------|---------|
+| `generate_ha_package(output_path?)` | HA KNX YAML (colour + climate + expose) + review list |
 | `generate_ets_group_addresses(fmt="xml"\|"csv", output_path?)` | ETS-importable GAs |
+| `generate_handover_pack(output_dir?)` | as-built handover: inventory, GA map, coverage, Secure, QA, topology.svg |
+| `generate_test_protocol(output_path?)` | functional acceptance protocol (command → expected status) |
+| `generate_knx_iot(output_path?)` | KNX IoT semantic export (Turtle/RDF) |
 | `project_report(output_path?, name_regex?)` | Markdown report |
 | `workspace_info()` | workspace path + safety guarantees |
 
