@@ -450,7 +450,7 @@ _hmd = _hp["markdown"]
 # all seven sections present
 for _sec in ("# KNX Handover Pack", "## 1. Topology", "## 2. Equipment inventory",
              "## 3. Group-address map by domain", "## 4. Command / status coverage",
-             "## 5. KNX Secure scope", "## 6. QA state at handover", "## 7. Pack contents"):
+             "## 5. KNX Secure posture", "## 6. QA state at handover", "## 7. Pack contents"):
     assert _sec in _hmd, f"handover missing section: {_sec}"
 # equipment inventory picked up the synthetic MDT device + its order number
 assert "MDT" in _hmd and "AKK-0416.03" in _hmd, "device inventory not rendered"
@@ -487,3 +487,34 @@ _miss=decompose_device("totally-unknown-xyz")
 assert _miss["matched"] is False
 assert len(list_recipes())>=10
 print("OK: decompose_device — dimmer 3.007+5.001, shutter 1.008, panel=0, unknown handled")
+
+# --------------------------------------------------------------------------- #
+# Regression (v0.4.0): A1 sub-DPT linter + A4 KNX Secure posture.
+# --------------------------------------------------------------------------- #
+print("\n=== REGRESSION: A1 sub-DPT linter + A4 secure posture ===")
+from nickol_knx_mcp.analyze import secure_posture
+_rawA1 = {"group_addresses": {
+    "5/0/0": ga("5/0/0", "Гостиная - Температура воздуха", 9, 4),   # temp but 9.004(lux) -> suspect
+    "5/0/1": ga("5/0/1", "Спальня - Температура", 9, 1),            # correct -> ok
+    "1/0/0": ga("1/0/0", "Kitchen brightness value", 5, 10),        # brightness but 5.010 -> suspect
+    "1/0/1": ga("1/0/1", "Hall brightness value", 5, 1),           # correct
+    "2/0/0": ga("2/0/0", "CO2 living room", 5, 1),                 # co2 (strong) wrong main -> suspect
+}}
+_sd = {(f["code"], f["address"]) for f in detect_dpt_issues(build_loaded_from_raw(_rawA1, "mem"))}
+assert ("subdpt_suspect", "5/0/0") in _sd, "temp 9.004 not caught"
+assert ("subdpt_suspect", "1/0/0") in _sd, "brightness 5.010 not caught"
+assert ("subdpt_suspect", "2/0/0") in _sd, "co2 wrong-main not caught"
+assert ("subdpt_suspect", "5/0/1") not in _sd and ("subdpt_suspect", "1/0/1") not in _sd, "false positive on correct DPT"
+print("OK: sub-DPT linter — wrong sub + wrong main caught, correct DPTs clean")
+
+_rawS = {"group_addresses": {
+    "1/0/0": ga("1/0/0", "Kitchen switch", 1, 1, secure=True),
+    "1/0/1": ga("1/0/1", "Kitchen switch status", 1, 11, secure=False),  # same middle -> mixed
+    "2/0/0": ga("2/0/0", "Hall switch", 1, 1, secure=True),
+}}
+_sp = secure_posture(build_loaded_from_raw(_rawS, "mem"))
+assert _sp["secured"] == 2 and _sp["plaintext"] == 1, _sp
+assert _sp["keyring_required"] is True
+assert len(_sp["mixed_middle_groups"]) >= 1, "mixed secure/plaintext middle not flagged"
+assert any("keyring" in s.lower() for s in _sp["checklist"]), "no keyring step"
+print("OK: secure posture — counts, mixed-middle flag, keyring checklist")

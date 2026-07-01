@@ -18,7 +18,7 @@ from html import escape
 from typing import Any
 
 from .project import LoadedProject
-from .analyze import validate_naming, detect_missing_status, detect_dpt_issues
+from .analyze import validate_naming, detect_missing_status, detect_dpt_issues, secure_posture
 from .intent import INTENT_FUNCTIONAL
 
 
@@ -219,14 +219,27 @@ def build_handover(project: LoadedProject,
         "state for these until a feedback GA is added.\n"
     )
 
-    # 5. KNX Secure
-    md.append("\n## 5. KNX Secure scope\n")
-    if secure:
+    # 5. KNX Secure posture + keyring checklist
+    md.append("\n## 5. KNX Secure posture\n")
+    posture = secure_posture(project)
+    if posture["keyring_required"]:
         md.append(
-            f"**{len(secure)}** group address(es) carry the KNX Data Secure flag. "
-            "The next engineer needs the **ETS Keyring export (`.knxkeys`)** to "
-            "commission or read these — it is handled in ETS/HA, never by this tool.\n"
+            f"- Secured (KNX Data Secure): **{posture['secured']}** GA "
+            f"({posture['secured_pct']}%)  ·  plaintext: **{posture['plaintext']}** GA\n"
         )
+        if posture["mixed_middle_groups"]:
+            md.append(
+                f"- ⚠️ **{len(posture['mixed_middle_groups'])} middle group(s) mix "
+                "secured + plaintext addresses** — a function is only as secure as its "
+                "weakest GA. Secure the whole function or none:\n"
+            )
+            for mx in posture["mixed_middle_groups"][:20]:
+                md.append(f"  - `{mx['main']}/{mx['middle']}/*` — "
+                          f"{mx['secured']} secured, {mx['plaintext']} plaintext")
+        md.append("\n**Keyring handover checklist** (key material stays in ETS/HA — "
+                  "never in this tool):\n")
+        for i, step in enumerate(posture["checklist"], 1):
+            md.append(f"{i}. {step}")
         md.append("\n<details><summary>Secured group addresses</summary>\n")
         for ga in secure[:200]:
             md.append(f"- `{ga.address}` {ga.name}")
@@ -234,7 +247,7 @@ def build_handover(project: LoadedProject,
             md.append(f"- … and {len(secure)-200} more")
         md.append("</details>\n")
     else:
-        md.append("No KNX Data Secure group addresses in this project.\n")
+        md.append("No KNX Data Secure group addresses — no keyring required.\n")
 
     # 6. QA state at handover — itemised findings
     md.append("\n## 6. QA state at handover\n")

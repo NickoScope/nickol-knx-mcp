@@ -1,2 +1,2 @@
 """nickol-knx-mcp: design-time KNX/ETS project assistant MCP server."""
-__version__ = "0.3.0"
+__version__ = "0.4.0"

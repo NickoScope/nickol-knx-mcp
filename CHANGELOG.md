@@ -6,7 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-01
+
+**Two new lint dimensions: does the DPT sub-type match what the name promises, and is the
+project's KNX Secure posture consistent.** This release adds a conservative sub-DPT sanity
+linter and a report-only KNX Data Secure posture summary (no key material ever touched),
+plus the itemised QA findings in the handover pack.
+
 ### Added
+- **A1 — sub-DPT sanity linter** (`analyze.py`, surfaced by `check_dpt` and `analyze_all` as the
+  `subdpt_suspect` finding). When a group-address name implies a specific DPT sub-type
+  (temperature → `9.001`, power → `14.056`, brightness/position → `5.001`, and similar), the
+  linter flags a wrong sub-type or a wrong main type. Multilingual keyword matching, deliberately
+  conservative — it only fires when the name is unambiguous, so it does not second-guess correct
+  or generic DPTs.
+- **A4 — KNX Data Secure posture** (`analyze.py` `secure_posture()`, new MCP tool `check_secure`).
+  A report-only summary of the project's security posture: secured vs plaintext GA counts, middle
+  groups that mix secure and plaintext objects, and a keyring (`.knxkeys`) handover checklist. It
+  reads only the per-GA `Security` flag — no key material is read, derived, or emitted.
+- **KNX Secure posture section in the handover pack** — section 5 of `handover.md` is rewritten
+  from a flat secure-GA count into the full posture section (counts, mixed-group flag, keyring
+  handover checklist), so the as-built deliverable states the security posture explicitly.
 - **Itemised QA findings in the handover pack** — section 6 of `handover.md` now lists the
   actual 🔴 errors and 🟡 warnings (address + name, grouped by check), not just totals, so the
   handover doubles as a review checklist. Info-level items (intentional reserves / logic / macros)

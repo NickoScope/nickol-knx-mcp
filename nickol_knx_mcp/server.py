@@ -16,7 +16,8 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 
 from .project import load_project as load_project_file, LoadedProject
-from .analyze import validate_naming, detect_missing_status, detect_dpt_issues
+from .analyze import (validate_naming, detect_missing_status, detect_dpt_issues,
+                      secure_posture)
 from .generate_ha import generate_ha_yaml
 from .generate_ets import generate_ets_csv, generate_ets_xml
 from .report import build_report
@@ -161,6 +162,18 @@ def check_missing_status() -> list[dict[str, Any]]:
 def check_dpt() -> list[dict[str, Any]]:
     """Detect missing, inconsistent or mismatched DPTs."""
     return detect_dpt_issues(_project())
+
+
+@mcp.tool()
+def check_secure() -> dict[str, Any]:
+    """Summarise KNX Data Secure posture + the keyring handover checklist.
+
+    Reports how many group addresses are secured vs plaintext, flags middle
+    groups that mix secure and plaintext addresses (a function is only as secure
+    as its weakest GA), and emits the ETS/HA keyring workflow as a checklist.
+    Report-only — this server never touches key material.
+    """
+    return secure_posture(_project())
 
 
 @mcp.tool()

@@ -170,6 +170,33 @@ def _is_central_macro(name: str) -> bool:
     return any(t in low for t in _CENTRAL_MACRO_TOKENS)
 
 
+# --------------------------------------------------------------------------- #
+# Sub-DPT sanity (A1): a name implies a specific DPT sub-type. Flag when the
+# main matches but the sub is wrong (9.001 temp vs 9.004 lux), or — for strong
+# physical quantities — when the main itself is wrong for the named function.
+# Multilingual (RU / EN / DE). Conservative: only fires on clear function tokens.
+# (tokens, main, sub, strong) — strong => also flag a wrong main.
+# --------------------------------------------------------------------------- #
+_SUBDPT_RULES: tuple = (
+    (("влажност", "humidity", "feucht"), 9, 7, True),
+    (("co2", "со2", "углекисл", "kohlendioxid"), 9, 8, True),
+    (("освещённост", "освещенност", "luminosity", "lux", "helligkeit ("), 9, 4, True),
+    (("температур", "temperatur"), 9, 1, True),
+    (("мощност", "power ", "leistung"), 14, 56, True),
+    (("энерги", "energy", "energie", "квтч", "kwh"), 13, 13, True),
+    (("яркост", "brightness", "значение яркости", "dimmwert", "helligkeitswert"), 5, 1, False),
+    (("позици", "position", "stellung"), 5, 1, False),
+)
+
+
+def _expected_subdpt(name: str) -> Optional[tuple[int, int, bool]]:
+    low = (name or "").lower()
+    for tokens, m, s, strong in _SUBDPT_RULES:
+        if any(t in low for t in tokens):
+            return (m, s, strong)
+    return None
+
+
 # command DPT main -> acceptable status DPT mains
 _STATUS_COMPAT = {
     1: {1},            # switch command -> 1.x status
@@ -310,4 +337,82 @@ def detect_dpt_issues(project: LoadedProject) -> list[dict[str, Any]]:
                 addresses=[r.address for r in recs], dpts=sorted(dpts),
             ))
 
+    # 4. sub-DPT sanity — the name implies a specific sub-type (A1)
+    for addr, ga in project.gas.items():
+        if ga.intent != INTENT_FUNCTIONAL or ga.dpt_main is None:
+            continue
+        exp = _expected_subdpt(ga.name)
+        if exp is None:
+            continue
+        em, es, strong = exp
+        if ga.dpt_main == em and ga.dpt_sub != es:
+            findings.append(_finding(
+                SEVERITY_WARN, "subdpt_suspect", addr,
+                f"'{ga.name}' looks like a {em}.{es:03d} function but is DPT "
+                f"{ga.dpt or f'{em}.{ga.dpt_sub}'} — expected {em}.{es:03d} so Home "
+                "Assistant decodes it correctly.",
+                name=ga.name, found=ga.dpt, expected=f"{em}.{es:03d}",
+            ))
+        elif strong and ga.dpt_main != em:
+            findings.append(_finding(
+                SEVERITY_WARN, "subdpt_suspect", addr,
+                f"'{ga.name}' looks like a {em}.{es:03d} value but its DPT main is "
+                f"{ga.dpt_main} (DPT {ga.dpt or '?'}) — expected main {em}.",
+                name=ga.name, found=ga.dpt, expected=f"{em}.{es:03d}",
+            ))
+
     return findings
+
+
+# --------------------------------------------------------------------------- #
+# KNX Secure posture + keyring handover checklist (A4).
+# Report-only: this server never handles key material — it only summarises the
+# per-GA Security flag and emits the ETS/HA keyring workflow as a checklist.
+# --------------------------------------------------------------------------- #
+def secure_posture(project: LoadedProject) -> dict[str, Any]:
+    """Summarise KNX Data Secure posture and the keyring handover steps."""
+    gas = [g for g in project.gas.values() if g.intent == INTENT_FUNCTIONAL]
+    secured = [g for g in gas if g.data_secure]
+    plain = [g for g in gas if not g.data_secure]
+
+    # A middle group carrying BOTH secured and plaintext GAs is a posture gap:
+    # a function is only as secure as its weakest address.
+    by_mid: dict[tuple, dict[str, int]] = defaultdict(lambda: {"sec": 0, "plain": 0})
+    for g in gas:
+        if g.main is None:
+            continue
+        by_mid[(g.main, g.middle)]["sec" if g.data_secure else "plain"] += 1
+    mixed = [{"main": k[0], "middle": k[1], "secured": v["sec"], "plaintext": v["plain"]}
+             for k, v in sorted(by_mid.items()) if v["sec"] and v["plain"]]
+
+    keyring_required = len(secured) > 0
+    total = len(gas)
+    pct = (100 * len(secured) // total) if total else 0
+
+    checklist = [
+        "Assign every KNX Data Secure device to a **secure** tunnel/IP endpoint in "
+        "ETS (Project → Security).",
+        "Export the ETS **Keyring** (`.knxkeys`): Project → Security → Export Keyring "
+        "(protect it with a strong password).",
+        "Import the `.knxkeys` into the reader (Home Assistant KNX integration / the "
+        "IP interface) — Data Secure GAs cannot be read without it.",
+        "After **any** change to a secured GA, device or the secure topology, "
+        "**re-export and re-import** the keyring.",
+        "Store the keyring and the project password securely; **never commit them to "
+        "Git** or share them in plain text.",
+    ]
+    if mixed:
+        checklist.insert(1, f"Review the **{len(mixed)} middle group(s) with mixed "
+                            "secure/plaintext addresses** — a function is only as "
+                            "secure as its weakest GA; secure the whole function or none.")
+
+    return {
+        "total_functional_gas": total,
+        "secured": len(secured),
+        "plaintext": len(plain),
+        "secured_pct": pct,
+        "keyring_required": keyring_required,
+        "mixed_middle_groups": mixed,
+        "secured_addresses": [{"address": g.address, "name": g.name} for g in secured[:200]],
+        "checklist": checklist,
+    }
