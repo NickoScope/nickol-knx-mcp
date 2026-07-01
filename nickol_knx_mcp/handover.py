@@ -236,19 +236,33 @@ def build_handover(project: LoadedProject,
     else:
         md.append("No KNX Data Secure group addresses in this project.\n")
 
-    # 6. QA state at handover
+    # 6. QA state at handover — itemised findings
     md.append("\n## 6. QA state at handover\n")
     md.append(
         f"Totals: 🔴 errors **{sev.get('error',0)}**, "
         f"🟡 warnings **{sev.get('warning',0)}**, 🔵 info **{sev.get('info',0)}**.\n"
     )
+    _SEV = {"error": "🔴", "warning": "🟡", "info": "🔵"}
+    _ORD = {"error": 0, "warning": 1, "info": 2}
+    by_code: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for f in all_f:
+        by_code[f["code"]].append(f)
+    # Itemise errors + warnings (info = intentional reserves/logic/macros, not defects)
+    for code in sorted(by_code, key=lambda c: (_ORD.get(by_code[c][0]["severity"], 3), -len(by_code[c]))):
+        items = by_code[code]
+        sv = items[0]["severity"]
+        if sv == "info":
+            continue
+        md.append(f"\n**{_SEV.get(sv,'')} `{code}` — {len(items)}**\n")
+        for f in items[:20]:
+            nm = f.get("name", "")
+            md.append(f"- `{f['address']}`{(' — ' + nm) if nm else ''}")
+        if len(items) > 20:
+            md.append(f"- … and {len(items)-20} more")
     nonfunc = ", ".join(f"{k}={v}" for k, v in sorted(intent_counts.items()) if k != INTENT_FUNCTIONAL)
     if nonfunc:
-        md.append(f"\nNon-functional GAs (excluded from error checks): {nonfunc}.\n")
-    md.append(
-        "\nSee `project_report` (or `analyze_all`) for the itemised findings. Resolve "
-        "🔴 errors in ETS before sign-off.\n"
-    )
+        md.append(f"\nNon-functional GAs excluded from error checks (intentional): {nonfunc}.\n")
+    md.append("\nResolve 🔴 errors in ETS before sign-off.\n")
 
     # 7. Pack contents
     md.append("\n## 7. Pack contents\n")

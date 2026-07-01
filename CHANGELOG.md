@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+- **Itemised QA findings in the handover pack** — section 6 of `handover.md` now lists the
+  actual 🔴 errors and 🟡 warnings (address + name, grouped by check), not just totals, so the
+  handover doubles as a review checklist. Info-level items (intentional reserves / logic / macros)
+  stay collapsed.
 
 ## [0.3.0] — 2026-07-01
 
