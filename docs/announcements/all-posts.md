@@ -2,7 +2,7 @@
 
 Repo: https://github.com/NickoScope/nickol-knx-mcp · Site: https://nickoscope.github.io/nickol-knx-mcp/ · Case study: https://github.com/NickoScope/nickol-knx-mcp/blob/main/docs/case-study.md
 
-**Current: v0.2.0** — adds colour-light (RGBW/RGB/CCT) + `climate` entity assembly and GA-intent noise reduction. Plus a spec-PDF → **96%-match** GA-structure case study. The posts below are updated to lead with those.
+**Current: v0.6.0** — roadmap complete: **24 MCP tools** that validate (naming · DPT/sub-DPT · status · KNX Secure · Matter), **repair** (propose fixes), **decompose devices**, **diff** two versions, **grade** completeness, and **generate** Home Assistant YAML (colour + climate), ETS exports, an as-built **handover pack** & KNX IoT — all read-only. Plus a spec-PDF → **96%-match** GA-structure case study. The posts below still lead with the colour/climate assembly milestone.
 
 Etiquette reminder: disclose you're the author, lead with value, be online to answer for a few hours after posting. Don't cross-post everything in one hour — space it out (home base → targeted forums → Reddit/Discord → social).
 
