@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>nickol-knx-mcp — design-time KNX/ETS6 assistant (MCP server)</title>
-<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server: validate (naming/DPT/status/Secure/Matter), repair (propose fixes), decompose devices (exact vendor models from ETS app-programs), diff versions, and generate Home Assistant YAML, ETS exports, an as-built handover pack & KNX IoT. No live bus access. 25 tools. Includes a full demo house + smart Home Assistant brain." />
+<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server. Design a project from a spec into a full implementation kit (ETS XML/CSV, report, Home Assistant YAML, test protocol, handover pack); audit & repair an existing .knxproj with concrete fix proposals; generate the Home Assistant layer. Exact vendor device models parsed from ETS app-programs. No live bus access. 25 tools. Includes a full demo house + smart HA brain." />
 <style>
   :root{
     --bg:#0d0f12;--panel:#14171c;--card:#181c22;--card2:#1c2027;--line:#242a33;
@@ -155,9 +155,11 @@
     <span class="pill">Model Context Protocol</span>
   </div>
   <h1>The missing <span class="grad">ETS6 ↔ Claude</span><br>design-time layer for KNX</h1>
-  <p class="tagline">A design-time KNX/ETS6 assistant exposed as an <b>MCP server</b>. It reads your
-  <code>.knxproj</code>, validates DPTs / naming / status pairs, generates Home Assistant YAML and
-  ETS-importable exports, and produces human-readable reports — <b>without ever touching the live bus.</b></p>
+  <p class="tagline">A design-time KNX/ETS6 assistant exposed as an <b>MCP server</b>.
+  <b>Design</b> a project from a spec into a full implementation kit (ETS XML/CSV · report ·
+  HA YAML · test protocol · handover pack), <b>audit &amp; repair</b> an existing
+  <code>.knxproj</code> with concrete fix proposals, and <b>generate</b> the Home Assistant
+  layer — <b>without ever touching the live bus.</b></p>
   <div class="cta">
     <a class="btn primary" href="https://github.com/NickoScope/nickol-knx-mcp">★ Star on GitHub</a>
     <a class="btn" href="#dashboard">▶ See the demo dashboard</a>
@@ -177,7 +179,7 @@
   </div>
   <div class="grid g3" style="margin-top:18px">
     <div class="card"><h3>🔒 No bus access</h3><p>Zero networking/bus libraries in the dependency tree. <code>bus_access: false</code> — structural, not a promise.</p></div>
-    <div class="card"><h3>🧩 25 MCP tools</h3><p><b>Validate</b> (naming · DPT &amp; sub-DPT · status · KNX Secure · Matter) · <b>repair</b> (propose fixes, not just flag) · <b>decompose devices</b> into GA recipes or <b>exact vendor models</b> (parsed from ETS app-programs into a local catalog) · <b>diff</b> two versions · <b>grade</b> completeness · <b>generate</b> HA YAML (<b>colour + climate</b>), ETS XML/CSV, an as-built <b>handover pack</b> &amp; KNX IoT. All read-only.</p></div>
+    <div class="card"><h3>🧩 25 MCP tools · 3 scenarios</h3><p><b>1 · Design from a spec:</b> device list → exact object models → professional logic layer → full implementation kit (ETS XML/CSV · report · HA YAML · test protocol · handover pack) — field-checked at <b>~92% structural match</b> vs a real 3,600+ GA as-built project. <b>2 · Audit &amp; repair:</b> validate (naming · DPT &amp; sub-DPT · status · Secure · Matter), get <b>concrete fixes</b> (145 proposals on a real project), grade completeness, diff versions. <b>3 · Smart home:</b> assembled HA entities (<b>colour + climate</b>) reading real state. All read-only.</p></div>
     <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Validated on ETS 4.2 / 5.0 / 5.5 / 6 fixtures, a real <b>signed ETS6 round-trip</b>, and a <b>685-GA Zennio</b> project (false errors there: 29 → 6).</p></div>
   </div>
 </div></section>

@@ -2,7 +2,13 @@
 
 **A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
 
-It reads your `.knxproj` and **validates** it (naming · DPT & sub-DPT · command↔status · KNX Secure · Matter-readiness), **repairs** it (proposes concrete fixes — infers DPTs, synthesises missing status GAs), **decomposes devices** into their group-address recipes (or the **exact vendor object model**, parsed straight from the ETS application programs into a local device catalog), **diffs** two project versions, **grades** completeness, and **generates** Home Assistant YAML, ETS-importable exports (XML/CSV), an as-built **handover pack**, an acceptance test protocol and a KNX IoT semantic export — all **without ever touching the live KNX bus.**
+Three things you can do with it — all **without ever touching the live KNX bus**:
+
+1. **Design a project from a spec** — turn an equipment list / project specification into a complete, validated group-address structure **plus the full implementation document set** (ETS-importable XML/CSV, human-readable report, Home Assistant YAML, acceptance test protocol, as-built handover pack).
+2. **Audit, repair & finish an existing project** — validate naming · DPT & sub-DPT · command↔status · KNX Secure · Matter-readiness, get **concrete fix proposals** (inferred DPTs, synthesised status GAs), grade completeness, and diff two project versions.
+3. **Generate the smart-home layer** — assembled Home Assistant entities (colour lights, climate, covers, sensors) that read *real device state*, with everything ambiguous deferred to human review.
+
+Under the hood: a **device library** that expands each actuator into its real communication objects — from generic recipes up to the **exact vendor object model** parsed straight from ETS application programs.
 
 [![CI](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -56,8 +62,8 @@ and valve %), a **circadian** lighting curve and a **computed** climate setpoint
 ## 🧪 Status & call for testers
 
 This is a **public beta**. The full pipeline passes an end-to-end smoke test on a synthetic
-16-group-address project, but it has had **limited testing against real-world `.knxproj` files** —
-and real ETS projects are wonderfully messy and diverse.
+project and has been validated against **real multi-thousand-GA ETS5/ETS6 projects** (anonymised) —
+but real ETS projects are wonderfully messy and diverse, and more field reports make it better.
 
 **👉 If you have an ETS5/ETS6 project, please try it and tell us what happens.** Open a
 [Real-project test report](https://github.com/NickoScope/nickol-knx-mcp/issues/new?template=real_project_test.yml)
@@ -91,52 +97,80 @@ The recommended full setup is four layers; only one needs to be built from scrat
 
 ---
 
-## What the server does
+## What you can do with it
 
-- **Parses** password-protected ETS5/ETS6 `.knxproj` files via [`xknxproject`](https://github.com/XKNX/xknxproject) (3.9.x).
-- **Extracts** group addresses, DPTs, devices, topology, descriptions, and ETS Functions.
-- **Classifies** every GA: category (lighting / shutter / hvac / sensor / scene / energy /
-  diagnostics) and kind (command / status / sensor) — from the DPT plus multilingual (EN/DE/RU)
-  keywords in the name.
-- **Validates naming** against a 3-level structure and a configurable regex.
-- **Finds missing status addresses** — primarily from ETS Function roles, falling back to
-  name-token pairing (command in `…/0/…`, feedback in `…/4/…` is common, so it matches by name
-  tokens rather than by middle-group adjacency).
-- **Catches DPT problems**: missing DPT, mismatch between a Communication Object and its GA, and
-  the same logical name carrying different DPTs.
-- **Classifies GA purpose to cut noise** — every group address is tagged `functional` / `reserve` /
-  `logic` / `scratch`. Intentional non-functional GAs (spare "Reserve" placeholders, internal logic
-  signals, scratch leftovers) are kept out of the error and missing-status checks, so the report
-  doesn't cry wolf on real projects (e.g. a 685-GA Zennio project: false errors 29 → 6).
-- **Generates Home Assistant KNX YAML** — category by category, conservatively: covers →
-  **colour / dimmable lights** → switches → **climate** → sensors/binary. Multi-address entities are
-  **assembled**: lights gather on/off + brightness + **RGBW / RGB / colour-temperature** + their
-  statuses; `climate` entities gather current temp, target-temp status, operation/controller mode and
-  valve command-value (emitted only when the HA-required keys are present, else sent to review).
-  Ambiguous items (e.g. DPT 5.001 — brightness vs blind position) are **not guessed**; they go into a
-  `review` list instead.
-- **Generates ETS-importable** group addresses in **XML** (the recommended `knx.org/xml/ga-export/01`
-  schema) and **CSV** (ETS's native layout).
-- **Writes a Markdown report** (inventory + 🔴🟡🔵 findings + HA-mapping preview + next steps) for
-  human review **before** any import.
+### 📐 Scenario 1 — Design a project from a spec (spec → implementation kit)
 
-**Beyond validation — the design & repair layer (v0.3–v0.6):**
+Turn a project specification (equipment schedules, cable journals, a device list) into a complete,
+validated group-address structure — and the **full document set to implement it**:
 
-- **Repairs, not just flags** (`suggest_repairs`) — for every finding it proposes a concrete fix:
-  infer a DPT from the name, correct a suspect sub-DPT, synthesise a status GA in a free slot, add an
-  absolute-brightness GA. Suggestions only; accepted GAs feed the ETS export.
-- **Device library** (`decompose_device`) — a KNX actuator channel is not one GA; each channel expands
-  into command/status/dimming/position/mode objects. Given an order number or type it returns the
-  decomposition recipe (Zennio + ABB families) so a spec/ТЗ device list becomes a GA structure.
-- **As-built handover pack** (`generate_handover_pack`) — equipment inventory, group-address map by
-  domain, command↔status coverage %, KNX Secure posture + keyring checklist, itemised QA and a
-  standalone topology SVG, in one command.
-- **Sub-DPT sanity, KNX Secure posture, Matter-readiness, energy-domain** checks; a **semantic project
-  diff**, a **completeness grade** (skeleton vs as-built), an **acceptance test-protocol** draft, and a
-  **KNX IoT (Turtle/RDF)** semantic export.
-- Design methodology: [`docs/spec-to-structure.md`](docs/spec-to-structure.md) — reconstruct a
-  group-address structure from a project spec (~90 % of the taxonomy/logic is reproducible; the exact
-  per-device object count is the integrator's parameterisation).
+1. **Device list → object model.** Each device expands into its real communication objects via the
+   device library (`decompose_device`): a dimmer channel is on/off + status + relative dim (3.007) +
+   absolute value (5.001) + brightness status — not "one GA"; a floor-heating zone is 8 objects; a
+   pulse meter is 6.
+2. **The professional logic layer.** A bare spec never mentions what makes a project *complete*:
+   central & zone macros, scenes, presence logic, climate-control scaffolding, sun/wind shutter
+   logic, leak→shut-off chains, astro/meteo and date-time sources, reserves in every range. The
+   methodology encodes these completeness patterns — distilled from the KNX Association standard,
+   public manufacturer documentation and the study of real professional as-built ETS projects
+   (anonymised).
+3. **Structure & discipline.** 3-level addressing, zone+function naming, command↔status pairing,
+   a DPT on every address.
+4. **Deliverables** (one command each): ETS-importable **XML/CSV** · Markdown **report** ·
+   **Home Assistant YAML** · functional **acceptance test protocol** · as-built **handover pack**
+   (inventory, GA map, coverage %, Secure posture, QA findings, topology SVG).
+
+Full methodology: [`docs/spec-to-structure.md`](docs/spec-to-structure.md). Field-checked by
+reconstructing a real as-built ETS project (3,600+ group addresses) from its specification alone:
+**~92 % structural match** (taxonomy, domains, automation logic, DPT distribution) at **zero
+validation errors** — the remaining delta is the integrator's per-device parameterisation, which no
+spec encodes.
+
+### 🔍 Scenario 2 — Audit, repair & finish an existing project
+
+- **Read & classify.** Parses password-protected ETS5/ETS6 `.knxproj` via
+  [`xknxproject`](https://github.com/XKNX/xknxproject); classifies every GA by category
+  (lighting / shutter / hvac / sensor / scene / energy / diagnostics) and kind (command / status /
+  sensor) from the DPT + multilingual (EN/DE/RU) name keywords. GA **purpose tagging**
+  (`functional` / `reserve` / `logic` / `scratch`) keeps intentional placeholders out of the error
+  lists, so the report doesn't cry wolf (on a real 685-GA project: false errors 29 → 6).
+- **Validate** (`analyze_all` runs everything): naming & structure · missing status objects
+  (ETS-Function roles first, name-token pairing as fallback) · missing/inconsistent DPTs **+
+  sub-DPT sanity** (a "temperature" GA carrying 5.001 gets flagged) · relative-only dimmers ·
+  KNX Secure posture (secured vs plaintext, mixed groups, keyring checklist — key material is
+  never read) · Matter-readiness · energy-domain coverage.
+- **Repair, not just flag** (`suggest_repairs`): infer a DPT from the name, correct a suspect
+  sub-DPT, synthesise a missing status GA in a free address slot, add an absolute-brightness GA.
+  Suggestions only — a human reviews, accepted GAs feed the ETS export. On a real 3,646-GA
+  project: **145 concrete proposals** (32 DPT inferences, 112 synthesised status GAs).
+- **Finish the job**: `grade_completeness` (bare skeleton → as-built score), `suggest_names`,
+  `diff_projects` (semantic diff of two `.knxproj` revisions: added / removed / DPT-changed /
+  renamed / secure-changed), then regenerate the report, handover pack and test protocol.
+
+### 🏠 Scenario 3 — Generate the smart-home layer (Home Assistant)
+
+- **Assembled entities, conservatively**: covers → **colour / dimmable lights** (on/off +
+  brightness + RGBW/RGB/colour-temperature + statuses) → switches → **climate** (current temp,
+  target-temp status, operation/controller mode, valve value) → sensors/binary. Every entity gets
+  a `state_address` wherever the device can report — HA reads *real state*, never assumes.
+- **Review-first**: anything ambiguous (DPT 5.001 — brightness or blind position?) is **not
+  guessed** — it goes to a `review` list with an explanation (including actuator-dependent cover
+  flags like `invert_position` / travel times, which no `.knxproj` encodes).
+- **Extras**: `expose` block for date/time broadcast (DPT 19.001), Matter-readiness lint,
+  KNX IoT (Turtle/RDF) semantic export.
+- Live control of the house stays in the official Home Assistant integration (layer 1) — this
+  server only prepares its configuration.
+
+### 🧩 The foundation — a growing device library
+
+- `parse_devices_from_project` extracts **exact vendor object models** from the manufacturer
+  application programs inside any `.knxproj` / `.knxprod`: object numbers, names, sizes, DPTs,
+  C/R/W/T/U flags, per-channel block strides — deterministically, and PII-safe (vendor catalog
+  data only; the client project part of the file is never read).
+- Point `NICKOL_KNX_CATALOG` at your catalog and `decompose_device` answers with the **exact
+  model** (`catalog-exact`) instead of a generic recipe — the catalog grows on demand, from the
+  projects and product databases *you* feed it.
+- Objects the vendor ships without a declared DPT stay honestly `unverified` — never guessed.
 
 All writes go only into the workspace directory (`NICKOL_KNX_WORKSPACE`, default `./knx-workspace`);
 writes outside it are rejected.
@@ -268,7 +302,8 @@ keyring handling, and the recommended workflow).
 - The HA generator is conservative: it would rather defer an item to `review` than emit a wrong entity.
 - The server never writes to the bus and never talks to ETS directly — ETS exchange is file
   import/export of GAs only.
-- **Tested only on a synthetic project so far.** Real `.knxproj` files vary a lot — hence the
+- **Validated on a synthetic demo project and on real multi-thousand-GA ETS5/ETS6 projects**
+  (anonymised) — but real `.knxproj` files vary enormously, and it is still a beta. Hence the
   [call for testers](#-status--call-for-testers).
 
 ---
