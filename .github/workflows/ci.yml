@@ -31,6 +31,12 @@ jobs:
       - name: End-to-end smoke test (synthetic 16-GA project)
         run: python tests/test_pipeline.py
 
+      - name: Device catalog wiring (catalog-exact + recipe fallback)
+        run: python tests/test_device_catalog.py
+
+      - name: App-program parser (synthetic .knxprod round-trip)
+        run: python tests/test_appprog_parser.py
+
       - name: Console script is installed
         run: |
           python -c "import importlib.metadata as m; print('entry points:', [e.name for e in m.entry_points(group='console_scripts') if e.name == 'nickol-knx-mcp'])"
