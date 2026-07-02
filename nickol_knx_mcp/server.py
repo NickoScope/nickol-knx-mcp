@@ -23,6 +23,8 @@ from .generate_ets import generate_ets_csv, generate_ets_xml
 from .report import build_report
 from .handover import build_handover
 from .device_library import decompose_device as _decompose_device, list_recipes
+from .appprog_parser import (parse_project as _parse_project,
+                             summary as _appprog_summary, to_catalog_yaml as _appprog_to_yaml)
 from .repair import suggest_repairs as _suggest_repairs
 from .advanced import (matter_readiness, completeness_grade, energy_scaffold,
                        test_protocol, suggest_naming)
@@ -313,6 +315,34 @@ def decompose_device(order_number: str, channels: int = 1) -> dict[str, Any]:
 def list_device_recipes() -> list[dict[str, Any]]:
     """List the device decomposition recipes in the built-in device library."""
     return list_recipes()
+
+
+@mcp.tool()
+def parse_devices_from_project(path: str, output_path: Optional[str] = None,
+                               password: Optional[str] = None) -> dict[str, Any]:
+    """Extract exact device object models from a .knxproj / .knxprod application programs.
+
+    Reads the manufacturer application programs (M-*) embedded in an ETS `.knxproj`
+    (devices actually used) or a `.knxprod` product database, and returns each device's
+    order number, app-program version, object counts and detected per-channel blocks —
+    the EXACT vendor comm-object model, not a generic recipe. Read-only and PII-safe: it
+    reads only vendor catalog data, never the client project (P-*/0.xml).
+
+    Use this to build/grow the local device catalog that `decompose_device` consumes
+    (set NICKOL_KNX_CATALOG to the catalog dir). If `output_path` is given, the full
+    catalog is written into the workspace as device-library YAML; the return value is
+    always a compact per-device summary + coverage manifest (the full object lists are
+    not inlined). DPT `unverified` = the vendor app-program declares none (never guessed).
+    """
+    result = _parse_project(path, password=password)
+    if "error" in result:
+        return result
+    out = _appprog_summary(result)
+    if output_path:
+        out["written"] = _safe_write(output_path, _appprog_to_yaml(result))
+        out["written_note"] = ("Local catalog file. Point NICKOL_KNX_CATALOG at its "
+                               "directory to make decompose_device return catalog-exact.")
+    return out
 
 
 @mcp.tool()

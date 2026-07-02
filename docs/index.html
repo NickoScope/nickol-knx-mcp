@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>nickol-knx-mcp — design-time KNX/ETS6 assistant (MCP server)</title>
-<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server: validate (naming/DPT/status/Secure/Matter), repair (propose fixes), decompose devices, diff versions, and generate Home Assistant YAML, ETS exports, an as-built handover pack & KNX IoT. No live bus access. 24 tools. Includes a full demo house + smart Home Assistant brain." />
+<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server: validate (naming/DPT/status/Secure/Matter), repair (propose fixes), decompose devices (exact vendor models from ETS app-programs), diff versions, and generate Home Assistant YAML, ETS exports, an as-built handover pack & KNX IoT. No live bus access. 25 tools. Includes a full demo house + smart Home Assistant brain." />
 <style>
   :root{
     --bg:#0d0f12;--panel:#14171c;--card:#181c22;--card2:#1c2027;--line:#242a33;
@@ -150,7 +150,7 @@
 <header class="hero"><div class="wrap">
   <div class="pills">
     <span class="pill mit">MIT</span>
-    <span class="pill beta">public beta · v0.6.0</span>
+    <span class="pill beta">public beta · v0.7.0</span>
     <span class="pill">Python 3.10+</span>
     <span class="pill">Model Context Protocol</span>
   </div>
@@ -177,7 +177,7 @@
   </div>
   <div class="grid g3" style="margin-top:18px">
     <div class="card"><h3>🔒 No bus access</h3><p>Zero networking/bus libraries in the dependency tree. <code>bus_access: false</code> — structural, not a promise.</p></div>
-    <div class="card"><h3>🧩 24 MCP tools</h3><p><b>Validate</b> (naming · DPT &amp; sub-DPT · status · KNX Secure · Matter) · <b>repair</b> (propose fixes, not just flag) · <b>decompose devices</b> into GA recipes · <b>diff</b> two versions · <b>grade</b> completeness · <b>generate</b> HA YAML (<b>colour + climate</b>), ETS XML/CSV, an as-built <b>handover pack</b> &amp; KNX IoT. All read-only.</p></div>
+    <div class="card"><h3>🧩 25 MCP tools</h3><p><b>Validate</b> (naming · DPT &amp; sub-DPT · status · KNX Secure · Matter) · <b>repair</b> (propose fixes, not just flag) · <b>decompose devices</b> into GA recipes or <b>exact vendor models</b> (parsed from ETS app-programs into a local catalog) · <b>diff</b> two versions · <b>grade</b> completeness · <b>generate</b> HA YAML (<b>colour + climate</b>), ETS XML/CSV, an as-built <b>handover pack</b> &amp; KNX IoT. All read-only.</p></div>
     <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Validated on ETS 4.2 / 5.0 / 5.5 / 6 fixtures, a real <b>signed ETS6 round-trip</b>, and a <b>685-GA Zennio</b> project (false errors there: 29 → 6).</p></div>
   </div>
 </div></section>

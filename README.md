@@ -2,7 +2,7 @@
 
 **A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
 
-It reads your `.knxproj` and **validates** it (naming · DPT & sub-DPT · command↔status · KNX Secure · Matter-readiness), **repairs** it (proposes concrete fixes — infers DPTs, synthesises missing status GAs), **decomposes devices** into their group-address recipes, **diffs** two project versions, **grades** completeness, and **generates** Home Assistant YAML, ETS-importable exports (XML/CSV), an as-built **handover pack**, an acceptance test protocol and a KNX IoT semantic export — all **without ever touching the live KNX bus.**
+It reads your `.knxproj` and **validates** it (naming · DPT & sub-DPT · command↔status · KNX Secure · Matter-readiness), **repairs** it (proposes concrete fixes — infers DPTs, synthesises missing status GAs), **decomposes devices** into their group-address recipes (or the **exact vendor object model**, parsed straight from the ETS application programs into a local device catalog), **diffs** two project versions, **grades** completeness, and **generates** Home Assistant YAML, ETS-importable exports (XML/CSV), an as-built **handover pack**, an acceptance test protocol and a KNX IoT semantic export — all **without ever touching the live KNX bus.**
 
 [![CI](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NickoScope/nickol-knx-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -201,7 +201,7 @@ keyring handling, and the recommended workflow).
 
 ---
 
-## MCP tools (24)
+## MCP tools (25)
 
 **Read**
 | Tool | Purpose |
@@ -227,8 +227,9 @@ keyring handling, and the recommended workflow).
 |------|---------|
 | `suggest_repairs()` | **propose fixes, not just flag** — infer DPTs, synthesise status/brightness GAs |
 | `suggest_names()` | naming-hygiene suggestions |
-| `decompose_device(order_number, channels?)` | device → group-address decomposition recipe |
+| `decompose_device(order_number, channels?)` | device → GA decomposition: **exact vendor model** from a local catalog (`NICKOL_KNX_CATALOG`), or generic recipe |
 | `list_device_recipes()` | the built-in device library (Zennio + ABB families) |
+| `parse_devices_from_project(path, output_path?, password?)` | extract **exact device object models** from the app-programs inside a `.knxproj`/`.knxprod` → device-library YAML (feeds the local catalog) |
 | `grade_completeness()` | grade a project: bare skeleton vs as-built |
 | `diff_projects(path_a, path_b, …)` | semantic diff between two `.knxproj` versions |
 
@@ -298,7 +299,7 @@ nickol-knx-mcp/
 │   ├── generate_ha.py    # Home Assistant KNX YAML generation
 │   ├── generate_ets.py   # ETS XML + CSV generation
 │   ├── report.py         # Markdown report
-│   └── server.py         # FastMCP server, 24 tools, confined writes
+│   └── server.py         # FastMCP server, 25 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── CLAUDE.md             # ETS Assistant skill / playbook

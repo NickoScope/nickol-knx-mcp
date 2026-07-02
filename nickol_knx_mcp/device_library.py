@@ -17,6 +17,8 @@ rather than guessed.
 
 from __future__ import annotations
 
+import glob
+import os
 from typing import Any, Optional
 
 # Each recipe: per-channel/per-unit object list [(function, dpt, role)].
@@ -183,6 +185,129 @@ def _lookup(key: str) -> Optional[str]:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Local exact catalog (opt-in) — harvested vendor app-program models.
+#
+# When the env var ``NICKOL_KNX_CATALOG`` points at a YAML file OR a directory of
+# YAML files (device-library schema — see library-schema.md), ``decompose_device``
+# prefers the EXACT vendor object model over the generic recipe. The catalog is
+# NOT shipped with the package (it is vendor-catalog data kept locally); with the
+# env unset the tool behaves exactly as before (generic recipes only).
+# ---------------------------------------------------------------------------
+
+_CATALOG_INDEX: Optional[dict[str, tuple[dict[str, Any], Any]]] = None
+
+
+def _norm(s: Any) -> str:
+    """Normalise an order number / name for matching (case- and space-insensitive)."""
+    return "".join(str(s).lower().split())
+
+
+def _catalog_paths() -> list[str]:
+    p = os.environ.get("NICKOL_KNX_CATALOG")
+    if not p:
+        return []
+    if os.path.isdir(p):
+        return sorted(glob.glob(os.path.join(p, "*.yaml")) + glob.glob(os.path.join(p, "*.yml")))
+    if os.path.isfile(p):
+        return [p]
+    return []
+
+
+def _load_catalog(force: bool = False) -> dict[str, tuple[dict[str, Any], Any]]:
+    """Build (and cache) an index ``normalised order/name -> (device, manufacturer)``.
+
+    Never raises: a missing/invalid catalog yields an empty index (recipe-only mode).
+    """
+    global _CATALOG_INDEX
+    if _CATALOG_INDEX is not None and not force:
+        return _CATALOG_INDEX
+    index: dict[str, tuple[dict[str, Any], Any]] = {}
+    try:
+        import yaml  # PyYAML is a package dependency; guard anyway
+    except Exception:
+        _CATALOG_INDEX = index
+        return index
+    for path in _catalog_paths():
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = yaml.safe_load(fh)
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        top_manufacturer = data.get("manufacturer")
+        for dev in data.get("devices", []) or []:
+            if not isinstance(dev, dict):
+                continue
+            manufacturer = dev.get("manufacturer") or top_manufacturer
+            for field in ("order_number", "name"):
+                val = dev.get(field)
+                if isinstance(val, str) and val.strip():
+                    index.setdefault(_norm(val), (dev, manufacturer))
+    _CATALOG_INDEX = index
+    return index
+
+
+def _obj_row(o: dict[str, Any]) -> dict[str, Any]:
+    return {"number": o.get("number"), "name": o.get("name"),
+            "dpt": o.get("dpt"), "role": o.get("role"), "size_bits": o.get("size_bits")}
+
+
+def _catalog_response(query: str, entry: dict[str, Any], manufacturer: Any,
+                      channels: int) -> dict[str, Any]:
+    """Normalise a catalog device entry (either schema variant) into a response."""
+    blocks: list[dict[str, Any]] = []
+    # Variant A: exact-from-app-program (repeating_blocks + first-instance objects)
+    for b in entry.get("repeating_blocks", []) or []:
+        if not isinstance(b, dict):
+            continue
+        objs = [_obj_row(o) for o in b.get("objects", []) or [] if isinstance(o, dict)]
+        blocks.append({"unit": b.get("unit"), "instances": b.get("instances"),
+                       "objects_per_instance": b.get("objects_per_instance"),
+                       "stride": b.get("stride"), "first_instance_objects": objs})
+    # Variant B: older decomposition_recipe (fn/dpt/role gas list)
+    for b in entry.get("decomposition_recipe", []) or []:
+        if not isinstance(b, dict):
+            continue
+        gas = [{"function": g.get("fn") or g.get("function"), "dpt": g.get("dpt"),
+                "role": g.get("role")} for g in b.get("gas", []) or [] if isinstance(g, dict)]
+        blocks.append({"unit": b.get("unit"),
+                       "objects_per_instance": b.get("objects_per_unit"),
+                       "first_instance_objects": gas})
+
+    counts = entry.get("object_counts") or {}
+    total_master = counts.get("master_catalog_total")
+    if total_master is None and isinstance(entry.get("comm_objects"), list):
+        total_master = len(entry["comm_objects"])
+
+    app = entry.get("application_program") or {}
+    lf = entry.get("logic_functions_block") or {}
+    return {
+        "matched": True,
+        "source": "catalog-exact",
+        "query": query,
+        "order_number": entry.get("order_number"),
+        "name": entry.get("name"),
+        "manufacturer": manufacturer,
+        "category": entry.get("category"),
+        "application_program": {"name": app.get("name"), "version": app.get("version"),
+                                "app_id": app.get("app_id")},
+        "channels_native": entry.get("channels"),
+        "channels_requested": channels,
+        "total_master_objects": total_master,
+        "general_objects": counts.get("general_objects"),
+        "logic_functions": ({"present": lf.get("present"),
+                             "total_objects": lf.get("total_objects"),
+                             "function_results": lf.get("function_results")} if lf else None),
+        "blocks": blocks,
+        "note": "Exact vendor model from the local catalog (app-program-resolved). "
+                "The master catalog is a SUPERSET; ETS parameters enable a subset per config. "
+                "DPT 'unverified' = the vendor app-program declares no DatapointType (never guessed).",
+        "provenance": entry.get("source_ref") or "local device-library (vendor app-program, ETS-resolved)",
+    }
+
+
 def decompose_device(order_number: str, channels: int = 1) -> dict[str, Any]:
     """Return the group-address decomposition recipe for a device.
 
@@ -192,18 +317,28 @@ def decompose_device(order_number: str, channels: int = 1) -> dict[str, Any]:
         channels: number of channels/outputs/zones to expand (default 1).
 
     Returns a recipe with per-unit objects and the total GA count for ``channels``.
+    When a local catalog is configured (``NICKOL_KNX_CATALOG``) and the device is
+    found in it, the EXACT vendor object model is returned instead (``source:
+    catalog-exact``); otherwise a generic recipe is used (``source: recipe-approximate``).
     """
+    hit = _load_catalog().get(_norm(order_number))
+    if hit is not None:
+        return _catalog_response(order_number, hit[0], hit[1], channels)
+
     key = _lookup(order_number)
     if key is None:
         return {
             "matched": False,
+            "source": "recipe-approximate",
             "query": order_number,
-            "note": "No recipe found. Known types: " + ", ".join(sorted(_RECIPES)),
+            "note": "No catalog entry or recipe found. Known recipe types: "
+                    + ", ".join(sorted(_RECIPES)),
         }
     rec = _RECIPES[key]
     objs = [{"function": f, "dpt": d, "role": r} for (f, d, r) in rec["objects"]]
     return {
         "matched": True,
+        "source": "recipe-approximate",
         "query": order_number,
         "type": key,
         "unit": rec["unit"],

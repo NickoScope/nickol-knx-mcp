@@ -3,7 +3,7 @@
 # nickol-knx-mcp
 
 **Design-time ассистент KNX/ETS6 в виде MCP-сервера.**
-Читает `.knxproj` и **валидирует** его (именование · DPT и sub-DPT · команда↔статус · KNX Secure · Matter-готовность), **чинит** (предлагает конкретные фиксы — выводит DPT, синтезирует недостающие status-адреса), **раскладывает устройства** на рецепты групповых адресов, **диффит** две версии проекта, **грейдит** полноту, и **генерирует** Home Assistant YAML, ETS-импортируемые экспорты (XML/CSV), **пакет сдачи** (as-built), протокол приёмки и KNX IoT-экспорт — **никогда не подключаясь к живой шине KNX.**
+Читает `.knxproj` и **валидирует** его (именование · DPT и sub-DPT · команда↔статус · KNX Secure · Matter-готовность), **чинит** (предлагает конкретные фиксы — выводит DPT, синтезирует недостающие status-адреса), **раскладывает устройства** на рецепты групповых адресов (или на **точную вендорскую модель объектов**, распарсенную прямо из application programs ETS в локальный каталог устройств), **диффит** две версии проекта, **грейдит** полноту, и **генерирует** Home Assistant YAML, ETS-импортируемые экспорты (XML/CSV), **пакет сдачи** (as-built), протокол приёмки и KNX IoT-экспорт — **никогда не подключаясь к живой шине KNX.**
 
 [![nickol-knx-mcp MCP server](https://glama.ai/mcp/servers/NickoScope/nickol-knx-mcp/badges/score.svg)](https://glama.ai/mcp/servers/NickoScope/nickol-knx-mcp)
 [![Кейс](https://img.shields.io/badge/📐_кейс-ТЗ_PDF_→_KNX_(96%25)-0b3d2e)](docs/case-study.ru.md)
@@ -136,13 +136,13 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 
 ---
 
-## 5. Инструменты MCP (24)
+## 5. Инструменты MCP (25)
 
 **Чтение:** `load_project` · `list_group_addresses` · `get_devices` · `get_topology`
 
 **Валидация:** `check_naming` · `check_missing_status` · `check_dpt` (+ **sub-DPT** проверка) · `check_secure` (KNX Secure posture + keyring-чеклист) · `check_matter` (Matter-готовность) · `check_energy` (энергодомен) · `analyze_all`
 
-**Починка и дизайн:** `suggest_repairs` (**предлагает фиксы, а не только флагает**) · `suggest_names` · `decompose_device` (устройство → рецепт декомпозиции) · `list_device_recipes` (device-library: Zennio + ABB) · `grade_completeness` (скелет vs as-built) · `diff_projects` (семантический дифф двух версий)
+**Починка и дизайн:** `suggest_repairs` (**предлагает фиксы, а не только флагает**) · `suggest_names` · `decompose_device` (устройство → декомпозиция: **точная вендорская модель** из локального каталога или generic-рецепт) · `list_device_recipes` (device-library: Zennio + ABB) · `parse_devices_from_project` (**точные модели устройств** из app-programs `.knxproj`/`.knxprod` → YAML каталога) · `grade_completeness` (скелет vs as-built) · `diff_projects` (семантический дифф двух версий)
 
 **Генерация:** `generate_ha_package` (цвет + климат + expose) · `generate_ets_group_addresses` · `generate_handover_pack` (пакет сдачи) · `generate_test_protocol` (протокол приёмки) · `generate_knx_iot` (Turtle/RDF) · `project_report` · `workspace_info`
 
@@ -163,8 +163,9 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 | `analyze_all(name_regex?)` | все проверки разом |
 | `suggest_repairs()` | предложить фиксы для находок |
 | `suggest_names()` | гигиена именования |
-| `decompose_device(order_number, channels?)` | устройство → рецепт декомпозиции GA |
+| `decompose_device(order_number, channels?)` | устройство → декомпозиция GA: **точная вендорская модель** из локального каталога (`NICKOL_KNX_CATALOG`) или generic-рецепт |
 | `list_device_recipes()` | встроенная device-library |
+| `parse_devices_from_project(path, output_path?, password?)` | извлечь **точные модели объектов устройств** из app-programs внутри `.knxproj`/`.knxprod` → YAML device-library (питает локальный каталог) |
 | `grade_completeness()` | грейд полноты (скелет vs as-built) |
 | `diff_projects(path_a, path_b, …)` | семантический дифф двух `.knxproj` |
 | `generate_ha_package(output_path?)` | HA KNX YAML + список review |
@@ -213,7 +214,7 @@ nickol-knx-mcp/
 │   ├── generate_ha.py    # генерация HA KNX YAML
 │   ├── generate_ets.py   # генерация ETS XML + CSV
 │   ├── report.py         # Markdown-отчёт
-│   └── server.py         # FastMCP сервер, 24 инструмента, confined writes
+│   └── server.py         # FastMCP сервер, 25 инструментов, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── CLAUDE.md             # ETS Assistant skill / playbook

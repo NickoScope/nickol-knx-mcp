@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-07-02
+
+### Added
+
+- **Exact device decomposition from a local catalog** (`device_library.py`). When the
+  `NICKOL_KNX_CATALOG` env var points at a device-library YAML file or directory (schema:
+  `library-schema.md`), `decompose_device` now returns the **exact vendor object model**
+  (`source: catalog-exact`) — real per-channel blocks, object counts, app-program version and
+  first-instance objects with their true DPTs — instead of the generic recipe. Falls back to the
+  built-in recipes (`source: recipe-approximate`) for any device not in the catalog, so behaviour
+  is unchanged when the env is unset. The catalog itself is vendor-catalog data kept **local** and
+  is not shipped with the package. Objects the vendor app-program leaves without a DatapointType
+  stay `dpt: null` — never guessed.
+- **`parse_devices_from_project` (new MCP tool + `appprog_parser.py`)** — deterministic parser that
+  extracts the exact vendor comm-object model from the `M-*` application programs embedded in a
+  `.knxproj` / `.knxprod`: per device it reports order number, app-program version, object counts and
+  detected per-channel blocks (unit · objects-per-instance · stride), converting `DPST-x-y` → `x.00y`.
+  Read-only and PII-safe (reads only vendor catalog data, never the client `P-*/0.xml`). With
+  `output_path` it writes a device-library YAML into the workspace — feeding the local catalog above,
+  so `parse → catalog → decompose_device (catalog-exact)` is a closed loop. Now **25 MCP tools**.
+
 ## [0.6.0] — 2026-07-01
 
 **Completes the roadmap** — the tool now validates, repairs, generates (HA / ETS / handover / IoT),
@@ -272,7 +293,8 @@ Initial public beta.
 - Tested end-to-end on a synthetic project only; real-world `.knxproj` testing is ongoing
   (see the call for testers in the README).
 
-[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.3.0...v0.4.0
