@@ -139,6 +139,7 @@
   <div class="brand"><span class="dot"></span> nickol-knx-mcp</div>
   <div class="links">
     <a class="nav-hide" href="#what">What</a>
+    <a class="nav-hide" href="#scenarios">Scenarios</a>
     <a class="nav-hide" href="#demo">Demo house</a>
     <a href="#dashboard">Dashboard</a>
     <a class="nav-hide" href="#brain">The brain</a>
@@ -179,9 +180,46 @@
   </div>
   <div class="grid g3" style="margin-top:18px">
     <div class="card"><h3>🔒 No bus access</h3><p>Zero networking/bus libraries in the dependency tree. <code>bus_access: false</code> — structural, not a promise.</p></div>
-    <div class="card"><h3>🧩 25 MCP tools · 3 scenarios</h3><p><b>1 · Design from a spec:</b> device list → exact object models → professional logic layer → full implementation kit (ETS XML/CSV · report · HA YAML · test protocol · handover pack) — field-checked at <b>~92% structural match</b> vs a real 3,600+ GA as-built project. <b>2 · Audit &amp; repair:</b> validate (naming · DPT &amp; sub-DPT · status · Secure · Matter), get <b>concrete fixes</b> (145 proposals on a real project), grade completeness, diff versions. <b>3 · Smart home:</b> assembled HA entities (<b>colour + climate</b>) reading real state. All read-only.</p></div>
+    <div class="card"><h3>🧩 25 MCP tools</h3><p><b>Validate</b> (naming · DPT &amp; sub-DPT · status · KNX Secure · Matter) · <b>repair</b> (propose fixes, not just flag) · <b>decompose devices</b> into GA recipes or <b>exact vendor models</b> · <b>diff</b> two versions · <b>grade</b> completeness · <b>generate</b> HA YAML, ETS XML/CSV, handover pack, test protocol &amp; KNX IoT. All read-only — see the <a href="#scenarios">three scenarios ↓</a>.</p></div>
     <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Validated on ETS 4.2 / 5.0 / 5.5 / 6 fixtures, a real <b>signed ETS6 round-trip</b>, and a <b>685-GA Zennio</b> project (false errors there: 29 → 6).</p></div>
   </div>
+</div></section>
+
+<!-- SCENARIOS -->
+<section id="scenarios"><div class="wrap">
+  <div class="eyebrow">What you can do</div>
+  <h2>Three scenarios, one read-only toolchain</h2>
+  <p class="lead">From a blank specification to a commissioned, smart-home-connected project — or straight
+  into an existing <code>.knxproj</code> that needs checking and finishing.</p>
+  <div class="grid g3" style="margin-top:18px">
+    <div class="card"><h3>📐 1 · Design from a spec</h3><p>Equipment list → real object models per device
+      (a dimmer channel is <b>5 objects</b>, not one GA; a floor-heating zone is 8) → the professional
+      <b>logic layer</b> a bare spec never mentions: central &amp; zone macros, scenes, presence logic,
+      sun/wind shutters, leak→shut-off chains, astro/meteo &amp; date-time, reserves. Out comes the
+      <b>full implementation kit</b>: ETS-importable XML/CSV · report · HA YAML · acceptance test
+      protocol · as-built handover pack. Field-checked: reconstructing a real <b>3,600+ GA</b> as-built
+      project from its spec alone → <b>~92% structural match</b>, zero validation errors.</p></div>
+    <div class="card"><h3>🔍 2 · Audit, repair &amp; finish</h3><p>Load any ETS5/ETS6
+      <code>.knxproj</code> (password-protected too) → <code>analyze_all</code>: naming · missing status
+      objects · DPT &amp; <b>sub-DPT sanity</b> · KNX Secure posture · Matter readiness. Then
+      <b>concrete fixes, not just flags</b>: inferred DPTs, synthesised status GAs, absolute-brightness
+      additions — <b>145 proposals on a real 3,646-GA project</b>. Grade skeleton→as-built, diff two
+      revisions, regenerate the report, handover pack and test protocol.</p></div>
+    <div class="card"><h3>🏠 3 · The smart-home layer</h3><p>Assembled Home Assistant entities —
+      colour/dimmable <b>lights</b> (RGBW · RGB · CCT + statuses), <b>climate</b> (setpoint · mode ·
+      valve), covers, sensors — every entity reading <b>real device state</b>, never assuming it.
+      Anything ambiguous goes to a <code>review</code> list instead of being guessed. Plus a date/time
+      <code>expose</code> block, Matter lint and a KNX IoT (Turtle/RDF) semantic export.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>🧩 The foundation — a growing device library</h3>
+    <p><code>parse_devices_from_project</code> extracts <b>exact vendor object models</b> (object numbers ·
+    DPTs · C/R/W/T/U flags · per-channel strides) from the manufacturer application programs inside any
+    <code>.knxproj</code>/<code>.knxprod</code> — deterministic and PII-safe (vendor catalog data only).
+    Point <code>NICKOL_KNX_CATALOG</code> at your catalog and <code>decompose_device</code> answers with
+    the <b>exact model</b> instead of a generic recipe; undeclared DPTs stay honestly
+    <code>unverified</code>. The design methodology is distilled from the KNX Association standard,
+    public manufacturer documentation and the study of real professional as-built ETS projects
+    (anonymised).</p></div>
 </div></section>
 
 <!-- DEMO HOUSE -->
