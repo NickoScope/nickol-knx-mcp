@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "mcp>=1.10",
+    "mcp>=1.10,<2",  # v2 renames mcp.server.fastmcp.FastMCP -> mcp.server.MCPServer (breaking)
     "xknxproject>=3.8",
     "PyYAML>=6.0",
 ]

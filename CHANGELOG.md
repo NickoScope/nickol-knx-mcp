@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pinned `mcp>=1.10,<2`** — the MCP Python SDK v2 (in alpha) renames
+  `mcp.server.fastmcp.FastMCP` to `mcp.server.MCPServer`; without the upper bound a future
+  `pip install` would pull v2 and break the server import. Verified against the SDK docs.
+
 ## [0.7.0] — 2026-07-02
 
 ### Added
