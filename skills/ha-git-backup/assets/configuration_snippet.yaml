@@ -1,0 +1,21 @@
+# ha-git-backup: add to configuration.yaml
+# Paths assume scripts live in /config/.git-sync/bin — adjust otherwise.
+# NOTE: shell_command and command_line load only on a FULL HA restart.
+
+shell_command:
+  git_sync_manual: "/config/.git-sync/bin/ha_git_sync.sh manual"
+  git_sync_daily: "/config/.git-sync/bin/ha_git_sync.sh daily"
+  git_sync_pre_update: "/config/.git-sync/bin/ha_git_sync.sh pre-update"
+  backup_offsite: "GH_REPO={{ 'YOUR_USER/ha-config' }} /config/.git-sync/bin/backup_offsite.sh"
+
+# Health sensor: reads the status file written by ha_git_sync.sh
+command_line:
+  - sensor:
+      name: git_sync_status
+      command: "cat /config/.git-sync/last_status 2>/dev/null || echo 'never'"
+      scan_interval: 300
+
+input_button:
+  git_sync_now:
+    name: "Git Sync Now"
+    icon: mdi:source-branch-sync

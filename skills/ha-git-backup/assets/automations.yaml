@@ -1,0 +1,70 @@
+# ha-git-backup: automations. Add to automations.yaml or via the UI.
+
+- alias: "GitSync - daily commit"
+  triggers:
+    - trigger: time
+      at: "03:30:00"
+  actions:
+    - action: shell_command.git_sync_daily
+
+- alias: "GitSync - button"
+  triggers:
+    - trigger: state
+      entity_id: input_button.git_sync_now
+  actions:
+    - action: shell_command.git_sync_manual
+
+- alias: "GitSync - tag before a Core update"
+  triggers:
+    - trigger: state
+      entity_id: update.home_assistant_core_update
+      to: "on"
+  actions:
+    - action: shell_command.git_sync_pre_update
+
+- alias: "GitSync - commit after restart (capture the surviving state)"
+  triggers:
+    - trigger: homeassistant
+      event: start
+  actions:
+    - delay: "00:03:00"
+    - action: shell_command.git_sync_manual
+
+- alias: "GitSync - alert on failure"
+  triggers:
+    - trigger: state
+      entity_id: sensor.git_sync_status
+  conditions:
+    - condition: template
+      value_template: "{{ 'error' in states('sensor.git_sync_status') }}"
+  actions:
+    - action: persistent_notification.create
+      data:
+        title: "⚠️ Git Sync FAILED"
+        message: "{{ states('sensor.git_sync_status') }} — see /config/.git-sync/log"
+    # + add your notify.mobile_app_* here
+
+- alias: "Backup - weekly full + offsite"
+  triggers:
+    - trigger: time
+      at: "04:00:00"
+  conditions:
+    - condition: time
+      weekday: [sun]
+  actions:
+    - action: backup.create        # native HA backup (including .storage)
+    - delay: "00:10:00"
+    - action: shell_command.backup_offsite
+
+- alias: "Backup - restore drill reminder"
+  triggers:
+    - trigger: time
+      at: "10:00:00"
+  conditions:
+    - condition: template
+      value_template: "{{ now().day == 1 }}"
+  actions:
+    - action: persistent_notification.create
+      data:
+        title: "📋 Restore drill"
+        message: "1st of the month: verify recovery (restore.sh full, DRILL mode)."

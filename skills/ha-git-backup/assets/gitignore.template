@@ -1,0 +1,43 @@
+# ha-git-backup: echelon 1 of protection. Do NOT loosen without reading SKILL.md
+# --- secrets and state ---
+secrets.yaml
+*.pem
+*.key
+known_devices.yaml
+.storage/*
+!.storage/lovelace*
+.cloud/
+.google.token
+
+# --- databases and runtime junk (no place in git; Circuit 2 covers them) ---
+*.db
+*.db-*
+*.log
+*.log.*
+home-assistant.log*
+OZW_Log.txt
+deps/
+tts/
+image/
+www/community/
+__pycache__/
+.cache/
+.ha_run.lock
+
+# --- backups are not stored in the git repo ---
+backups/
+*.tar
+*.tar.age
+
+# --- embedded git repos keep their own history (content is covered by Circuit 2) ---
+esphome/
+
+# --- this system's own runtime files ---
+.git-sync/log
+.git-sync/last_status
+.git-sync/last_offsite
+.git-sync/gh_token
+.git-sync/age_recipient
+.git-sync/deploy_key
+.git-sync/deploy_key.pub
+.HA_VERSION

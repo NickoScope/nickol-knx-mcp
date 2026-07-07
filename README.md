@@ -160,6 +160,9 @@ spec encodes.
   KNX IoT (Turtle/RDF) semantic export.
 - Live control of the house stays in the official Home Assistant integration (layer 1) — this
   server only prepares its configuration.
+- **Ops companion**: [`skills/ha-git-backup`](skills/ha-git-backup) — the life of your config
+  *after* deploy: a real git history of `/config` (deploy key + pre-commit secret scanner) plus
+  encrypted offsite backups in GitHub Releases, with a monthly restore drill.
 
 ### 🧩 The foundation — a growing device library
 

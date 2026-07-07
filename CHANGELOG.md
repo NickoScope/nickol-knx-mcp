@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`skills/ha-git-backup`** — an ops-companion skill for the engineer package: a two-circuit
+  Home Assistant backup system (real git in `/config` with a deploy key and a pre-commit secret
+  scanner + age-encrypted full backups in GitHub Releases), with install/sync/scan/offsite/restore
+  scripts, HA automations, a restore runbook and a mandatory monthly drill. Field-tested;
+  the secret scanner ships canary-tested (BusyBox `grep -e` lesson recorded).
+
 - **Manufacturer names from the archive itself** (`appprog_parser.py`): `parse_devices_from_project`
   now reads vendor names from the `knx_master.xml` shipped inside every `.knxproj`/`.knxprod`
   (e.g. M-0073 → HDL, M-00B6 → Ekinex S.p.A.) instead of relying on a hardcoded id map that can
