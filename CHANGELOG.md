@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Manufacturer names from the archive itself** (`appprog_parser.py`): `parse_devices_from_project`
+  now reads vendor names from the `knx_master.xml` shipped inside every `.knxproj`/`.knxprod`
+  (e.g. M-0073 → HDL, M-00B6 → Ekinex S.p.A.) instead of relying on a hardcoded id map that can
+  never be complete; the static map remains as fallback.
+
 ## [0.8.0] — 2026-07-07
 
 **Lessons from a second field project (a different integrator naming school):** positional

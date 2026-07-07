@@ -254,8 +254,21 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
     pwd = password.encode() if password else None
     devices: list[dict[str, Any]] = []
     seen_mfr, app_cache, hw_count = set(), {}, 0
+    mfr_names = dict(_MANUFACTURERS)
     with zipfile.ZipFile(path) as z:
         names = z.namelist()
+        # authoritative manufacturer names ship inside the archive itself
+        # (knx_master.xml, vendor-neutral) — read them instead of relying on a
+        # hardcoded id map that can never be complete
+        for n in names:
+            if n.lower().endswith("knx_master.xml"):
+                try:
+                    master = z.read(n, pwd=pwd).decode("utf-8", "replace")
+                    mfr_names.update(re.findall(
+                        r'<Manufacturer Id="(M-[0-9A-Fa-f]+)"[^>]*Name="([^"]+)"', master))
+                except Exception:
+                    pass
+                break
         hardware_files = [n for n in names if re.search(r"/Hardware\.xml$", n) and n.startswith("M-")]
         appfiles = {n for n in names if re.match(r"M-[0-9A-Fa-f]+/M-[0-9A-Fa-f]+_A-[^/]+\.xml$", n)}
 
@@ -273,7 +286,7 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
                 if not app_path or app_path not in appfiles:
                     devices.append({
                         "order_number": entry["order_number"], "name": entry["name"],
-                        "manufacturer": _MANUFACTURERS.get(mcode, mcode),
+                        "manufacturer": mfr_names.get(mcode, mcode),
                         "application_program": {"app_id": app_ref, "version": None},
                         "object_counts": {"master_catalog_total": 0},
                         "blocks": [], "comm_objects": [],
@@ -290,7 +303,7 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
                 no_dpt = sum(1 for o in objs if o["dpt"] is None)
                 devices.append({
                     "order_number": entry["order_number"], "name": entry["name"],
-                    "manufacturer": _MANUFACTURERS.get(mcode, mcode),
+                    "manufacturer": mfr_names.get(mcode, mcode),
                     "application_program": {"app_id": app_ref,
                                             "version": f"v{ver}" if ver else None},
                     "object_counts": {
