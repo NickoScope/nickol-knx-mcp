@@ -135,7 +135,7 @@ spec encodes.
   (`functional` / `reserve` / `logic` / `scratch`) keeps intentional placeholders out of the error
   lists, so the report doesn't cry wolf (on a real 685-GA project: false errors 29 → 6).
 - **Validate** (`analyze_all` runs everything): naming & structure · missing status objects
-  (ETS-Function roles first, name-token pairing as fallback) · missing/inconsistent DPTs **+
+  (ETS-Function roles first, then name-token pairing, **positional pairing** — parallel status middles with 1:1 names — and self-reporting R+T objects) · missing/inconsistent DPTs **+
   sub-DPT sanity** (a "temperature" GA carrying 5.001 gets flagged) · relative-only dimmers ·
   KNX Secure posture (secured vs plaintext, mixed groups, keyring checklist — key material is
   never read) · Matter-readiness · energy-domain coverage.
@@ -163,7 +163,7 @@ spec encodes.
 
 ### 🧩 The foundation — a growing device library
 
-- `parse_devices_from_project` extracts **exact vendor object models** from the manufacturer
+- `parse_devices_from_project` extracts **exact vendor object models** — including **ref-level** (`ComObjectRef`) publishers like HDL/Ekinex — from the manufacturer
   application programs inside any `.knxproj` / `.knxprod`: object numbers, names, sizes, DPTs,
   C/R/W/T/U flags, per-channel block strides — deterministically, and PII-safe (vendor catalog
   data only; the client project part of the file is never read).
