@@ -78,18 +78,37 @@ _PATTERNS = {
     "astro / meteo": ("солнц", "азимут", "восход", "закат", "метео", "sun ", "meteo"),
     "monitoring": ("мониторинг", "статус работы", "неисправ", "monitoring", "fault"),
     "deep metering": ("счётчик", "потреблен", "тариф", "meter", "consumption"),
-    "scenes": ("сцена", "сценар", "scene", "szene"),
+    "scenes": ("сцен", "scene", "szene"),
     "reserves": ("резерв", "reserve", "spare"),
     "debug main": ("отладк", "временно", "debug", "logic for"),
 }
 
 
+def _range_names_text(project: LoadedProject) -> str:
+    """All main/middle GroupRange names, lowercased, as extra pattern evidence.
+
+    Integrators often name a whole middle range for a pattern ("Сцены",
+    "Мониторинг") while the GAs inside carry plain load names — grading by GA
+    names alone misses the pattern entirely, so range names count too.
+    """
+    out: list[str] = []
+    for mrange in (project.raw.get("group_ranges") or {}).values():
+        out.append((mrange.get("name") or "").lower())
+        for srange in (mrange.get("group_ranges") or {}).values():
+            out.append((srange.get("name") or "").lower())
+    return " \n ".join(out)
+
+
 def completeness_grade(project: LoadedProject) -> dict[str, Any]:
     """Grade a project: bare functional skeleton vs as-built grade (§ alex-skill patterns)."""
     names = " \n ".join(g.name.lower() for g in project.gas.values())
+    range_names = _range_names_text(project)
     present, missing = {}, []
     for label, toks in _PATTERNS.items():
         n = sum(names.count(t) for t in toks)
+        if n == 0:
+            # a main/middle RANGE named for the pattern is evidence too
+            n = sum(range_names.count(t) for t in toks)
         present[label] = n
         if n == 0:
             missing.append(label)

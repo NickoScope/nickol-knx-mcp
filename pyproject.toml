@@ -1,6 +1,6 @@
 [project]
 name = "nickol-knx-mcp"
-version = "0.7.0"
+version = "0.8.0"
 description = "Design-time KNX/ETS6 project assistant as an MCP server (parse .knxproj, validate, generate HA YAML + ETS CSV/XML). No live bus access."
 readme = "README.md"
 requires-python = ">=3.10"

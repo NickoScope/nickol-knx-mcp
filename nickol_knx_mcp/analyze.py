@@ -15,7 +15,8 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from .project import LoadedProject, GARecord, STATUS_KEYWORDS
-from .pairing import find_status, function_status_pairs, base_tokens
+from .pairing import (find_status, function_status_pairs, base_tokens,
+                      positional_status, self_reporting)
 from .intent import INTENT_FUNCTIONAL, INTENT_RESERVE, INTENT_SCRATCH
 
 SEVERITY_ERROR = "error"
@@ -95,11 +96,19 @@ def validate_naming(project: LoadedProject,
                 addresses=addrs,
             ))
 
-    # Main-group names present?
+    # Main-group names present? Read them from the project's GroupRanges — the
+    # authoritative source. GARecord.main_name from the parser can carry a
+    # MIDDLE range's name instead of the main's (first-seen shadowing), which
+    # both hid truly unnamed mains and mislabeled named ones.
     main_named: dict[int, str] = {}
-    for ga in project.gas.values():
-        if ga.main is not None and ga.main not in main_named:
-            main_named[ga.main] = ga.main_name
+    for mkey, mrange in (project.raw.get("group_ranges") or {}).items():
+        head = str(mkey).split("/")[0]
+        if head.isdigit():
+            main_named[int(head)] = mrange.get("name") or ""
+    if not main_named:  # fallback for synthetic projects without group_ranges
+        for ga in project.gas.values():
+            if ga.main is not None and ga.main not in main_named:
+                main_named[ga.main] = ga.main_name
     for main, mname in sorted(main_named.items()):
         if not mname:
             findings.append(_finding(
@@ -225,6 +234,7 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
     # All status-like GAs become pairing candidates (project-wide).
     status_gas = [ga for ga in project.gas.values() if _is_status_ga(ga)]
 
+    n_positional = n_self_report = 0
     for addr, ga in project.gas.items():
         if addr in covered:
             continue
@@ -238,6 +248,15 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
         same_main = [s for s in status_gas if s.main == ga.main]
         match = find_status(ga, same_main) or find_status(ga, status_gas)
         if match is None:
+            # positional school: parallel status middle, identical name, same sub
+            pos = positional_status(ga, project)
+            if pos is not None:
+                n_positional += 1
+                continue
+            # actuator's R+T status object linked to the command GA itself
+            if self_reporting(ga, project):
+                n_self_report += 1
+                continue
             if _is_central_macro(ga.name):
                 findings.append(_finding(
                     SEVERITY_INFO, "central_macro_no_status", addr,
@@ -253,6 +272,13 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
                     name=ga.name, dpt=ga.dpt, category=ga.category,
                 ))
 
+    if n_positional or n_self_report:
+        findings.append(_finding(
+            SEVERITY_INFO, "status_pairing_summary", "-",
+            f"{n_positional} command(s) paired positionally (parallel status middle, "
+            f"identical name) and {n_self_report} self-reporting (actuator R+T object "
+            "on the command GA) — no separate status GA needed.",
+        ))
     return findings
 
 

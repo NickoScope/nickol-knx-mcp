@@ -6,8 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-07-07
+
+**Lessons from a second field project (a different integrator naming school):** positional
+command/status pairing, ref-level application programs, and two detector blind spots. All four
+changes were validated against a real 859-GA as-built project.
+
+### Added
+
+- **Positional command/status pairing** (#4, `pairing.py` / `analyze.py`). A widespread naming
+  school keeps feedback in a *parallel middle group* (command `1/0/s` ↔ status `1/1/s`) with the
+  GA name duplicated 1:1 and no status keyword at all — invisible to lexical pairing.
+  `detect_missing_status` now also pairs positionally (same main, same sub, different middle,
+  identical name, DPT-compatible) and recognises **self-reporting commands** (the actuator's
+  R+T communication object linked to the command GA itself). On the field project this cut
+  missing-status warnings from 339 to 89 — the ~90 that are actually real — and reports a
+  `status_pairing_summary` info with both counters.
+- **Application-program parser v2** (#6, `appprog_parser.py`). Vendors like HDL, Ekinex and
+  Creatrol publish object names/DPTs/flags on `<ComObjectRef>` while the base `<ComObject>` is a
+  near-empty stub. The parser now merges ref-level data over the base (conservatively: refs only
+  fill empty fields; a DPT is taken only when every declaring ref agrees, disagreeing variants are
+  recorded as `dpt_variants`, never guessed). Unverified DPTs on the field project's 15 device
+  models dropped 4341 → 1167 (−73%). The app-program version is now picked by the **highest
+  ApplicationVersion** instead of list position — a stale v16 was being parsed where v18 existed.
+
 ### Fixed
 
+- **`main_group_unnamed` read the wrong names** (#3, `analyze.py`): main-group names are now taken
+  from the authoritative `group_ranges` (a GA record's `main_name` can carry a middle range's
+  name), eliminating both false "unnamed" findings and masked truly-unnamed mains.
+- **Completeness grader missed pattern-named ranges** (#5, `advanced.py`): a middle range literally
+  called «Сцены» full of plain-named scene GAs now counts as scene evidence — the grader reads
+  main/middle range names in addition to GA names (and the scene token matches Russian plural
+  forms).
 - **Pinned `mcp>=1.10,<2`** — the MCP Python SDK v2 (in alpha) renames
   `mcp.server.fastmcp.FastMCP` to `mcp.server.MCPServer`; without the upper bound a future
   `pip install` would pull v2 and break the server import. Verified against the SDK docs.
@@ -299,7 +330,8 @@ Initial public beta.
 - Tested end-to-end on a synthetic project only; real-world `.knxproj` testing is ongoing
   (see the call for testers in the README).
 
-[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/NickoScope/nickol-knx-mcp/compare/v0.4.0...v0.5.0

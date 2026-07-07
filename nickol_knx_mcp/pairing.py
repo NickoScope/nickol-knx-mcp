@@ -63,6 +63,66 @@ def find_status(command: GARecord, candidates: Iterable[GARecord]) -> Optional[G
 
 
 # --------------------------------------------------------------------------- #
+# Positional pairing school (parallel status middles, identical names)
+# --------------------------------------------------------------------------- #
+def _norm_name(s: str) -> str:
+    return " ".join((s or "").lower().split())
+
+
+def positional_status(command: GARecord, project) -> Optional[GARecord]:
+    """Find a status GA by POSITION instead of by name marker.
+
+    A widespread naming school (common around HDL-style projects) keeps statuses
+    in a *parallel middle group*: command in ``main/m/s``, feedback in
+    ``main/m'/s`` — same main, same sub, different middle — and duplicates the
+    GA name 1:1 with no status suffix at all. A lexical marker search can never
+    pair these, so `detect_missing_status` would cry wolf on every command.
+
+    Deliberately conservative to avoid false pairs: requires exact sub match and
+    an identical normalised name (or identical-plus-status-keyword), and a
+    DPT-compatible candidate per STATUS_COMPAT.
+    """
+    want = _norm_name(command.name)
+    if not want or command.main is None or command.sub is None:
+        return None
+    compat = STATUS_COMPAT.get(command.dpt_main or -1, {command.dpt_main})
+    for c in project.gas.values():
+        if c.address == command.address:
+            continue
+        if c.main != command.main or c.sub != command.sub:
+            continue
+        if c.middle == command.middle:
+            continue
+        n = _norm_name(c.name)
+        if n != want:
+            # allow the "same name + status word" variant of the same school
+            if not (n.startswith(want)
+                    and any(k in n[len(want):] for k in STATUS_KEYWORDS)):
+                continue
+        if c.dpt_main is not None and c.dpt_main not in compat:
+            continue
+        return c
+    return None
+
+
+def self_reporting(ga: GARecord, project) -> bool:
+    """True when the actuator reports state on the command GA itself.
+
+    Some integrators link the actuator's *status* communication object to the
+    same group address as the command (the CO carries Read+Transmit flags), so
+    the GA is its own feedback. There is then no separate status GA to find —
+    and none is missing.
+    """
+    cos = (project.raw or {}).get("communication_objects", {}) or {}
+    for cid in (ga.co_ids or []):
+        co = cos.get(cid) or {}
+        fl = co.get("flags") or {}
+        if fl.get("read") and fl.get("transmit"):
+            return True
+    return False
+
+
+# --------------------------------------------------------------------------- #
 # Authoritative pairing from ETS Functions (roles)
 # --------------------------------------------------------------------------- #
 _FN_STATUS_TOKENS = ("info", "status", "state", "feedback", "rueck", "rück")

@@ -37,6 +37,9 @@ jobs:
       - name: App-program parser (synthetic .knxprod round-trip)
         run: python tests/test_appprog_parser.py
 
+      - name: v0.8 fixes (positional pairing, ref-merge, range names)
+        run: python tests/test_v08_fixes.py
+
       - name: Console script is installed
         run: |
           python -c "import importlib.metadata as m; print('entry points:', [e.name for e in m.entry_points(group='console_scripts') if e.name == 'nickol-knx-mcp'])"

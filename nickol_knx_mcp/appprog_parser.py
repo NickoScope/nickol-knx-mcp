@@ -24,6 +24,7 @@ from typing import Any, Optional
 
 _ATTR_RE = re.compile(r'(\w+)="([^"]*)"')
 _COMOBJ_RE = re.compile(r"<ComObject\b([^>]*?)/?>")
+_COMREF_RE = re.compile(r"<ComObjectRef\b([^>]*?)/?>")
 _HW_SPLIT_RE = re.compile(r"<Hardware\b")
 _APPREF_RE = re.compile(r'<ApplicationProgramRef\s+RefId="([^"]+)"')
 _APPVER_RE = re.compile(r'ApplicationVersion="(\d+)"')
@@ -90,11 +91,52 @@ def _channel_token(text: str, name: str) -> Optional[str]:
 
 
 def _parse_comobjects(xml_text: str) -> list[dict[str, Any]]:
-    objs: list[dict[str, Any]] = []
+    """Parse the object model from base ``<ComObject>`` elements, then enrich
+    from ``<ComObjectRef>``.
+
+    Some vendors (Zennio, ABB, EOS…) publish the full model on the base
+    elements; others (HDL, Ekinex, Creatrol…) leave the base as a near-empty
+    stub and put names/DPTs/flags on the refs. Merging is conservative: a ref
+    value only FILLS a field the base left empty, and the DPT is taken only
+    when every ref of that object that declares one AGREES — refs are
+    parameter-dependent variants, and a disagreeing DPT stays honestly unset
+    rather than guessed.
+    """
+    base: dict[str, dict[str, Any]] = {}   # base Id -> raw attrs
     for m in _COMOBJ_RE.finditer(xml_text):
         a = _attrs(m.group(1))
-        if "Number" not in a:
-            continue
+        if "Number" in a and a.get("Id"):
+            base[a["Id"]] = a
+        elif "Number" in a:
+            base[f"_anon{len(base)}"] = a
+
+    refs: dict[str, list[dict[str, str]]] = {}
+    for m in _COMREF_RE.finditer(xml_text):
+        a = _attrs(m.group(1))
+        rid = a.get("RefId")
+        if rid:
+            refs.setdefault(rid, []).append(a)
+
+    def _merged(a: dict[str, str], rlist: list[dict[str, str]]) -> dict[str, str]:
+        out = dict(a)
+        for field in ("Text", "Name", "FunctionText", "ObjectSize",
+                      "ReadFlag", "WriteFlag", "CommunicationFlag",
+                      "TransmitFlag", "UpdateFlag"):
+            if not out.get(field):
+                vals = [r[field] for r in rlist if r.get(field)]
+                if vals:
+                    out[field] = vals[0]
+        if not out.get("DatapointType"):
+            dpts = {r["DatapointType"] for r in rlist if r.get("DatapointType")}
+            if len(dpts) == 1:
+                out["DatapointType"] = dpts.pop()
+            elif len(dpts) > 1:
+                out["_dpt_variants"] = ", ".join(sorted(dpts))
+        return out
+
+    objs: list[dict[str, Any]] = []
+    for oid, a in base.items():
+        a = _merged(a, refs.get(oid, []))
         w = a.get("WriteFlag", "").lower() == "enabled"
         t = a.get("TransmitFlag", "").lower() == "enabled"
         r = a.get("ReadFlag", "").lower() == "enabled"
@@ -103,7 +145,7 @@ def _parse_comobjects(xml_text: str) -> list[dict[str, Any]]:
             number = int(a["Number"])
         except ValueError:
             continue
-        objs.append({
+        rec = {
             "number": number,
             "name": text,
             "internal_name": a.get("Name"),
@@ -114,7 +156,11 @@ def _parse_comobjects(xml_text: str) -> list[dict[str, Any]]:
                       "R": r, "W": w, "T": t,
                       "U": a.get("UpdateFlag", "").lower() == "enabled"},
             "role": _role(w, t, r, text),
-        })
+        }
+        if a.get("_dpt_variants"):
+            rec["dpt_variants"] = ", ".join(
+                sorted(_dpt(x) or x for x in a["_dpt_variants"].split(", ")))
+        objs.append(rec)
     objs.sort(key=lambda o: o["number"])
     return objs
 
@@ -150,6 +196,30 @@ def _detect_blocks(objs: list[dict[str, Any]]) -> dict[str, Any]:
             "stride": stride, "first_instance_objects": first,
         })
     return {"blocks": blocks, "general_objects": general, "logic_function_objects": lf}
+
+
+def _pick_app_ref(refs: list[str]) -> Optional[str]:
+    """Pick the NEWEST application program by its version segment.
+
+    ``ApplicationProgramRef`` ids look like ``M-0073_A-1105-12-ABCD`` — the third
+    dash-segment is the application version in hex. Hardware entries can list
+    several app versions, and the newest is NOT always the last listed (seen in
+    the field: an HDL DALI gateway listing v18 before v16), so positional
+    ``[-1]`` picked a stale program. Fall back to the last entry when the id
+    doesn't match the expected shape.
+    """
+    if not refs:
+        return None
+
+    def ver(ref: str) -> int:
+        m = re.match(r"M-[0-9A-Fa-f]+_A-[0-9A-Fa-f]+-([0-9A-Fa-f]+)-", ref)
+        try:
+            return int(m.group(1), 16) if m else -1
+        except ValueError:
+            return -1
+
+    best = max(refs, key=ver)
+    return best if ver(best) >= 0 else refs[-1]
 
 
 def _hardware_map(xml_text: str) -> list[dict[str, Any]]:
@@ -198,7 +268,7 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
                 continue
             for entry in _hardware_map(hw_xml):
                 hw_count += 1
-                app_ref = entry["app_refs"][-1] if entry["app_refs"] else None
+                app_ref = _pick_app_ref(entry["app_refs"])
                 app_path = f"{mcode}/{app_ref}.xml" if app_ref else None
                 if not app_path or app_path not in appfiles:
                     devices.append({
