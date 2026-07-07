@@ -88,7 +88,7 @@ The recommended full setup is four layers; only one needs to be built from scrat
 | 1. Live | states, control, debugging a running house | **official Home Assistant MCP Server** + KNX (XKNX) integration | No, already exists |
 | 2. **Design-time** | parse `.knxproj`, validate DPT/naming/status + GA-intent de-noise, generate HA YAML (colour lights + climate assembled) & ETS XML/CSV | **`nickol-knx-mcp` (this package)** | **YES — this is the gap** |
 | 3. Files + Git | YAML/CSV/XML, versioning the address schema | standard filesystem + git MCP servers | No, already exists |
-| 4. Skill | design rules (GA structure, naming, DPT, scenes) | `CLAUDE.md` in this package | No, included |
+| 4. Skill | design rules (GA structure, naming, DPT, scenes) + ops discipline | `CLAUDE.md` + [`skills/`](skills/ha-git-backup) (ha-git-backup ops companion) | No, included |
 
 > **Safety by design:** layer 2 (this server) **physically cannot** connect to a bus. It has no
 > network/bus dependency at all — it only reads `.knxproj` and writes files into a confined
@@ -340,6 +340,8 @@ nickol-knx-mcp/
 │   └── server.py         # FastMCP server, 25 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
+├── skills/
+│   └── ha-git-backup/    # ops companion: 2-circuit HA backup (git history + encrypted offsite)
 ├── CLAUDE.md             # ETS Assistant skill / playbook
 ├── pyproject.toml
 └── README.md
