@@ -38,7 +38,7 @@ cat > .git/hooks/pre-commit <<EOF
 #!/usr/bin/env bash
 exec "$SCRIPT_DIR/secret_scan.sh"
 EOF
-chmod +x .git/hooks/pre-commit .git-sync 2>/dev/null || true
+chmod +x .git/hooks/pre-commit 2>/dev/null || true
 chmod +x "$SCRIPT_DIR"/*.sh
 echo "[+] pre-commit secret scan wired up"
 
@@ -48,6 +48,17 @@ if ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>
 else
   echo "[!] SSH to GitHub failed — check the deploy key (references/setup.md §2)"
 fi
+
+# 4b. Context-independent SSH for git — CRITICAL.
+# HA automations run ha_git_sync via shell_command in the CORE container, NOT this add-on.
+# That container has its own (empty) known_hosts, so a push would fail "Host key verification
+# failed" even though the deploy key is fine. Pin the key + a repo-local known_hosts into the
+# repo's own git config so EVERY context (add-on, Core container, cron) uses the same, working ssh.
+KEY="${DEPLOY_KEY:-/config/.git-sync/deploy_key}"
+KH="$CONFIG_DIR/.git-sync/known_hosts"
+ssh-keyscan -t ed25519,rsa github.com 2>/dev/null > "$KH" || true
+git config core.sshCommand "ssh -i $KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$KH -o StrictHostKeyChecking=accept-new"
+echo "[+] core.sshCommand pinned (host key works from any container, incl. Core)"
 
 # 5. First pass: show WHAT would enter the repo, before any real commit
 echo "[i] DRY-RUN — these files would land in the first commit:"

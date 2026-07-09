@@ -70,6 +70,7 @@ tarball in Releases — plus a local NAS copy if you have one.
 | Broke YAML, HA won't start | `git checkout -- <file>` or `git reset --hard <good_sha>`, restart |
 | Secret leaked into the repo | `references/incident-secret-leak.md` — rotate the secret FIRST, history second |
 | Push silent/failing | `/config/.git-sync/log`; typical: read-only deploy key, stale known_hosts |
+| Nightly commit is local but never on GitHub (`Host key verification failed` in the log) | `shell_command` runs from the Core container — pin `git config core.sshCommand` with a repo-local known_hosts (see LESSON-06); install.sh does this automatically |
 | Migrating to new hardware | `scripts/restore.sh` — the Circuit-2 tarball, NOT the git repo (git has no .storage) |
 | Sync sensor = error | Check the log; the automation already sends a persistent_notification |
 | Repo bloated | Check binaries (db, tar) are gitignored; history is cleaned with `git gc` |
@@ -100,3 +101,10 @@ tarball in Releases — plus a local NAS copy if you have one.
 - **LESSON-05**: BusyBox grep treats patterns starting with `-` as options — always pass scan
   patterns with `grep -E -e "$pattern"`. The scanner was silently skipping its private-key
   pattern until this was caught by a canary test. Test your scanner with planted secrets.
+- **LESSON-06**: HA `shell_command` (the nightly sync) runs in the **Core** container, not the
+  SSH add-on where install ran. Core has its own empty known_hosts → `git push` fails
+  `Host key verification failed` even though the deploy key is fine — the commit is made locally
+  but never reaches GitHub. The fix: pin `git config core.sshCommand` (the key + a repo-local
+  known_hosts + `accept-new`) into `.git/config` so it applies from ANY container. install.sh
+  does this automatically. Testing SSH from the add-on alone is not enough — it never exercises
+  the container the sync actually runs in.

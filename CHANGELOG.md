@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (e.g. M-0073 → HDL, M-00B6 → Ekinex S.p.A.) instead of relying on a hardcoded id map that can
   never be complete; the static map remains as fallback.
 
+### Fixed
+
+- **`skills/ha-git-backup`**: `install.sh` now pins `core.sshCommand` + a repo-local `known_hosts`
+  so the nightly sync pushes from HA's Core container (was failing `Host key verification failed`).
+
 ## [0.8.0] — 2026-07-07
 
 **Lessons from a second field project (a different integrator naming school):** positional

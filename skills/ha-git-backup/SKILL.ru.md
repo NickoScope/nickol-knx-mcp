@@ -57,6 +57,7 @@ Releases + локальный NAS при наличии.
 | Сломал YAML, HA не стартует | `git checkout -- <file>` или `git reset --hard <good_sha>`, рестарт |
 | Утёк секрет в репо | `references/incident-secret-leak.md` — ротация секрета ПЕРВОЙ |
 | Push молчит/падает | `/config/.git-sync/log`; типовое: deploy key read-only, протух known_hosts |
+| Ночной коммит есть локально, но не в GitHub (`Host key verification failed` в логе) | `shell_command` идёт из Core-контейнера — закрепить `git config core.sshCommand` с repo-local known_hosts (см. УРОК-06); install.sh делает автоматически |
 | Переезд на новое железо | `scripts/restore.sh` — тарбол Контура 2, НЕ git-репо (в git нет .storage) |
 | Sync-сенсор = error | Смотреть лог; автоматизация шлёт persistent_notification |
 | Репо распух | Бинарники (db, tar) в .gitignore; история чистится `git gc` |
@@ -74,3 +75,10 @@ Releases + локальный NAS при наличии.
 - **УРОК-05**: BusyBox-grep принимает паттерн, начинающийся с `-`, за опцию — паттерны сканера
   передавать только как `grep -E -e "$pattern"`. Сканер молча пропускал проверку приватных
   ключей, пока это не поймал тест с подсадной уткой. Проверяй сканер подсадными секретами.
+- **УРОК-06**: HA `shell_command` (ночной синк) исполняется в контейнере **Core**, а не в SSH
+  add-on, где шёл install. У Core свой пустой known_hosts → `git push` падает
+  `Host key verification failed`, хотя deploy key исправен — коммит делается локально, но не
+  доходит до GitHub. Лечится закреплением `git config core.sshCommand` (ключ + repo-local
+  known_hosts + `accept-new`) в `.git/config` — применяется из ЛЮБОГО контейнера. install.sh
+  делает это автоматически. Проверять SSH только из add-on недостаточно — это не задевает
+  контейнер, в котором реально идёт синк.
