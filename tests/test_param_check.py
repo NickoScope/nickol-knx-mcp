@@ -75,6 +75,10 @@ def main():
     assert h["majority_value"] == "5"
     assert [d["value"] for d in h["odd_devices"]] == ["10"], h["odd_devices"]
     assert h["odd_devices"][0]["address"] == "10"
+    # significance: "Hysteresis (K)" is a config VALUE -> shows up in focus
+    assert h["significance"] == "config_value", h["significance"]
+    assert r["focus_count"] >= 1
+    assert any(o["refid"].endswith("R-1") for o in r["focus"]), r["focus"]
 
     # uniform param (mode, all "2") must NOT appear anywhere
     assert not any(o["refid"].endswith("R-2") for o in r["clear_outliers"] + r["split_configs"])

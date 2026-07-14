@@ -28,6 +28,25 @@ from typing import Any, Optional
 
 _NUMERIC_RE = re.compile(r"^-?\d+$")
 
+# Parameter-name hints for a meaningful numeric CONFIG VALUE — the kind of setting
+# where an odd value is usually a real mistake (a different hysteresis / setpoint /
+# timeout on one device). Multilingual (EN / DE / RU). Everything numeric but not a
+# value is a "config_flag" (mode/type/enable); non-numeric is a "label" (often a
+# deliberate per-room name, lowest priority).
+_VALUE_HINTS = (
+    "setpoint", "hyster", "temperatur", "threshold", "delay", "duration", "timeout",
+    "time", "period", "level", "speed", "offset", "value", "brightness", "scaling",
+    "уставк", "гистерез", "температур", "порог", "задержк", "время", "период",
+    "длительн", "уровень", "скорост", "яркост", "значени",
+)
+
+
+def _significance(name: str, numeric: bool) -> str:
+    if not numeric:
+        return "label"
+    low = (name or "").lower()
+    return "config_value" if any(h in low for h in _VALUE_HINTS) else "config_flag"
+
 
 def _localname(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
@@ -150,16 +169,26 @@ def check_device_parameters(path: str, password: Optional[str] = None,
 
     names = _resolve_names(zf, refids_needed)
 
+    _SIG_RANK = {"config_value": 0, "config_flag": 1, "label": 2}
+
     def _decorate(rec: dict[str, Any]) -> dict[str, Any]:
         rec["parameter"] = names.get(rec["refid"], rec["refid"])
         rec["name_resolved"] = rec["refid"] in names
+        rec["significance"] = _significance(rec["parameter"], rec["numeric"])
         return rec
 
-    # numeric config outliers first (time/setpoint/hysteresis-like), then the rest
+    # most meaningful first: config_value (setpoint/hysteresis/time…) > flag > label
     clear = [_decorate(r) for r in clear]
     splits = [_decorate(r) for r in splits]
-    clear.sort(key=lambda r: (not r["numeric"], len(r["odd_devices"]), -r["total"]))
-    splits.sort(key=lambda r: (not r["numeric"], -r["total"]))
+    clear.sort(key=lambda r: (_SIG_RANK[r["significance"]], len(r["odd_devices"]), -r["total"]))
+    splits.sort(key=lambda r: (_SIG_RANK[r["significance"]], -r["total"]))
+
+    def _by_sig(items: list[dict[str, Any]]) -> dict[str, int]:
+        c = Counter(r["significance"] for r in items)
+        return {k: c.get(k, 0) for k in ("config_value", "config_flag", "label")}
+
+    # the short list an integrator should actually look at first
+    focus = [r for r in clear if r["significance"] == "config_value"]
 
     grp_sizes = sorted((len(v) for v in groups.values() if len(v) >= min_group), reverse=True)
     return {
@@ -168,13 +197,18 @@ def check_device_parameters(path: str, password: Optional[str] = None,
         "largest_groups": grp_sizes[:8],
         "clear_outliers_count": len(clear),
         "split_configs_count": len(splits),
+        "focus_count": len(focus),
+        "focus": focus[:max_findings],
+        "clear_outliers_by_significance": _by_sig(clear),
+        "split_configs_by_significance": _by_sig(splits),
         "clear_outliers": clear[:max_findings],
         "split_configs": splits[:max_findings],
         "names_unresolved": sum(1 for r in (clear + splits) if not r["name_resolved"]),
-        "note": "clear_outliers = a device whose value differs from its N identical "
-                "siblings (likely a mistake). split_configs = the group splits into "
-                "balanced variants (review — often two zones/roles, not an error). "
-                "Numeric config parameters (times/setpoints/hysteresis) are listed first. "
-                "Read-only; parameter values come from P-*/0.xml (xknxproject does not "
-                "expose them). Some module-definition parameter names may stay as RefIds.",
+        "note": "START WITH `focus` — clear outliers on a config VALUE parameter "
+                "(setpoint/hysteresis/time/threshold…), where an odd device is usually a "
+                "real mistake. `clear_outliers` also includes config_flag (mode/type) and "
+                "label (per-room text, often intentional) — see *_by_significance. "
+                "split_configs = the group splits into balanced variants (review — often two "
+                "zones, not an error). Read-only; values come from P-*/0.xml (xknxproject does "
+                "not expose them). Some module-definition parameter names may stay as RefIds.",
     }

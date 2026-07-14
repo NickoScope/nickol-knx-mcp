@@ -23,8 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   flags the odd one out: `clear_outliers` (a strong majority with a small minority — e.g. one
   thermostat with a different setpoint/hysteresis, one presence detector with a different
   detection time) and `split_configs` (balanced 2+ variants — review, often two zones).
-  Parameter names resolved from the app-program. Read-only; no ETS/bus; encrypted projects are
-  skipped honestly. Validated on real 42–275-device projects; synthetic `tests/test_param_check.py`.
+  Parameter names resolved from the app-program. Findings are ranked by **significance**: a
+  `focus` list of *config-value* outliers (setpoint/hysteresis/time/threshold — where an odd device
+  is usually a real mistake), separated from mode/type flags and per-room text labels — on a real
+  275-device project this turns 422 raw outliers into a 9-item focus (incl. the thermostats whose
+  init-setpoint differs from their siblings). Read-only; no ETS/bus; encrypted projects are skipped
+  honestly. Validated on real 42–275-device projects; synthetic `tests/test_param_check.py`.
   Community-driven (asked for in Discussions). Tool count 25 → 26.
 
 - **`skills/ha-git-backup`** — an ops-companion skill for the engineer package: a two-circuit
