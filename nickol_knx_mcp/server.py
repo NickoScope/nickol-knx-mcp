@@ -31,6 +31,8 @@ from .advanced import (matter_readiness, completeness_grade, energy_scaffold,
 from .diffproj import diff_projects as _diff_projects
 from .iot import generate_knx_iot_turtle
 from .param_check import check_device_parameters as _check_device_parameters
+from .policy import (check_policy as _check_policy, load_policy as _load_policy,
+                     example_policy_yaml as _example_policy_yaml)
 
 mcp = FastMCP("nickol-knx")
 
@@ -361,6 +363,21 @@ def check_device_parameters(path: str, password: Optional[str] = None,
     device application program. Read-only, no ETS/bus. Give a real `.knxproj` `path`
     (a password-protected/encrypted project cannot be read)."""
     return _check_device_parameters(path, password=password, min_group=min_group)
+
+
+@mcp.tool()
+def check_policy(profile_path: Optional[str] = None,
+                 write_example_to: Optional[str] = None) -> dict[str, Any]:
+    """Validate the loaded project against a **Project Policy Profile** — *your*
+    agreed rules (main-group taxonomy, naming regex, command/status exemptions),
+    not one universal "standard". Flags GAs whose domain doesn't match the main
+    group your policy assigns, and names that don't match your pattern. Pass
+    `profile_path` to a YAML profile (omit to use the CLAUDE.md default, which is
+    a starting profile to override). Set `write_example_to` to drop a commented
+    example profile into the workspace. Report-only."""
+    if write_example_to:
+        return {"example_written": _safe_write(write_example_to, _example_policy_yaml())}
+    return _check_policy(_project(), _load_policy(profile_path))
 
 
 @mcp.tool()

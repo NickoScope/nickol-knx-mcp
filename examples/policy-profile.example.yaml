@@ -1,0 +1,26 @@
+# nickol-knx Project Policy Profile — your project's rules, not a universal standard.
+# Pass its path to check_policy(profile_path=...). Any key you omit falls back to the default.
+name: "My project policy"
+
+# Which functional domain each main group is meant to hold:
+main_groups:
+  0: [central, scene]
+  1: [lighting]
+  2: [shutter]
+  3: [hvac]
+  4: [sensor]
+  5: [energy]
+  6: [diagnostics]
+  7: [reserve]
+
+naming:
+  # names must match this regex (omit to skip); e.g. Zone_Function_Role:
+  regex: null
+  status_suffix: Status
+
+pairing:
+  require_status_for: [lighting, shutter, hvac]
+  exempt: [scene, sensor, central, diagnostics, energy]
+
+reserve:
+  expect_range: true

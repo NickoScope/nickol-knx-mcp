@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Project Policy Profile** (`policy.py`, new MCP tool `check_policy`). Validate a project
+  against *its own* agreed rules (main-group taxonomy, naming regex, command/status exemptions)
+  instead of one universal "professional standard" — a direct answer to integrator feedback that
+  conventions differ per school. With a YAML profile the declared taxonomy is authoritative; with
+  **no** profile the taxonomy is **inferred from the project itself** and GAs that deviate from
+  their main group's own majority domain are flagged (`policy_taxonomy_outlier`) — never against an
+  alien standard. Ships an example profile (`examples/policy-profile.example.yaml`) and
+  `tests/test_policy.py`. Tool count 26 → 27.
+
 - **Cross-device parameter QA** (`param_check.py`, new MCP tool `check_device_parameters`).
   Reads per-device `ParameterInstanceRef` values straight from the `.knxproj` project part
   (data xknxproject does not expose), groups identical devices by application program, and
