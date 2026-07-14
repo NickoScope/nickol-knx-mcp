@@ -250,7 +250,7 @@ keyring handling, and the recommended workflow).
 
 ---
 
-## MCP tools (25)
+## MCP tools (26)
 
 **Read**
 | Tool | Purpose |
@@ -279,6 +279,7 @@ keyring handling, and the recommended workflow).
 | `decompose_device(order_number, channels?)` | device → GA decomposition: **exact vendor model** from a local catalog (`NICKOL_KNX_CATALOG`), or generic recipe |
 | `list_device_recipes()` | the built-in device library (Zennio + ABB families) |
 | `parse_devices_from_project(path, output_path?, password?)` | extract **exact device object models** from the app-programs inside a `.knxproj`/`.knxprod` → device-library YAML (feeds the local catalog) |
+| `check_device_parameters(path, password?, min_group?)` | **cross-device parameter QA**: find the device whose ETS parameters differ from its N identical siblings (the odd thermostat/sensor out) — `clear_outliers` (likely mistake) + `split_configs` (balanced variants, review) |
 | `grade_completeness()` | grade a project: bare skeleton vs as-built |
 | `diff_projects(path_a, path_b, …)` | semantic diff between two `.knxproj` versions |
 

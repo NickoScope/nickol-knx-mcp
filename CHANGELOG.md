@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cross-device parameter QA** (`param_check.py`, new MCP tool `check_device_parameters`).
+  Reads per-device `ParameterInstanceRef` values straight from the `.knxproj` project part
+  (data xknxproject does not expose), groups identical devices by application program, and
+  flags the odd one out: `clear_outliers` (a strong majority with a small minority — e.g. one
+  thermostat with a different setpoint/hysteresis, one presence detector with a different
+  detection time) and `split_configs` (balanced 2+ variants — review, often two zones).
+  Parameter names resolved from the app-program. Read-only; no ETS/bus; encrypted projects are
+  skipped honestly. Validated on real 42–275-device projects; synthetic `tests/test_param_check.py`.
+  Community-driven (asked for in Discussions). Tool count 25 → 26.
+
 - **`skills/ha-git-backup`** — an ops-companion skill for the engineer package: a two-circuit
   Home Assistant backup system (real git in `/config` with a deploy key and a pre-commit secret
   scanner + age-encrypted full backups in GitHub Releases), with install/sync/scan/offsite/restore

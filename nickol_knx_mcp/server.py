@@ -30,6 +30,7 @@ from .advanced import (matter_readiness, completeness_grade, energy_scaffold,
                        test_protocol, suggest_naming)
 from .diffproj import diff_projects as _diff_projects
 from .iot import generate_knx_iot_turtle
+from .param_check import check_device_parameters as _check_device_parameters
 
 mcp = FastMCP("nickol-knx")
 
@@ -343,6 +344,23 @@ def parse_devices_from_project(path: str, output_path: Optional[str] = None,
         out["written_note"] = ("Local catalog file. Point NICKOL_KNX_CATALOG at its "
                                "directory to make decompose_device return catalog-exact.")
     return out
+
+
+@mcp.tool()
+def check_device_parameters(path: str, password: Optional[str] = None,
+                            min_group: int = 3) -> dict[str, Any]:
+    """Find the device whose ETS **parameter** settings differ from its N identical
+    siblings — the odd thermostat/sensor out (e.g. one thermostat with a different
+    setpoint/hysteresis, one presence detector with a different detection time).
+
+    Reads per-device parameter values straight from the `.knxproj` project part
+    (data xknxproject does not expose), groups identical devices by application
+    program, and returns `clear_outliers` (a strong majority with a small minority —
+    likely a mistake) and `split_configs` (balanced 2+ variants — review, often two
+    zones). Numeric config parameters are listed first; names are resolved from the
+    device application program. Read-only, no ETS/bus. Give a real `.knxproj` `path`
+    (a password-protected/encrypted project cannot be read)."""
+    return _check_device_parameters(path, password=password, min_group=min_group)
 
 
 @mcp.tool()
