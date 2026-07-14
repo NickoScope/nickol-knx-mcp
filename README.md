@@ -74,6 +74,18 @@ issue. The tool is read-only and never connects to a bus, so testing is safe (se
 
 ---
 
+## 🗺️ Roadmap — shaped by real integrators
+
+Recent reviews from practising KNX integrators (in [Discussions](https://github.com/NickoScope/nickol-knx-mcp/discussions)) are steering what comes next:
+
+- **Cross-device parameter consistency** *(feasibility validated by a PoC — not yet a shipped tool)* — flag the one device whose ETS **parameter** settings differ from its N identical siblings: a thermostat with a different setpoint/hysteresis, a presence detector with a different detection time. The PoC extracts per-device parameters straight from the `.knxproj` and finds the odd one out on real 42–275-device projects — read-only, no ETS, no bus — and correctly reports **nothing** on a clean project (no false positives across a different vendor / integrator school).
+- **Project Policy Profile** — validate a project against *your own* agreed rules (naming, GA taxonomy, command/status exemptions) instead of one universal "professional standard", since conventions differ per integrator.
+- On **in-ETS group-address linking** we deliberately *don't* reinvent the wheel: for linking GAs to communication objects inside ETS there are already ETS App-Store add-ins today, and native **Smart Linking** is coming in ETS7 — we point you to those and keep our focus on read-only **audit** and an **evidential project model**.
+
+Have a project to test, a workflow that breaks, or a feature to shape? → **[Discussions](https://github.com/NickoScope/nickol-knx-mcp/discussions)**.
+
+---
+
 ## Why this exists
 
 As of mid-2026 there is **no off-the-shelf ETS6 ↔ Claude / MCP tool**. The KNX community has
