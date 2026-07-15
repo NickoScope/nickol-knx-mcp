@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Role-aware feedback completeness** (`detect_role_completeness` in `analyze.py`, surfaced through
+  `check_missing_status`). "Does the function have *a* status?" was not enough — a dimmer with an on/off
+  status but no brightness status silently passed and inflated coverage/Matter scores. The new check
+  flags a brightness/position **command** (DPT 5.001) whose device has no matching value **status**
+  (`missing_value_status`), using a device-identity match so it does not borrow a sibling's status.
+  Closes the demo's own documented limitation — recall on the demo house is now 5/5. Raised by an
+  external expert review. `tests/test_role_completeness.py`.
+
 - **Project Policy Profile** (`policy.py`, new MCP tool `check_policy`). Validate a project
   against *its own* agreed rules (main-group taxonomy, naming regex, command/status exemptions)
   instead of one universal "professional standard" — a direct answer to integrator feedback that

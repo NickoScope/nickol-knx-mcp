@@ -30,14 +30,15 @@ flagged in `generated/project_report.md`:
 |---|---|---|
 | 1 | A group address with **no DPT** (`Living room CO2`, 4/2/1) | ✅ `check_dpt` 🔴 |
 | 2 | Two GAs with the **same name, different DPT** (`Kitchen temperature`) | ✅ `check_dpt` |
-| 3 | A dimmer with an on/off status but **no brightness status** (`Kitchen worktop LED`) | ⚠️ not flagged* |
+| 3 | A dimmer with an on/off status but **no brightness status** (`Kitchen worktop LED`) | ✅ `check_missing_status` (`missing_value_status`)* |
 | 4 | A switch with **no status** at all (`Guest WC ceiling`) | ✅ `check_missing_status` |
 | 5 | A GA with an **empty name** (`2/5/2`) | ✅ `check_naming` 🔴 |
 
-\* **Honest limitation surfaced by this very demo:** the missing-status check currently asks
-"does this control have *a* status?", not "does it have *each expected* status type?". The Kitchen
-dimmer has an on/off status, so it isn't flagged for its missing brightness status. Tracked for a
-future release.
+\* **Now fixed (role-aware feedback completeness).** This demo originally surfaced an honest
+limitation — the missing-status check asked "does this control have *a* status?", so the Kitchen
+dimmer's on/off status masked its missing brightness status. `detect_role_completeness` now flags a
+brightness/position **command** (5.001) that has no matching value **status** (`missing_value_status`),
+without borrowing a sibling device's status. Recall on this demo is now 5/5.
 
 Inventory: 239 GAs · 47 Functions · 0 errors that block parsing. The HA generator produced
 **19 switches, 13 lights (incl. RGBW / RGB / CCT colour), 6 covers, 6 climate zones, 13 binary

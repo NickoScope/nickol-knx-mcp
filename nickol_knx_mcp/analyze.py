@@ -296,6 +296,61 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
             f"identical name) and {n_self_report} self-reporting (actuator R+T object "
             "on the command GA) — no separate status GA needed.",
         ))
+    findings.extend(detect_role_completeness(project))
+    return findings
+
+
+# --------------------------------------------------------------------------- #
+# Role-aware feedback completeness (external-review gap): "does the function have
+# *a* status" is not enough — a dimmer with an on/off status but NO brightness
+# status silently passes and inflates coverage. Flag a value/level COMMAND
+# (brightness/position, 5.001) that has no matching value STATUS.
+# --------------------------------------------------------------------------- #
+# Function words stripped to get the DEVICE identity (so "Kitchen worktop LED
+# brightness" doesn't borrow "Kitchen island pendants brightness status" just
+# because both share "kitchen"+"brightness").
+_VALUE_WORDS = (
+    "brightness", "value", "level", "position", "dim", "dimming", "scaling",
+    "яркост", "значени", "уровень", "позици", "диммир", "положени", "стеллунг",
+)
+
+
+def _device_ident(name: str) -> set[str]:
+    return {t for t in base_tokens(name) if not any(w in t for w in _VALUE_WORDS)}
+
+
+def detect_role_completeness(project: LoadedProject) -> list[dict[str, Any]]:
+    """Flag a brightness/position COMMAND (5.001) with no matching value STATUS.
+
+    Complements detect_missing_status (which only asks for *a* status): a dimmer
+    can have an on/off status yet no brightness-level feedback, which Home Assistant
+    needs to show the real level after a manual/external change.
+    """
+    findings: list[dict[str, Any]] = []
+    val_status = [g for g in project.gas.values()
+                  if g.intent == INTENT_FUNCTIONAL and g.dpt_main == 5 and g.kind == "status"]
+    for addr, ga in project.gas.items():
+        if ga.intent != INTENT_FUNCTIONAL or ga.kind != "command":
+            continue
+        if ga.dpt_main != 5 or ga.dpt_sub != 1:
+            continue
+        if ga.category not in ("lighting", "shutter"):
+            continue
+        ident = _device_ident(ga.name)
+        if not ident:
+            continue
+        need = min(2, len(ident))
+        has_status = any(s.main == ga.main and len(ident & _device_ident(s.name)) >= need
+                         for s in val_status)
+        if not has_status:
+            what = "brightness" if ga.category == "lighting" else "position"
+            findings.append(_finding(
+                SEVERITY_WARN, "missing_value_status", addr,
+                f"'{ga.name}' is a {what} command (DPT 5.001) but its device has no "
+                f"{what} status GA — Home Assistant cannot read the actual {what} "
+                "after a manual or external change (an on/off status is not enough).",
+                name=ga.name, category=ga.category,
+            ))
     return findings
 
 
