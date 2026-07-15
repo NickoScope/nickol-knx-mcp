@@ -14,7 +14,7 @@ from typing import Any, Optional
 from xknxproject import XKNXProj
 from xknxproject.models import KNXProject
 
-from .dpt_map import classify_dpt, dpt_key, CATEGORY_UNKNOWN
+from .dpt_map import classify_dpt, dpt_key, is_exact_dpt, CATEGORY_UNKNOWN
 from .intent import classify_intent, INTENT_FUNCTIONAL
 from .safexml import preflight_archive
 
@@ -46,16 +46,22 @@ _DOMAIN_TERMS: dict[str, list[str]] = {
                 "awning", "curtain", "behang", "lamelle", "raffstore", "markise",
                 "auf/ab", "ab/auf", "штор", "жалюзи", "рольставн", "ролет", "ролл",
                 "позиц", "вверх/вниз", "ламел", "position", "shade"],
+    # sensor BEFORE hvac: a name with an explicit sensor word (weather station,
+    # датчик, motion) is a sensor even when it measures temperature — otherwise
+    # "Метеостанция - Температура" lands in hvac via the "температур" term.
+    "sensor": ["sensor", "motion", "presence", "occupancy", "brightness sens", "lux",
+               "humidity", "weather", "meteo", "датчик", "движени", "присутств", "влажн",
+               "люкс", "метео", "погод"],
     "hvac": ["hvac", "climate", "thermostat", "heat", "cool", "ac", "a/c", "aircon",
              "air con", "air-con", "conditioner", "ventilation", "radiator", "boiler",
              "underfloor", "fancoil", "fan coil", "fan-coil", "fan", "valve", "setpoint",
              "температур", "климат", "отопл", "тёпл", "тепл", "конвектор", "вентил",
-             "клапан", "кондиц", "котёл", "радиатор", "фанкойл", "уставк"],
-    "sensor": ["sensor", "motion", "presence", "occupancy", "brightness sens", "lux",
-               "humidity", "датчик", "движени", "присутств", "влажн", "люкс"],
+             "клапан", "кондиц", "котёл", "радиатор", "фанкойл", "уставк",
+             "а/с", "сплит", "вытяжк"],
     "lighting": ["light", "lamp", "dimm", "led", "spot", "sconce", "chandelier",
                  "rgb", "rgbw", "colour", "color", "xyy",
-                 "свет", "лампа", "подсветк", "освещ", "люстра", "диммер", "бра", "торшер"],
+                 "свет", "лампа", "подсветк", "освещ", "люстра", "диммер", "бра", "торшер",
+                 "яркост"],  # RU only: EN "brightness" also means weather lux — too ambiguous
 }
 
 # Domains a group-range name may legitimately pin for an actuator command whose
@@ -65,8 +71,10 @@ _DOMAIN_TERMS: dict[str, list[str]] = {
 _RANGE_ASSIGNABLE = {"lighting", "shutter", "hvac"}
 
 # Short/ambiguous tokens need a boundary on BOTH sides (whole word), else they
-# fire inside unrelated words ("ac" in "terrace", "led" in "ledge").
-_AMBIGUOUS_TERMS = {"ac", "a/c", "led", "fan", "co2", "uv", "rgb", "spot", "lux", "roll"}
+# fire inside unrelated words ("ac" in "terrace", "led" in "ledge"). "а/с" is the
+# Cyrillic air-con abbreviation. "spot" is NOT here: prefix-matching lets "spots"
+# hit, and no KNX name plausibly embeds it mid-word.
+_AMBIGUOUS_TERMS = {"ac", "a/c", "а/с", "led", "fan", "co2", "uv", "rgb", "lux", "roll"}
 
 
 def _compile_domain(terms: list[str]) -> "re.Pattern":
@@ -103,7 +111,7 @@ def _refine_category(name: str, current: str) -> str:
 # a pump or an AC; a 5.001 scaling is a brightness OR a shutter position. For soft
 # DPTs a contradicting name is NOT a conflict (it disambiguates), unlike a strong,
 # domain-encoding DPT (a shutter 1.008, an HVAC-mode 20.102, a temperature 9.001).
-_SOFT_DPT = {(1, 1), (1, 11), (5, 1)}
+_SOFT_DPT = {(1, 1), (1, 11), (1, 10), (5, 1)}   # 1.010 start/stop is generic (vent timers too)
 # The subset that is domain-AGNOSTIC end to end: with no name and no range signal
 # these stay 'unknown' — we never infer 'lighting' from a bare 1-bit DPT. Other
 # soft DPTs (5.001) keep their sensible default (brightness) when unsignalled.
@@ -122,7 +130,11 @@ def _classify_category(name: str, main_name: str, middle_name: str,
     * with no signal at all, a bare 1-bit DPT is 'unknown' (never guessed
       'lighting'); a 5.001 falls back to its brightness default.
     """
-    soft = (main, sub) in _SOFT_DPT or dpt_cat == CATEGORY_UNKNOWN_STR
+    # Soft = the DPT does not pin the domain: the listed agnostic types, an
+    # unknown category, or a category that came from a whole-main-group FALLBACK
+    # (a guess by construction) rather than an exact (main, sub) table entry.
+    soft = ((main, sub) in _SOFT_DPT or dpt_cat == CATEGORY_UNKNOWN_STR
+            or not is_exact_dpt(main, sub))
     name_dom = _domain_from_text(name)
     if name_dom:
         if soft or name_dom == dpt_cat:
@@ -225,23 +237,24 @@ def _build_range_name_map(raw: KNXProject) -> dict[str, str]:
     """
     out: dict[str, str] = {}
 
-    def walk(rng: dict[str, Any]) -> None:
+    def walk(rng: dict[str, Any], depth: int) -> None:
         start = rng.get("address_start")
         name = rng.get("name", "")
         if isinstance(start, int):
-            # main range: start aligned to 0x0800 boundaries; derive main number
             main = (start >> 11) & 0x1F
             middle = (start >> 8) & 0x07
-            # heuristic: if start is multiple of 2048 -> a main range, else middle
-            if start % 2048 == 0:
+            # Depth decides main vs middle, NOT address arithmetic: a middle group
+            # 0 starts at the same address as its main (start % 2048 == 0 too), so
+            # the old modulo heuristic let "middle 0" overwrite the main's name.
+            if depth == 0:
                 out[str(main)] = name
             else:
                 out[f"{main}/{middle}"] = name
         for child in rng.get("group_ranges", {}).values():
-            walk(child)
+            walk(child, depth + 1)
 
     for rng in raw.get("group_ranges", {}).values():
-        walk(rng)
+        walk(rng, 0)
     return out
 
 

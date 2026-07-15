@@ -122,6 +122,12 @@ _MAIN_FALLBACK: dict[int, DptInfo] = {
 }
 
 
+def is_exact_dpt(main: Optional[int], sub: Optional[int]) -> bool:
+    """True when (main, sub) has an exact table entry — i.e. the category came
+    from the specific DPT, not from a whole-main-group fallback guess."""
+    return (main, sub) in _EXACT
+
+
 def classify_dpt(main: Optional[int], sub: Optional[int]) -> DptInfo:
     """Classify a DPT into category / kind / HA platform."""
     if main is None:

@@ -53,9 +53,27 @@ def main():
     # ...but agreement keeps the domain
     assert _classify_category("Living room dimmer", "", "", 3, 7, "lighting") == "lighting"
 
+    # --- Cyrillic air-con abbreviations + colloquial 'сплит' (dogfood find) ---
+    for variant in ("а/с кухня вкл/выкл", "А/С детская 1 on/off", "Сплит Kids 2 status"):
+        assert _domain_from_text(variant) == "hvac", variant
+    # plural 'spots' must match the lighting prefix
+    assert _domain_from_text("Terrace spots on/off") == "lighting"
+
     # --- end to end through the model: an AC switch in the HVAC main is HVAC ---
     p = _proj({"3/0/1": _ga("3/0/1", "Master bedroom AC on/off", 1, 1)})
     assert p.gas["3/0/1"].category == "hvac"
+
+    # --- middle-0 range must not overwrite the MAIN range's name (dogfood find):
+    # a middle group 0 starts at the same raw address as its main, so the old
+    # modulo heuristic clobbered "Освещение" with "Вкл/Выкл" and the range
+    # rescue silently died. Depth decides now. ---
+    ranges = {"r1": {"name": "Освещение", "address_start": 2048, "group_ranges": {
+        "r10": {"name": "Вкл/Выкл", "address_start": 2048, "group_ranges": {}}}}}
+    p2 = _proj({"1/0/9": _ga("1/0/9", "Kanal 9", 1, 1)}, ranges)
+    assert p2.gas["1/0/9"].main_name == "Освещение", p2.gas["1/0/9"].main_name
+    assert p2.gas["1/0/9"].middle_name == "Вкл/Выкл", p2.gas["1/0/9"].middle_name
+    assert p2.gas["1/0/9"].category == "lighting", \
+        "main-range name must rescue a context-less switch in the lighting main"
 
     print("test_domain_classifier: OK — DPT is one signal among name + main-group context; "
           "AC/kondicioner is HVAC, bare switches are unknown, 5.001 disambiguates by name, "

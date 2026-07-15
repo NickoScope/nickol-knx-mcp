@@ -39,6 +39,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parameters as the cross-cutting GAs they are. `explain_ga` shows the winning signal and tier; the HA
   generator still emits a switch for a now-HVAC simple on/off, so no device is dropped.
 
+  Dogfooding the classifier against a deliberately messy synthetic house then hardened it further:
+  the **main-range name map no longer lets a "middle 0" clobber its main group's name** (both start at
+  the same raw address, so the old modulo heuristic overwrote "Освещение" with "Вкл/Выкл" and the
+  range rescue silently died — depth in the range tree decides now); a category that comes from a
+  **whole-main-group DPT fallback is soft** (a guess by construction — only an exact `(main, sub)`
+  table entry is strong), so a vendor enum like 20.609 no longer poses as authoritative HVAC;
+  **DPT 1.010 start/stop is soft** (ventilation timers use it too, not just shutters); terms learned:
+  Cyrillic **а/с**, **сплит**, **вытяжк**, **яркост** (RU only — EN "brightness" also means weather
+  lux), meteo/weather (sensor now outranks hvac so "Метеостанция - Температура" is a sensor, not an
+  HVAC actuator). Real-project noise after the round: Minsk 1 outlier / 685 GAs, demo 2 / 239.
+
 ### Added
 
 - **Explainable aggregate scores** (`advanced.py`, `handover.py`). Every headline percentage now ships

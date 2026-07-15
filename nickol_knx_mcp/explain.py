@@ -21,7 +21,7 @@ from typing import Any, Optional
 
 from .project import (LoadedProject, _override_kind_by_name, _domain_from_text,
                       _SOFT_DPT)
-from .dpt_map import classify_dpt
+from .dpt_map import classify_dpt, is_exact_dpt
 from .intent import classify_intent
 from .pairing import (function_status_pairs, find_status, positional_status,
                       self_reporting, base_tokens)
@@ -41,7 +41,8 @@ def explain_ga(project: LoadedProject, address: str) -> dict[str, Any]:
     dpt_cat = base["category"]
     name_dom = _domain_from_text(ga.name)
     range_dom = _domain_from_text(f"{ga.main_name} {ga.middle_name}")
-    soft = (ga.dpt_main, ga.dpt_sub) in _SOFT_DPT or dpt_cat == "unknown"
+    soft = ((ga.dpt_main, ga.dpt_sub) in _SOFT_DPT or dpt_cat == "unknown"
+            or not is_exact_dpt(ga.dpt_main, ga.dpt_sub))
     cat_ev: list[dict[str, str]] = []
     if ga.dpt_main is not None:
         cat_ev.append({"signal": f"DPT {ga.dpt or ga.dpt_main} → {dpt_cat}"
