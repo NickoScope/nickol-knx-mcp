@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Explainable aggregate scores** (`advanced.py`, `handover.py`). Every headline percentage now ships
+  the numbers behind it instead of a bare figure: Matter readiness, the completeness grade and
+  command/status coverage each carry a `math` block with the numerator, denominator, the exact formula
+  (that reproduces the percentage) and, for Matter, the functions **excluded** from the denominator
+  because their category has no Matter cluster (previously a silent skip — the biggest source of "why is
+  this number what it is?"). The completeness grade also states its band thresholds. A reviewer can now
+  audit or reproduce any score. Report-only, additive. Raised by external review. `tests/test_explainable_aggregates.py`.
+
 - **Provenance / confidence** (`explain.py`, new MCP tool `explain_ga`). The enriched model mixes ETS
   facts, DPT-derived structure and name heuristics; downstream tools then treat the result almost like a
   fact. `explain_ga(address)` makes the reasoning auditable for one GA: per decision (category / kind /

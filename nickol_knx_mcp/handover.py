@@ -86,7 +86,14 @@ def _feedback_coverage(project: LoadedProject,
                 and ga.dpt_main is not None]
     gaps = sum(1 for f in missing if f["code"] == "missing_status_address")
     total = len(commands)
-    return {"commands": total, "with_status": max(total - gaps, 0), "missing": gaps}
+    with_status = max(total - gaps, 0)
+    pct = round(100 * with_status / total) if total else 0
+    return {
+        "commands": total, "with_status": with_status, "missing": gaps,
+        "pct": pct,
+        "formula": f"{with_status} / {total} functional command GAs have a status = {pct}%"
+                   if total else "no functional command GAs — coverage undefined",
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -211,7 +218,7 @@ def build_handover(project: LoadedProject,
 
     # 4. Feedback coverage
     md.append("\n## 4. Command / status coverage\n")
-    pct = (100 * cover["with_status"] // cover["commands"]) if cover["commands"] else 0
+    pct = cover["pct"]
     md.append(
         f"- Functional command GAs: **{cover['commands']}**\n"
         f"- With a status/feedback GA: **{cover['with_status']}** ({pct}%)\n"

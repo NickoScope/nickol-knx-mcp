@@ -26,6 +26,30 @@ def _functional_commands(project: LoadedProject) -> list:
             and g.dpt_main is not None]
 
 
+def _ratio_explain(numerator: int, denominator: int, unit: str,
+                   excluded: dict[str, Any] | None = None,
+                   bands: dict[str, str] | None = None) -> dict[str, Any]:
+    """A percentage a reader can audit: the numbers behind it, the exact formula,
+    what was left OUT of the denominator, and (optionally) the grade bands.
+
+    Every aggregate score this tool reports carries one of these so the percentage
+    is never a bare number — a reviewer can see the denominator and reproduce it.
+    """
+    pct = round(100 * numerator / denominator) if denominator else 0
+    out: dict[str, Any] = {
+        "pct": pct,
+        "numerator": numerator,
+        "denominator": denominator,
+        "formula": f"{numerator} / {denominator} {unit} = {pct}%"
+                   if denominator else f"0 {unit} — ratio undefined (denominator 0)",
+    }
+    if excluded:
+        out["excluded_from_denominator"] = excluded
+    if bands:
+        out["bands"] = bands
+    return out
+
+
 def _status_gas(project: LoadedProject) -> list:
     from .analyze import _is_status_ga
     return [g for g in project.gas.values() if _is_status_ga(g)]
@@ -48,9 +72,11 @@ def matter_readiness(project: LoadedProject) -> dict[str, Any]:
     """Which controllable functions round-trip to a Matter cluster, and what's missing."""
     stats = _status_gas(project)
     ready, not_ready = [], []
+    no_cluster: Counter = Counter()
     for ga in _functional_commands(project):
         cluster = _MATTER.get(ga.category)
         if cluster is None:
+            no_cluster[ga.category or "unknown"] += 1  # excluded from the ratio — count it
             continue
         has_status = find_status(ga, [s for s in stats if s.main == ga.main]) is not None \
             or find_status(ga, stats) is not None
@@ -58,14 +84,25 @@ def matter_readiness(project: LoadedProject) -> dict[str, Any]:
                "matter": cluster[0], "has_status": has_status}
         (ready if has_status else not_ready).append(row)
     total = len(ready) + len(not_ready)
+    excluded_n = sum(no_cluster.values())
+    math = _ratio_explain(
+        len(ready), total, "Matter-mappable controllable functions with a status GA",
+        excluded={
+            "controllable_functions_without_a_matter_cluster": excluded_n,
+            "by_category": dict(no_cluster.most_common()),
+            "why": "categories with no Matter cluster (e.g. scenes, diagnostics) can't "
+                   "round-trip, so they are not counted in the readiness denominator.",
+        } if excluded_n else None)
     return {
         "controllable_functions": total,
         "matter_ready": len(ready),
-        "ready_pct": (100 * len(ready) // total) if total else 0,
+        "ready_pct": math["pct"],
+        "math": math,
         "not_ready": not_ready[:200],
         "note": "Ready = has a status GA + decodable DPT, so the Matter cluster can report "
                 "state. A Matter bridge (e.g. HA Matter server) exposes these; functions "
-                "without a status GA won't round-trip. Static readiness only — no bridging here.",
+                "without a status GA won't round-trip. Static readiness only — no bridging here. "
+                "See `math` for the exact denominator and what was excluded.",
     }
 
 
@@ -113,12 +150,16 @@ def completeness_grade(project: LoadedProject) -> dict[str, Any]:
         if n == 0:
             missing.append(label)
     hit = sum(1 for v in present.values() if v)
-    score = round(100 * hit / len(_PATTERNS))
+    bands = {"as-built grade": ">=75", "near-complete": "55-74",
+             "functional skeleton": "30-54", "bare skeleton": "<30"}
+    math = _ratio_explain(hit, len(_PATTERNS), "as-built patterns present", bands=bands)
+    score = math["pct"]
     grade = ("as-built grade" if score >= 75 else
              "near-complete" if score >= 55 else
              "functional skeleton" if score >= 30 else "bare skeleton")
     return {
         "grade": grade, "score": score,
+        "math": math,
         "patterns_present": {k: v for k, v in present.items() if v},
         "patterns_missing": missing,
         "note": "Completeness = presence of the as-built patterns a professional adds beyond "
