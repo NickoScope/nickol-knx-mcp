@@ -49,7 +49,13 @@ def main():
 
     # --- strong DPT contradicted by an explicit name -> honest unknown (a conflict) ---
     assert _classify_category("Bathroom fan", "", "", 3, 7, "lighting") == "unknown"   # dimming vs fan
-    assert _classify_category("Foyer blind", "", "", 9, 1, "hvac") == "unknown"        # temp DPT vs blind
+    assert _classify_category("Foyer blind", "", "", 9, 4, "sensor") == "unknown"      # lux DPT vs blind
+    # 9.001 temperature is SOFT: a weather-named temp re-domains to sensor without conflict
+    assert _classify_category("Weather outdoor temperature", "", "", 9, 1, "hvac") == "sensor"
+    # a measurement in a passive (Sensors) main takes the range's domain...
+    assert _classify_category("Gostinaya temperatura", "Sensors", "", 9, 1, "hvac", "sensor") == "sensor"
+    # ...but a passive range never retypes a COMMAND
+    assert _classify_category("Kanal 7", "Sensors", "", 1, 1, "lighting", "command") == "unknown"
     # ...but agreement keeps the domain
     assert _classify_category("Living room dimmer", "", "", 3, 7, "lighting") == "lighting"
 

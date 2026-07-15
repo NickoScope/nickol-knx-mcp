@@ -50,8 +50,9 @@ _DOMAIN_TERMS: dict[str, list[str]] = {
     # датчик, motion) is a sensor even when it measures temperature — otherwise
     # "Метеостанция - Температура" lands in hvac via the "температур" term.
     "sensor": ["sensor", "motion", "presence", "occupancy", "brightness sens", "lux",
-               "humidity", "weather", "meteo", "датчик", "движени", "присутств", "влажн",
-               "люкс", "метео", "погод"],
+               "humidity", "weather", "meteo", "illuminance", "датчик", "движени",
+               "присутств", "влажн", "люкс", "метео", "погод",
+               "освещённост", "освещенност"],  # illuminance ≠ "освещение" (checked first)
     "hvac": ["hvac", "climate", "thermostat", "heat", "cool", "ac", "a/c", "aircon",
              "air con", "air-con", "conditioner", "ventilation", "radiator", "boiler",
              "underfloor", "fancoil", "fan coil", "fan-coil", "fan", "valve", "setpoint",
@@ -111,7 +112,9 @@ def _refine_category(name: str, current: str) -> str:
 # a pump or an AC; a 5.001 scaling is a brightness OR a shutter position. For soft
 # DPTs a contradicting name is NOT a conflict (it disambiguates), unlike a strong,
 # domain-encoding DPT (a shutter 1.008, an HVAC-mode 20.102, a temperature 9.001).
-_SOFT_DPT = {(1, 1), (1, 11), (1, 10), (5, 1)}   # 1.010 start/stop is generic (vent timers too)
+# 1.010 start/stop is generic (vent timers too); 9.001 temperature is hvac by
+# default but a weather/sensor name legitimately re-domains it without conflict.
+_SOFT_DPT = {(1, 1), (1, 11), (1, 10), (5, 1), (9, 1)}
 # The subset that is domain-AGNOSTIC end to end: with no name and no range signal
 # these stay 'unknown' — we never infer 'lighting' from a bare 1-bit DPT. Other
 # soft DPTs (5.001) keep their sensible default (brightness) when unsignalled.
@@ -119,7 +122,8 @@ _AGNOSTIC_NO_DEFAULT = {(1, 1), (1, 11)}
 
 
 def _classify_category(name: str, main_name: str, middle_name: str,
-                       main: Optional[int], sub: Optional[int], dpt_cat: str) -> str:
+                       main: Optional[int], sub: Optional[int], dpt_cat: str,
+                       dpt_kind: str = "unknown") -> str:
     """Combine signals into a domain: explicit name > strong DPT > range context.
 
     * an explicit name domain wins — unless it *contradicts* a strong (domain-
@@ -148,6 +152,11 @@ def _classify_category(name: str, main_name: str, middle_name: str,
     # misleading domain words. Fall back to the middle name only if the main is unnamed.
     range_dom = _domain_from_text(main_name) or _domain_from_text(middle_name)
     if range_dom in _RANGE_ASSIGNABLE:
+        return range_dom
+    # Passive mains constrain passive GAs: a measurement sitting in a Sensors/
+    # Energy/Diagnostics range is that domain (a 9.001 in "Sensors" is a sensor,
+    # not a default hvac) — but a COMMAND is never retyped by a passive range.
+    if dpt_kind != "command" and range_dom in ("sensor", "energy", "diagnostics"):
         return range_dom
     if (main, sub) in _AGNOSTIC_NO_DEFAULT:
         return CATEGORY_UNKNOWN_STR
@@ -289,7 +298,7 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         # not the DPT alone — a 1-bit switch is domain-agnostic, so an "AC on/off"
         # is HVAC, not lighting, and a truly context-less switch is 'unknown'.
         category = _classify_category(ga.get("name", ""), main_name, middle_name,
-                                      main, sub, info["category"])
+                                      main, sub, info["category"], info["kind"])
         ha_platform = info["ha_platform"]
         # If the name says shutter but DPT mapped it to light (5.001/1.001),
         # correct the HA platform so the generator builds a cover, not a light.

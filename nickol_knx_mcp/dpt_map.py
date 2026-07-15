@@ -65,7 +65,7 @@ _EXACT: dict[tuple[int, Optional[int]], DptInfo] = {
     (1, 9): {"category": CATEGORY_UNKNOWN, "kind": KIND_SENSOR, "ha_platform": "binary_sensor", "value_type": None, "label": "Open/Close"},
     (1, 10): {"category": CATEGORY_SHUTTER, "kind": KIND_COMMAND, "ha_platform": "cover", "value_type": None, "label": "Start/Stop"},
     (1, 11): {"category": CATEGORY_LIGHTING, "kind": KIND_STATUS, "ha_platform": "binary_sensor", "value_type": None, "label": "State (status)"},
-    (1, 18): {"category": CATEGORY_DIAG, "kind": KIND_SENSOR, "ha_platform": "binary_sensor", "value_type": None, "label": "Occupancy"},
+    (1, 18): {"category": CATEGORY_SENSOR, "kind": KIND_SENSOR, "ha_platform": "binary_sensor", "value_type": None, "label": "Occupancy"},
     (1, 19): {"category": CATEGORY_DIAG, "kind": KIND_SENSOR, "ha_platform": "binary_sensor", "value_type": None, "label": "Window/Door"},
     (3, 7): {"category": CATEGORY_LIGHTING, "kind": KIND_COMMAND, "ha_platform": "light", "value_type": None, "label": "Dimming control (relative)"},
     (3, 8): {"category": CATEGORY_SHUTTER, "kind": KIND_COMMAND, "ha_platform": "cover", "value_type": None, "label": "Blinds control (relative)"},

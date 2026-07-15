@@ -48,7 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **DPT 1.010 start/stop is soft** (ventilation timers use it too, not just shutters); terms learned:
   Cyrillic **а/с**, **сплит**, **вытяжк**, **яркост** (RU only — EN "brightness" also means weather
   lux), meteo/weather (sensor now outranks hvac so "Метеостанция - Температура" is a sensor, not an
-  HVAC actuator). Real-project noise after the round: Minsk 1 outlier / 685 GAs, demo 2 / 239.
+  HVAC actuator). Round 2: presence **1.018 is a sensor** (was diagnostics — its name always says so
+  and the table fought it); **9.001 temperature is soft** (room temp defaults to hvac, a weather-named
+  temp re-domains to sensor without a fake conflict); **illuminance** terms ("освещённость" ≠
+  "освещение"); and a **passive-range rule** — a measurement inside a Sensors/Energy/Diagnostics main
+  takes that domain, while a command is never retyped by a passive range. Real-project noise after
+  both rounds: demo 2 outliers / 239 GAs (the two central macros), Minsk 10 / 685 (all defensible —
+  a genuinely mixed water/energy main), Razdory 75 / 3646 (~2%).
 
 ### Added
 
