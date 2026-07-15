@@ -1,0 +1,43 @@
+# Room Template — Corridor / Hallway (Коридор)
+schema_version: 1
+slot_id: corridor
+labels:
+  ru: Коридор
+  en: Corridor
+
+parameters:
+  lighting_circuits:
+    default: 1
+    provenance: {source: preset_rule, note: "1 ceiling circuit"}
+  windows:
+    default: 0
+    provenance: {source: preset_rule}
+  area_m2:
+    default: 5
+    role: hint
+    provenance: {source: preset_default, user_overridden: false}
+
+slots:
+  - slot_id: main_light
+    labels: {ru: свет, en: light}
+    presets:
+      basic:   {enabled: true, function: lighting_switch, multiplicity: {param: lighting_circuits}}
+      comfort: {enabled: true, function: lighting_dimmer, multiplicity: {param: lighting_circuits}}
+
+  - slot_id: window
+    labels: {ru: окно, en: window}
+    presets:
+      basic:   {enabled: true, function: shutter, multiplicity: {param: windows}}
+      comfort: {enabled: true, function: shutter, multiplicity: {param: windows}}
+
+  - slot_id: presence
+    labels: {ru: датчик, en: sensor}
+    presets:
+      basic:   {enabled: false}
+      comfort: {enabled: true, function: presence, multiplicity: {fixed: 1}}
+
+automation_intents:
+  - intent: presence_lights
+    description: "Switch corridor lights on presence, off after a timeout."
+    criticality: convenience
+    implementation: external
