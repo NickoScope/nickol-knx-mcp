@@ -25,10 +25,10 @@ def _project():
     # main 1: three lighting (1.001) + ONE shutter (1.008) -> the shutter is the deviant
     # main 2: three shutter (1.008) -> consistent
     gas = {
-        "1/0/1": _ga("1/0/1", "Kitchen A", 1, 1),
-        "1/0/2": _ga("1/0/2", "Kitchen B", 1, 1),
-        "1/0/3": _ga("1/0/3", "Kitchen C", 1, 1),
-        "1/0/4": _ga("1/0/4", "Odd one here", 1, 8),   # shutter DPT in the lighting main
+        "1/0/1": _ga("1/0/1", "Kitchen light A", 1, 1),
+        "1/0/2": _ga("1/0/2", "Kitchen light B", 1, 1),
+        "1/0/3": _ga("1/0/3", "Kitchen light C", 1, 1),
+        "1/0/4": _ga("1/0/4", "Odd blind here", 1, 8),   # shutter DPT in the lighting main
         "2/0/1": _ga("2/0/1", "Zone one", 1, 8),
         "2/0/2": _ga("2/0/2", "Zone two", 1, 8),
         "2/0/3": _ga("2/0/3", "Zone three", 1, 8),

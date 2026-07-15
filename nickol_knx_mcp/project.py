@@ -14,9 +14,11 @@ from typing import Any, Optional
 from xknxproject import XKNXProj
 from xknxproject.models import KNXProject
 
-from .dpt_map import classify_dpt, dpt_key
+from .dpt_map import classify_dpt, dpt_key, CATEGORY_UNKNOWN
 from .intent import classify_intent, INTENT_FUNCTIONAL
 from .safexml import preflight_archive
+
+CATEGORY_UNKNOWN_STR = CATEGORY_UNKNOWN
 
 
 # Multilingual keyword sets (EN / DE / RU) used by the heuristic fallbacks.
@@ -29,32 +31,115 @@ COMMAND_KEYWORDS = [
     "soll", "вкл", "выкл", "упр", "команд", "задан",
 ]
 
-# Category disambiguation by name (used for DPTs ambiguous between domains,
-# e.g. 5.001 = brightness OR shutter position; 1.001 = light OR generic).
-_CATEGORY_KEYWORDS: dict[str, list[str]] = {
-    "shutter": ["blind", "shutter", "jalousie", "roll", "rollo", "marqui",
-                "awning", "curtain", "position", "behang", "lamelle",
-                "raffstore", "markise", "auf/ab", "ab/auf", "штор", "жалюзи",
-                "рольставн", "ролет", "ролл", "позиц", "вверх/вниз", "ламел"],
-    "lighting": ["light", "lamp", "dimm", "led", "spot", "свет", "лампа",
-                 "подсветк", "освещ", "люстра", "диммер"],
-    "hvac": ["heat", "cool", "climate", "thermostat", "hvac", "valve", "fan",
-             "отопл", "климат", "тепл", "конвектор", "вентил", "клапан",
-             "кондиц", "тёпл"],
-    "energy": ["energy", "power", "consum", "meter", "kwh", "watt", "энерг",
-               "мощност", "потребл", "счётчик", "счетчик"],
-    "scene": ["scene", "scene", "сцен", "preset", "пресет"],
+# Domain terms by name (used to decide a GA's functional domain as ONE signal,
+# combined with the DPT and the group-range context — see _classify_category).
+# Checked in this priority order (most specific first; lighting is the generic
+# last resort). Matching is by WORD BOUNDARY, not bare substring, so short tokens
+# like "ac" don't fire inside "terrace" and "led" doesn't fire inside "ledge".
+_DOMAIN_TERMS: dict[str, list[str]] = {
     "diagnostics": ["alarm", "fault", "error", "diag", "leak", "smoke",
-                    "тревог", "ошибк", "диагност", "утечк", "дым"],
+                    "тревог", "ошибк", "диагност", "утечк", "дым", "авари", "неисправ"],
+    "energy": ["energy", "power", "consum", "meter", "kwh", "watt", "энерг",
+               "мощност", "потребл", "счётчик", "счетчик", "тариф"],
+    "scene": ["scene", "preset", "mood", "сцен", "пресет"],
+    "shutter": ["blind", "shutter", "jalousie", "roll", "rollo", "marqui",
+                "awning", "curtain", "behang", "lamelle", "raffstore", "markise",
+                "auf/ab", "ab/auf", "штор", "жалюзи", "рольставн", "ролет", "ролл",
+                "позиц", "вверх/вниз", "ламел", "position", "shade"],
+    "hvac": ["hvac", "climate", "thermostat", "heat", "cool", "ac", "a/c", "aircon",
+             "air con", "air-con", "conditioner", "ventilation", "radiator", "boiler",
+             "underfloor", "fancoil", "fan coil", "fan-coil", "fan", "valve", "setpoint",
+             "температур", "климат", "отопл", "тёпл", "тепл", "конвектор", "вентил",
+             "клапан", "кондиц", "котёл", "радиатор", "фанкойл", "уставк"],
+    "sensor": ["sensor", "motion", "presence", "occupancy", "brightness sens", "lux",
+               "humidity", "датчик", "движени", "присутств", "влажн", "люкс"],
+    "lighting": ["light", "lamp", "dimm", "led", "spot", "sconce", "chandelier",
+                 "rgb", "rgbw", "colour", "color", "xyy",
+                 "свет", "лампа", "подсветк", "освещ", "люстра", "диммер", "бра", "торшер"],
 }
+
+# Domains a group-range name may legitimately pin for an actuator command whose
+# DPT is domain-soft: a switch/scaling in a "Lighting"/"Shutters"/"HVAC" range is
+# that load. A range named "Scenes"/"Sensors"/"Energy" does NOT retype a 1-bit
+# command into a scene/sensor/energy datapoint — those carry their own strong DPTs.
+_RANGE_ASSIGNABLE = {"lighting", "shutter", "hvac"}
+
+# Short/ambiguous tokens need a boundary on BOTH sides (whole word), else they
+# fire inside unrelated words ("ac" in "terrace", "led" in "ledge").
+_AMBIGUOUS_TERMS = {"ac", "a/c", "led", "fan", "co2", "uv", "rgb", "spot", "lux", "roll"}
+
+
+def _compile_domain(terms: list[str]) -> "re.Pattern":
+    parts = []
+    for t in terms:
+        esc = re.escape(t)
+        parts.append(rf"\b{esc}\b" if (t in _AMBIGUOUS_TERMS or len(t) <= 2) else rf"\b{esc}")
+    return re.compile("|".join(parts))
+
+
+_DOMAIN_RE = {dom: _compile_domain(terms) for dom, terms in _DOMAIN_TERMS.items()}
+
+
+def _domain_from_text(text: str) -> Optional[str]:
+    """Return the functional domain a piece of text (a GA or range name) implies,
+    or None. Word-boundary matching over _DOMAIN_TERMS, first domain by priority."""
+    low = (text or "").lower()
+    if not low:
+        return None
+    for dom, rx in _DOMAIN_RE.items():
+        if rx.search(low):
+            return dom
+    return None
 
 
 def _refine_category(name: str, current: str) -> str:
-    low = name.lower()
-    for cat, words in _CATEGORY_KEYWORDS.items():
-        if any(w in low for w in words):
-            return cat
-    return current
+    """Name-domain wins over the given category, else keep it. Kept for callers
+    that only have a name + a starting category (explain, tests)."""
+    return _domain_from_text(name) or current
+
+
+# DPTs whose category is a *soft* default because the type does not, by itself,
+# pin a domain — the name / range decides. A 1-bit switch is a light as easily as
+# a pump or an AC; a 5.001 scaling is a brightness OR a shutter position. For soft
+# DPTs a contradicting name is NOT a conflict (it disambiguates), unlike a strong,
+# domain-encoding DPT (a shutter 1.008, an HVAC-mode 20.102, a temperature 9.001).
+_SOFT_DPT = {(1, 1), (1, 11), (5, 1)}
+# The subset that is domain-AGNOSTIC end to end: with no name and no range signal
+# these stay 'unknown' — we never infer 'lighting' from a bare 1-bit DPT. Other
+# soft DPTs (5.001) keep their sensible default (brightness) when unsignalled.
+_AGNOSTIC_NO_DEFAULT = {(1, 1), (1, 11)}
+
+
+def _classify_category(name: str, main_name: str, middle_name: str,
+                       main: Optional[int], sub: Optional[int], dpt_cat: str) -> str:
+    """Combine signals into a domain: explicit name > strong DPT > range context.
+
+    * an explicit name domain wins — unless it *contradicts* a strong (domain-
+      encoding) DPT, in which case the result is 'unknown' (a genuine conflict,
+      not a silent pick — surfaced by explain_ga as 'contested');
+    * a strong DPT keeps its domain;
+    * for a soft DPT with no name domain, the group-range name decides;
+    * with no signal at all, a bare 1-bit DPT is 'unknown' (never guessed
+      'lighting'); a 5.001 falls back to its brightness default.
+    """
+    soft = (main, sub) in _SOFT_DPT or dpt_cat == CATEGORY_UNKNOWN_STR
+    name_dom = _domain_from_text(name)
+    if name_dom:
+        if soft or name_dom == dpt_cat:
+            return name_dom
+        return CATEGORY_UNKNOWN_STR  # strong DPT vs explicit name -> honest unknown
+    if not soft:
+        return dpt_cat
+    # Domain context comes from the MAIN group only — per the 3-level convention the
+    # main group is the function domain, while the middle group is a sub-function
+    # (Switch / Status / Parameters / "motion-detector settings") whose name carries
+    # misleading domain words. Fall back to the middle name only if the main is unnamed.
+    range_dom = _domain_from_text(main_name) or _domain_from_text(middle_name)
+    if range_dom in _RANGE_ASSIGNABLE:
+        return range_dom
+    if (main, sub) in _AGNOSTIC_NO_DEFAULT:
+        return CATEGORY_UNKNOWN_STR
+    return dpt_cat
 
 
 @dataclass
@@ -184,7 +269,14 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         sub = dpt.get("sub") if dpt else None
         info = classify_dpt(main, sub)
         kind = _override_kind_by_name(ga.get("name", ""), info["kind"])
-        category = _refine_category(ga.get("name", ""), info["category"])
+        m, mid, s = _split_three_level(ga.get("address", addr))
+        main_name = range_names.get(str(m), "") if m is not None else ""
+        middle_name = range_names.get(f"{m}/{mid}", "") if m is not None and mid is not None else ""
+        # Domain is a COMBINATION of signals (name > strong DPT > range context),
+        # not the DPT alone — a 1-bit switch is domain-agnostic, so an "AC on/off"
+        # is HVAC, not lighting, and a truly context-less switch is 'unknown'.
+        category = _classify_category(ga.get("name", ""), main_name, middle_name,
+                                      main, sub, info["category"])
         ha_platform = info["ha_platform"]
         # If the name says shutter but DPT mapped it to light (5.001/1.001),
         # correct the HA platform so the generator builds a cover, not a light.
@@ -195,7 +287,6 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         if category == "diagnostics" and main == 1 and ha_platform == "switch":
             ha_platform = "binary_sensor"
             kind = "sensor"
-        m, mid, s = _split_three_level(ga.get("address", addr))
         rec = GARecord(
             address=ga.get("address", addr),
             name=ga.get("name", ""),
@@ -212,8 +303,8 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
             label=info["label"],
             intent=classify_intent(ga.get("name", "")),
             main=m, middle=mid, sub=s,
-            main_name=range_names.get(str(m), "") if m is not None else "",
-            middle_name=range_names.get(f"{m}/{mid}", "") if m is not None and mid is not None else "",
+            main_name=main_name,
+            middle_name=middle_name,
         )
         gas[rec.address] = rec
 

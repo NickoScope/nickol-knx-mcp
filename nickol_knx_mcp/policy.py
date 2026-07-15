@@ -26,6 +26,11 @@ from typing import Any, Optional
 from .project import LoadedProject
 from .intent import INTENT_FUNCTIONAL
 
+# Categories whose placement a main-group taxonomy actually constrains. Sensors,
+# diagnostics, scene links and metering are cross-cutting — they legitimately
+# appear inside any actuator domain's main group — so only these are checked.
+_ACTUATOR_DOMAINS = {"lighting", "shutter", "hvac"}
+
 # The CLAUDE.md taxonomy, expressed as an overridable default profile.
 DEFAULT_POLICY: dict[str, Any] = {
     "name": "default (CLAUDE.md methodology — override per project)",
@@ -134,9 +139,14 @@ def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, An
         if not (ga.name or "").strip():
             continue  # empty name -> unreliable classification; root cause is empty_name
 
-        # 1. main-group taxonomy conformance (only when the domain is known)
+        # 1. main-group taxonomy conformance (only when the domain is known).
+        # Only ACTUATOR categories are checked: a lighting/shutter/HVAC main
+        # legitimately also holds motion sensors, thresholds, timeout parameters
+        # and scene links, so flagging those cross-cutting GAs as taxonomy
+        # outliers is noise. A misplaced actuator (an HVAC load in the lighting
+        # main) is the real signal.
         allowed = mg.get(ga.main)
-        if allowed and ga.category and ga.category != "unknown":
+        if allowed and ga.category in _ACTUATOR_DOMAINS:
             if ga.category in allowed:
                 domain_ok += 1
             else:

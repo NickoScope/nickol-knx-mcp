@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from .project import LoadedProject, _refine_category, _override_kind_by_name
+from .project import (LoadedProject, _override_kind_by_name, _domain_from_text,
+                      _SOFT_DPT)
 from .dpt_map import classify_dpt
 from .intent import classify_intent
 from .pairing import (function_status_pairs, find_status, positional_status,
@@ -34,15 +35,22 @@ def explain_ga(project: LoadedProject, address: str) -> dict[str, Any]:
 
     base = classify_dpt(ga.dpt_main, ga.dpt_sub)
 
-    # --- category: DPT (structural) vs name refine (heuristic) ---
-    refined_cat = _refine_category(ga.name, base["category"])
+    # --- category: the FINAL resolved domain (name > strong DPT > range context),
+    # as stored on the record; here we surface the signals behind it. ---
+    refined_cat = ga.category
+    dpt_cat = base["category"]
+    name_dom = _domain_from_text(ga.name)
+    range_dom = _domain_from_text(f"{ga.main_name} {ga.middle_name}")
+    soft = (ga.dpt_main, ga.dpt_sub) in _SOFT_DPT or dpt_cat == "unknown"
     cat_ev: list[dict[str, str]] = []
     if ga.dpt_main is not None:
-        cat_ev.append({"signal": f"DPT {ga.dpt or ga.dpt_main} → {base['category']}",
+        cat_ev.append({"signal": f"DPT {ga.dpt or ga.dpt_main} → {dpt_cat}"
+                                 + (" (domain-agnostic default)" if soft else ""),
                        "tier": "structural"})
-    if refined_cat != base["category"]:
-        cat_ev.append({"signal": f"name resolved ambiguous DPT → {refined_cat}",
-                       "tier": "heuristic"})
+    if name_dom:
+        cat_ev.append({"signal": f"name keyword → {name_dom}", "tier": "heuristic"})
+    if range_dom and soft and not name_dom:
+        cat_ev.append({"signal": f"group-range name → {range_dom}", "tier": "heuristic"})
 
     # --- kind: DPT vs name override ---
     refined_kind = _override_kind_by_name(ga.name, base["kind"])
@@ -60,18 +68,15 @@ def explain_ga(project: LoadedProject, address: str) -> dict[str, Any]:
                                 "type": fn.get("function_type"),
                                 "role": ref.get("role")})
 
-    # --- conflict: DPT-domain vs name-domain (the silent-misclassification hotspot) ---
+    # --- conflict: an explicit name domain that a STRONG DPT contradicts. A soft
+    # 1-bit DPT is domain-agnostic, so name winning over it is NOT a conflict (the
+    # AC-on/off case is now correctly HVAC); a genuine conflict is e.g. a
+    # temperature DPT named "blind", which the classifier resolves to 'unknown'. ---
     conflicts = []
-    low = (ga.name or "").lower()
-    _NAME_DOMAIN = {"hvac": ("ac", " a/c", "climate", "heat", "cool", "hvac", "конд", "клима",
-                             "отоплен", "температур"),
-                    "shutter": ("blind", "shutter", "cover", "жалюзи", "штор", "ролл"),
-                    "energy": ("meter", "energy", "power", "счётчик", "энерг", "мощност")}
-    for dom, toks in _NAME_DOMAIN.items():
-        if any(t in low for t in toks) and refined_cat != dom and refined_cat != "unknown":
-            conflicts.append(
-                f"name suggests '{dom}' but classified '{refined_cat}' (DPT took precedence "
-                "over the name)")
+    if name_dom and not soft and name_dom != dpt_cat:
+        conflicts.append(
+            f"name suggests '{name_dom}' but the DPT ({ga.dpt or ga.dpt_main}) strongly "
+            f"encodes '{dpt_cat}' — contradictory, so the domain is left '{refined_cat}'")
 
     # --- status pairing: which strategy, if any ---
     fpairs = function_status_pairs(project)
@@ -97,8 +102,12 @@ def explain_ga(project: LoadedProject, address: str) -> dict[str, Any]:
         confidence = "contested"
     elif fn_hits:
         confidence = "authoritative"
-    elif ga.dpt_main is not None and refined_cat != "unknown":
-        confidence = "heuristic" if refined_cat != base["category"] else "structural"
+    elif refined_cat == "unknown":
+        confidence = "low"
+    elif name_dom or (range_dom and soft):
+        confidence = "heuristic"   # name/range decided the domain
+    elif ga.dpt_main is not None:
+        confidence = "structural"  # a strong DPT decided it
     else:
         confidence = "low"
 

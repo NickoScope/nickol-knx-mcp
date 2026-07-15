@@ -20,6 +20,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   violation callers return a normal `{"error": ...}` rather than a traceback. Still strictly read-only.
   Raised by external security review. `tests/test_safexml.py`.
 
+### Changed
+
+- **Contextual domain classification — a DPT alone no longer decides the domain** (`project.py`,
+  `explain.py`, `generate_ha.py`, `policy.py`). A 1-bit switch is domain-agnostic (a light just as
+  easily as a pump or an AC), yet the classifier defaulted DPT 1.001 → *lighting*, so "Living room AC
+  on/off" came out as lighting and then tripped downstream checks. The domain is now a **combination of
+  signals**: an explicit name domain wins; a strong, domain-encoding DPT (shutter 1.008, HVAC-mode
+  20.102, temperature 9.001, dimming 3.007) keeps its domain; for a domain-soft DPT (1.001/1.011/5.001)
+  the **main group name** disambiguates; with no signal at all a bare 1-bit GA is honestly **unknown**
+  rather than a guessed lighting. When an explicit name contradicts a *strong* DPT the result is
+  `unknown` (a genuine conflict, surfaced by `explain_ga` as `contested`) — not a silent pick. Matching
+  is word-boundary, not substring, so "ac" no longer fires inside "terrace". Name terms broadened
+  (English + Russian HVAC incl. `ac`/`a/c`/`air conditioner`, RGB/colour lighting). Verified on three
+  real projects: every "AC on/off" is now HVAC; policy taxonomy-outlier **noise fell sharply** (demo
+  11→2, one real project 31→6, another 200→57) because `check_policy` now flags only misplaced
+  **actuators** (lighting/shutter/HVAC) and treats sensors, scene links, thresholds and timeout
+  parameters as the cross-cutting GAs they are. `explain_ga` shows the winning signal and tier; the HA
+  generator still emits a switch for a now-HVAC simple on/off, so no device is dropped.
+
 ### Added
 
 - **Explainable aggregate scores** (`advanced.py`, `handover.py`). Every headline percentage now ships

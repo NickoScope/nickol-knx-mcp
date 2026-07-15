@@ -266,8 +266,8 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             for sib in same_main_gas(ga):
                 if sib.address in consumed:
                     continue
-                if sib.category == "lighting" and sib.dpt_main == 1 and sib.kind == "command" \
-                        and _identity_match(ga.name, sib.name):
+                if sib.category in ("lighting", "unknown") and sib.dpt_main == 1 \
+                        and sib.kind == "command" and _identity_match(ga.name, sib.name):
                     entity["address"] = sib.address
                     s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
                     if s1:
@@ -311,7 +311,7 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         if ga.address in consumed:
             continue
         if ga.dpt_main == 1 and ga.dpt_sub == 1 and ga.kind == "command" \
-                and ga.category in ("lighting", "unknown"):
+                and ga.category in ("lighting", "unknown", "hvac"):
             if not ga.name.strip():
                 review.append({"reason": "switch_unnamed", "address": ga.address, "name": ""})
                 consumed.add(ga.address)
