@@ -22,6 +22,16 @@ _STATUS_DPT = {1: "1.011", 3: "5.001", 5: "5.001", 9: "9.001",
                13: "13.013", 14: "14.056", 20: "20.102"}
 
 
+def _has_cyrillic(s: str) -> bool:
+    return any("Ѐ" <= c <= "ӿ" for c in (s or ""))
+
+
+def _suffix(name: str, ru: str, en: str) -> str:
+    """Match the suffix language to the GA name so an English project doesn't get a
+    Russian '(статус)' and vice-versa (council feedback: mixed-language names)."""
+    return ru if _has_cyrillic(name) else en
+
+
 def _infer_dpt(ga: Any) -> str:
     """Best-effort DPT for a GA that has none, from its name/category/kind."""
     exp = _expected_subdpt(ga.name)
@@ -88,7 +98,8 @@ def suggest_repairs(project: LoadedProject) -> dict[str, Any]:
             new = _next_free(used, ga.main if ga.main is not None else 1)
             proposals.append({
                 "code": code, "action": "add_ga", "address": new, "for": addr,
-                "name": f"{ga.name} - Значение яркости", "dpt": "5.001",
+                "name": f"{ga.name}{_suffix(ga.name, ' - Значение яркости', ' - Brightness value')}",
+                "dpt": "5.001",
                 "rationale": "absolute-brightness GA so Home Assistant can set a level",
             })
 
@@ -103,7 +114,7 @@ def suggest_repairs(project: LoadedProject) -> dict[str, Any]:
         new = _next_free(used, ga.main if ga.main is not None else 1, prefer_middle=4)
         proposals.append({
             "code": "missing_status", "action": "add_ga", "address": new, "for": addr,
-            "name": f"{ga.name} (статус)", "dpt": sdpt,
+            "name": f"{ga.name}{_suffix(ga.name, ' (статус)', ' (status)')}", "dpt": sdpt,
             "rationale": "status/feedback GA so Home Assistant reads real state",
         })
 

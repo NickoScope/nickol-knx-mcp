@@ -171,12 +171,21 @@ def _is_status_ga(ga: GARecord) -> bool:
 # rather than a defect — surfaced as INFO, not a 🟡 warning.
 _CENTRAL_MACRO_TOKENS = (
     "общее", "групповое", "все ", "всё", "central", "all groups", "all lights",
+    # generic group/broadcast commands (multi-word so they don't false-match "wall")
+    "all blinds", "all shutters", "all covers", "all windows", "all sockets",
+    "all off", "all on", "master off", "всех ",
 )
 
 
 def _is_central_macro(name: str) -> bool:
     low = (name or "").lower()
     return any(t in low for t in _CENTRAL_MACRO_TOKENS)
+
+
+def _is_scene(ga: GARecord) -> bool:
+    """Scene-control / scene-number GAs (17.x / 18.x) have no single real state to
+    read back — a missing status is expected, not a defect."""
+    return ga.dpt_main in (17, 18) or ga.category == "scene"
 
 
 # --------------------------------------------------------------------------- #
@@ -257,7 +266,15 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
             if self_reporting(ga, project):
                 n_self_report += 1
                 continue
-            if _is_central_macro(ga.name):
+            if _is_scene(ga):
+                findings.append(_finding(
+                    SEVERITY_INFO, "scene_no_status", addr,
+                    f"Scene control '{ga.name}' (DPT {ga.dpt or '?'}) has no status GA — "
+                    "expected: a scene recalls/stores a preset, it has no single state to "
+                    "read back. No status is applicable.",
+                    name=ga.name, dpt=ga.dpt, category=ga.category,
+                ))
+            elif _is_central_macro(ga.name):
                 findings.append(_finding(
                     SEVERITY_INFO, "central_macro_no_status", addr,
                     f"Central/group macro '{ga.name}' has no status GA — expected "

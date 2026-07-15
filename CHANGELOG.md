@@ -44,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Noise & unsafe repairs surfaced by an external expert review on the demo house.** (1) Scene-control
+  GAs (DPT 17/18) are no longer flagged as `missing_status` — they recall a preset and have no single
+  state to read back (now `scene_no_status`, INFO), and `suggest_repairs` no longer synthesises a bogus
+  boolean status GA for them. (2) Generic group commands (`All blinds down`, `All shutters up`) are now
+  recognised as central macros (INFO) like `All lights off`, not missing-status warnings. (3) Synthesised
+  repair names match the GA's language — an English project no longer gets a Russian `(статус)`/`Значение
+  яркости` suffix. On the demo house this cut `missing_status_address` warnings from ~7 (mostly scenes) to
+  the one genuine case. `tests/test_council_fixes.py`.
+
 - **`skills/ha-git-backup`**: `install.sh` now pins `core.sshCommand` + a repo-local `known_hosts`
   so the nightly sync pushes from HA's Core container (was failing `Host key verification failed`).
 
