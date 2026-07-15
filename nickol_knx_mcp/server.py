@@ -34,6 +34,7 @@ from .param_check import check_device_parameters as _check_device_parameters
 from .policy import (check_policy as _check_policy, load_policy as _load_policy,
                      example_policy_yaml as _example_policy_yaml)
 from .explain import explain_ga as _explain_ga
+from . import room_library as _room_library
 
 mcp = FastMCP("nickol-knx")
 
@@ -451,6 +452,100 @@ def generate_knx_iot(output_path: Optional[str] = None) -> dict[str, Any]:
     if output_path:
         return {"written": _safe_write(output_path, turtle)}
     return {"turtle": turtle}
+
+
+@mcp.tool()
+def validate_room_template(template: Optional[str] = None,
+                           path: Optional[str] = None) -> dict[str, Any]:
+    """Validate a Room Library template against the R1 schema (report-only).
+
+    Pass ``template`` (a built-in template's semantic slot_id, e.g. 'bedroom',
+    'kitchen') or ``path`` to a custom template YAML. Checks the public contract:
+    a locale-neutral slot_id, ru/en labels, per-slot basic/comfort presets, known
+    function types, valid multiplicities, and that ``area_m2`` is a hint with
+    provenance (never a normative fact). Returns ok + findings; nothing is written.
+    """
+    if path:
+        tmpl = _room_library.load_template_file(path)
+    elif template:
+        tmpls = _room_library.load_builtin_templates()
+        if template not in tmpls:
+            return {"ok": False, "error": f"unknown built-in template '{template}'. "
+                    f"Available: {sorted(tmpls)}"}
+        tmpl = tmpls[template]
+    else:
+        tmpls = _room_library.load_builtin_templates()
+        return {"ok": True, "available_templates": sorted(tmpls),
+                "note": "Pass template=<slot_id> or path=<file.yaml> to validate one."}
+    return _room_library.validate_room_template(tmpl)
+
+
+@mcp.tool()
+def compose_rooms(rooms: list[dict[str, Any]], language: str = "ru",
+                  project_name: str = "Room Library house",
+                  output_dir: Optional[str] = None,
+                  dry_run: bool = True) -> dict[str, Any]:
+    """Compose a **new** KNX project from a list of room templates (constructor).
+
+    ``rooms`` is a list of specs, each: ``{template, preset?, slot_presets?,
+    params?, label?}`` — e.g. ``{"template": "bedroom", "preset": "comfort"}``.
+    ``preset`` is basic|comfort (per-room); ``slot_presets`` overrides individual
+    slots (mix comfort climate with basic lighting); ``params`` overrides template
+    defaults (window/circuit counts); ``label`` sets a custom zone name.
+
+    Pipeline: resolve templates+params to a functional model, allocate group
+    addresses (main = domain, middle = role, sub sequential), write a real
+    ``.knxproj`` and **re-read it with the standard loader**, then run our linters
+    on the re-read project. Output: a ``manifest`` (allocation), ETS GA XML/CSV,
+    and a device ``bom`` proposal from the device library.
+
+    R1 builds NEW projects only and is dry-run by default (nothing written). Set
+    ``dry_run=false`` with ``output_dir`` (a folder inside the workspace) to write
+    the .knxproj, ETS exports, manifest.yaml and bom.yaml. Docking into an
+    existing project and exact device selection are R2. Never touches a bus.
+    """
+    if language not in _room_library.SUPPORTED_LANGUAGES:
+        raise ValueError(f"language must be one of {_room_library.SUPPORTED_LANGUAGES}")
+    try:
+        res = _room_library.compose(rooms, language=language, project_name=project_name)
+    except _room_library.RoomLibraryError as e:
+        return {"ok": False, "error": str(e)}
+
+    knxproj_bytes = res.pop("_knxproj_bytes")
+    out: dict[str, Any] = {
+        "ok": True,
+        "dry_run": dry_run,
+        "project_name": res["project_name"],
+        "language": res["language"],
+        "totals": res["totals"],
+        "lint": res["lint"],
+        "manifest": res["manifest"],
+        "bom": res["bom"],
+    }
+    if dry_run or not output_dir:
+        out["ets_xml"] = res["ets_xml"]
+        out["ets_csv"] = res["ets_csv"]
+        out["note"] = ("Dry run — nothing written. Review the manifest and lint, then "
+                       "re-run with dry_run=false and output_dir to persist artifacts.")
+    else:
+        import yaml
+        d = output_dir.rstrip("/")
+        _WORKSPACE.mkdir(parents=True, exist_ok=True)
+        knx_path = Path(_safe_write(f"{d}/project.knxproj", ""))  # reserve+validate path
+        knx_path.write_bytes(knxproj_bytes)
+        written = {
+            "knxproj": str(knx_path),
+            "ets_xml": _safe_write(f"{d}/group-addresses.xml", res["ets_xml"]),
+            "ets_csv": _safe_write(f"{d}/group-addresses.csv", res["ets_csv"]),
+            "manifest": _safe_write(f"{d}/manifest.yaml",
+                                    yaml.safe_dump(res["manifest"], allow_unicode=True,
+                                                   sort_keys=False)),
+            "bom": _safe_write(f"{d}/bom.yaml",
+                               yaml.safe_dump(res["bom"], allow_unicode=True,
+                                              sort_keys=False)),
+        }
+        out["written"] = written
+    return out
 
 
 @mcp.tool()
