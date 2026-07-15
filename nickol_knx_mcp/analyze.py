@@ -249,6 +249,8 @@ def detect_missing_status(project: LoadedProject) -> list[dict[str, Any]]:
             continue
         if ga.intent != INTENT_FUNCTIONAL:
             continue  # reserve / logic / scratch GAs need no status by design
+        if not (ga.name or "").strip():
+            continue  # root cause is empty_name (check_naming); classification unreliable
         if ga.kind != "command":
             continue
         if ga.dpt_main is None:

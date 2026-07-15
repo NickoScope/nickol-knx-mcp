@@ -131,6 +131,8 @@ def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, An
         if ga.intent != INTENT_FUNCTIONAL or ga.main is None:
             continue
         seen_mains.add(ga.main)
+        if not (ga.name or "").strip():
+            continue  # empty name -> unreliable classification; root cause is empty_name
 
         # 1. main-group taxonomy conformance (only when the domain is known)
         allowed = mg.get(ga.main)

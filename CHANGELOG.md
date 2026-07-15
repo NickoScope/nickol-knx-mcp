@@ -61,6 +61,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Root-cause suppression (external-review noise).** A GA with an **empty name** has an unreliable
+  classification, so it no longer cascades into a `missing_status_address` warning and a
+  `policy_taxonomy_outlier` — the single root cause (`empty_name` from `check_naming`) is kept and the
+  dependent findings are suppressed. On the demo house the empty `2/5/2` now yields one finding instead
+  of three. `tests/test_root_cause.py`.
+
 - **Noise & unsafe repairs surfaced by an external expert review on the demo house.** (1) Scene-control
   GAs (DPT 17/18) are no longer flagged as `missing_status` — they recall a preset and have no single
   state to read back (now `scene_no_status`, INFO), and `suggest_repairs` no longer synthesises a bogus
