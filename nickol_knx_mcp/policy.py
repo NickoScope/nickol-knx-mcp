@@ -25,6 +25,7 @@ from typing import Any, Optional
 
 from .project import LoadedProject
 from .intent import INTENT_FUNCTIONAL
+from .analyze import _is_central_macro
 
 # Categories whose placement a main-group taxonomy actually constrains. Sensors,
 # diagnostics, scene links and metering are cross-cutting — they legitimately
@@ -146,7 +147,9 @@ def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, An
         # outliers is noise. A misplaced actuator (an HVAC load in the lighting
         # main) is the real signal.
         allowed = mg.get(ga.main)
-        if allowed and ga.category in _ACTUATOR_DOMAINS:
+        if allowed and ga.category in _ACTUATOR_DOMAINS and not _is_central_macro(ga.name):
+            # central macros ("Весь свет выкл", "All blinds down") legitimately
+            # live in the central/scene main — their domain is not misplacement
             if ga.category in allowed:
                 domain_ok += 1
             else:
@@ -175,12 +178,20 @@ def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, An
 
     # 3. reserve range expected?
     reserve_mains = [m for m, doms in mg.items() if "reserve" in doms]
-    if (policy.get("reserve") or {}).get("expect_range") and reserve_mains:
-        if not any(m in seen_mains for m in reserve_mains):
+    if (policy.get("reserve") or {}).get("expect_range"):
+        if reserve_mains and not any(m in seen_mains for m in reserve_mains):
             findings.append({
                 "severity": "info", "code": "policy_no_reserve", "address": "-",
                 "message": f"Policy expects a reserve range (main {reserve_mains}) but none is "
                            "populated — leave spare address space per this project's convention.",
+            })
+        elif not reserve_mains and source != "profile":
+            # inferred taxonomy: no main group is reserve-like at all — the
+            # project has no spare address space anywhere
+            findings.append({
+                "severity": "info", "code": "policy_no_reserve", "address": "-",
+                "message": "No reserve main group exists in the project — every main is "
+                           "populated. Leave spare address space for future extensions.",
             })
 
     errors = sum(1 for f in findings if f["severity"] == "error")

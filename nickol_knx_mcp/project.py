@@ -38,7 +38,9 @@ COMMAND_KEYWORDS = [
 # like "ac" don't fire inside "terrace" and "led" doesn't fire inside "ledge".
 _DOMAIN_TERMS: dict[str, list[str]] = {
     "diagnostics": ["alarm", "fault", "error", "diag", "leak", "smoke",
-                    "тревог", "ошибк", "диагност", "утечк", "дым", "авари", "неисправ"],
+                    "online", "offline", "heartbeat", "watchdog",
+                    "тревог", "ошибк", "диагност", "утечк", "дым", "авари", "неисправ",
+                    "связь"],
     "energy": ["energy", "power", "consum", "meter", "kwh", "watt", "энерг",
                "мощност", "потребл", "счётчик", "счетчик", "тариф"],
     "scene": ["scene", "preset", "mood", "сцен", "пресет"],
@@ -56,9 +58,12 @@ _DOMAIN_TERMS: dict[str, list[str]] = {
     "hvac": ["hvac", "climate", "thermostat", "heat", "cool", "ac", "a/c", "aircon",
              "air con", "air-con", "conditioner", "ventilation", "radiator", "boiler",
              "underfloor", "fancoil", "fan coil", "fan-coil", "fan", "valve", "setpoint",
-             "температур", "климат", "отопл", "тёпл", "тепл", "конвектор", "вентил",
+             "климат", "отопл", "тёпл", "тепл", "конвектор", "вентил",
              "клапан", "кондиц", "котёл", "радиатор", "фанкойл", "уставк",
              "а/с", "сплит", "вытяжк"],
+    # NOTE: no bare "температур"/"temperature" term — a temperature GA takes its
+    # domain from context (уставк/кондиц/тёпл name words, or its main group):
+    # "Гостиная температура" in a Sensors main is a sensor, not an HVAC actuator.
     "lighting": ["light", "lamp", "dimm", "led", "spot", "sconce", "chandelier",
                  "rgb", "rgbw", "colour", "color", "xyy",
                  "свет", "лампа", "подсветк", "освещ", "люстра", "диммер", "бра", "торшер",
@@ -89,12 +94,19 @@ def _compile_domain(terms: list[str]) -> "re.Pattern":
 _DOMAIN_RE = {dom: _compile_domain(terms) for dom, terms in _DOMAIN_TERMS.items()}
 
 
+# Location phrases that CONTAIN a domain word but describe WHERE, not WHAT:
+# "Boiler room light" is a light in the boiler room, not an HVAC function.
+_LOCATION_STOP_RE = re.compile(r"\b(boiler\s*room|котельн\w*|laundry\s*room)\b")
+
+
 def _domain_from_text(text: str) -> Optional[str]:
     """Return the functional domain a piece of text (a GA or range name) implies,
-    or None. Word-boundary matching over _DOMAIN_TERMS, first domain by priority."""
+    or None. Word-boundary matching over _DOMAIN_TERMS, first domain by priority;
+    known location phrases are stripped first so they don't vote."""
     low = (text or "").lower()
     if not low:
         return None
+    low = _LOCATION_STOP_RE.sub(" ", low)
     for dom, rx in _DOMAIN_RE.items():
         if rx.search(low):
             return dom

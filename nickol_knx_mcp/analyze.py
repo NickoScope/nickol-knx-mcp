@@ -173,7 +173,7 @@ _CENTRAL_MACRO_TOKENS = (
     "общее", "групповое", "все ", "всё", "central", "all groups", "all lights",
     # generic group/broadcast commands (multi-word so they don't false-match "wall")
     "all blinds", "all shutters", "all covers", "all windows", "all sockets",
-    "all off", "all on", "master off", "всех ",
+    "all off", "all on", "master off", "всех ", "весь ", "мастер",
 )
 
 
