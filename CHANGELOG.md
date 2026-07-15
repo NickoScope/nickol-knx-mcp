@@ -58,6 +58,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Room Template Library — R1 (vertical slice)** (`room_library.py`, `room_templates/`, two new MCP
+  tools; tool count **28 → 30**). Compose a **new** KNX project from a list of parametrised room
+  templates ("constructor"). The template format is a deliberate public contract (`room_templates/SCHEMA.md`):
+  `schema_version`, a **locale-neutral semantic `slot_id`** (identity never comes from a human name),
+  `labels.{ru,en}` for presentation, **per-slot** `basic`/`comfort` presets (not one monolithic room
+  level — a house can mix comfort climate with basic lighting), and parameters where `area_m2` is an
+  explicit **hint** with provenance, never a normative fact. Six built-in rooms ship: bedroom, children,
+  living, kitchen, bathroom, corridor. Templates describe **functions** (function-first); logic
+  (presence→light) is declared as non-executable `automation_intents` metadata only.
+  A separate resolved IR (its own dataclasses — **not** the public `GARecord`) drives allocation
+  (main = domain, middle = role, sub sequential) with a hard error on sub-address exhaustion (never a
+  silent overflow). Critically, the composer writes a **real `.knxproj` (ZIP of ETS XML) and re-reads it
+  through the standard `load_project`** — the same path used for third-party projects — so generation
+  never touches the classifier and is validated by the real reader. New tools:
+  `validate_room_template(template?, path?)` (schema check) and
+  `compose_rooms(rooms, language="ru", project_name?, output_dir?, dry_run=true)` — outputs an allocation
+  `manifest`, ETS GA **XML/CSV** via the existing generators, and a device **BOM proposal** from the
+  device library. New projects only, dry-run by default; docking into an existing project and exact
+  device selection are R2. The generated house passes all four linters (naming / missing-status / DPT /
+  policy) with **0 errors and 0 warnings**. `tests/test_room_library.py` (golden RU/EN, idempotency,
+  permutation invariance, address-exhaustion error, round-trip 0-error lint, negative-oracle manifest).
+
 - **Explainable aggregate scores** (`advanced.py`, `handover.py`). Every headline percentage now ships
   the numbers behind it instead of a bare figure: Matter readiness, the completeness grade and
   command/status coverage each carry a `math` block with the numerator, denominator, the exact formula
