@@ -2,11 +2,12 @@
 
 **A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
 
-Three things you can do with it — all **without ever touching the live KNX bus**:
+Four things you can do with it — all **without ever touching the live KNX bus**:
 
 1. **Design a project from a spec** — turn an equipment list / project specification into a complete, validated group-address structure **plus the full implementation document set** (ETS-importable XML/CSV, human-readable report, Home Assistant YAML, acceptance test protocol, as-built handover pack).
 2. **Audit, repair & finish an existing project** — validate naming · DPT & sub-DPT · command↔status · KNX Secure · Matter-readiness, get **concrete fix proposals** (inferred DPTs, synthesised status GAs), grade completeness, and diff two project versions.
 3. **Generate the smart-home layer** — assembled Home Assistant entities (colour lights, climate, covers, sensors) that read *real device state*, with everything ambiguous deferred to human review.
+4. **Compose a new project from parametrised room templates** — from a list of rooms (with a `basic`/`comfort` preset per slot) assemble a **new**, validated project → an allocation manifest + ETS GA XML/CSV + a device BOM proposal. Dry-run, new projects only (**R1**).
 
 Under the hood: a **device library** that expands each actuator into its real communication objects — from generic recipes up to the **exact vendor object model** parsed straight from ETS application programs.
 
@@ -78,8 +79,9 @@ issue. The tool is read-only and never connects to a bus, so testing is safe (se
 
 Recent reviews from practising KNX integrators (in [Discussions](https://github.com/NickoScope/nickol-knx-mcp/discussions)) are steering what comes next:
 
-- **Cross-device parameter consistency** *(feasibility validated by a PoC — not yet a shipped tool)* — flag the one device whose ETS **parameter** settings differ from its N identical siblings: a thermostat with a different setpoint/hysteresis, a presence detector with a different detection time. The PoC extracts per-device parameters straight from the `.knxproj` and finds the odd one out on real 42–275-device projects — read-only, no ETS, no bus — and correctly reports **nothing** on a clean project (no false positives across a different vendor / integrator school).
-- **Project Policy Profile** — validate a project against *your own* agreed rules (naming, GA taxonomy, command/status exemptions) instead of one universal "professional standard", since conventions differ per integrator.
+- **Cross-device parameter consistency** *(shipped — `check_device_parameters`)* — flag the one device whose ETS **parameter** settings differ from its N identical siblings: a thermostat with a different setpoint/hysteresis, a presence detector with a different detection time. Extracts per-device parameters straight from the `.knxproj` and finds the odd one out on real 42–275-device projects — read-only, no ETS, no bus — and correctly reports **nothing** on a clean project (no false positives across a different vendor / integrator school).
+- **Project Policy Profile** *(shipped — `check_policy`)* — validate a project against *your own* agreed rules (naming, GA taxonomy, command/status exemptions) instead of one universal "professional standard", since conventions differ per integrator; with no profile it validates against the taxonomy inferred from the project itself.
+- **Room Template Library** — compose a **new** project from parametrised room templates. **R1 shipped** (`compose_rooms` + `validate_room_template`: new projects, dry-run, allocation manifest + ETS XML/CSV + device BOM). **R2 planned**: docking into an existing project + exact device selection.
 - On **in-ETS group-address linking** we deliberately *don't* reinvent the wheel: for linking GAs to communication objects inside ETS there are already ETS App-Store add-ins today, and native **Smart Linking** is coming in ETS7 — we point you to those and keep our focus on read-only **audit** and an **evidential project model**.
 
 Have a project to test, a workflow that breaks, or a feature to shape? → **[Discussions](https://github.com/NickoScope/nickol-knx-mcp/discussions)**.
@@ -175,6 +177,20 @@ spec encodes.
 - **Ops companion**: [`skills/ha-git-backup`](skills/ha-git-backup) — the life of your config
   *after* deploy: a real git history of `/config` (deploy key + pre-commit secret scanner) plus
   encrypted offsite backups in GitHub Releases, with a monthly restore drill.
+
+### 🧱 Scenario 4 — Compose a new project from room templates
+
+- **From rooms, not a blank sheet**: pick from six built-in **parametrised room templates** (bedroom,
+  children, living, kitchen, bathroom, corridor), choose a `basic` / `comfort` preset **per slot** (a house
+  can mix comfort climate with basic lighting), and `compose_rooms` assembles a **new** project.
+- **Out comes**: an allocation `manifest` (main = domain, middle = role, sub sequential), ETS-importable
+  **GA XML/CSV** via the existing generators, and a **device BOM** proposal from the device library.
+- **Validated by the real reader**: the generated `.knxproj` is re-read through the standard `load_project`
+  — the same path used for third-party projects — and passes all four linters (naming / missing-status /
+  DPT / policy) with **0 errors / 0 warnings**.
+- **Dry-run by default, new projects only.** The template format is a public contract (`room_templates/SCHEMA.md`):
+  identity is a locale-neutral `slot_id`, never a human name.
+- <sub>R2: docking into an existing project + exact device selection — planned.</sub>
 
 ### 🧩 The foundation — a growing device library
 
@@ -362,6 +378,8 @@ nickol-knx-mcp/
 │   ├── generate_ha.py    # Home Assistant KNX YAML generation
 │   ├── generate_ets.py   # ETS XML + CSV generation
 │   ├── report.py         # Markdown report
+│   ├── room_library.py   # Room Library R1 — compose a new project from templates
+│   ├── room_templates/   # built-in room YAML templates + SCHEMA.md (public contract)
 │   └── server.py         # FastMCP server, 30 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
