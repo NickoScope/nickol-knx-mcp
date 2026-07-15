@@ -69,6 +69,9 @@ _FUNC_WORDS = {
     # colour function words: ignored so a colour GA pairs to its zone's light
     "colour", "color", "rgb", "rgbw", "rgbww", "hue", "saturation", "sat",
     "white", "warm", "cct", "kelvin", "temp", "temperature", "xyy", "farbe",
+    # Russian function words — identity is the zone/device, not the verb
+    "вкл", "выкл", "статус", "состояние", "яркость", "значение", "диммирование",
+    "цвет", "позиция", "движение", "стоп", "вверх", "вниз",
 }
 
 
@@ -156,7 +159,12 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             # so a command never borrows a sibling's status.
             if not _identity_match(cmd.name, s.name):
                 continue
-            score = len(cid & _pair_ident(s.name)) + (2 if s.main == cmd.main else 0)
+            sid = _pair_ident(s.name)
+            # EXACT identity outranks any subset overlap: "RGBW подсветка"
+            # must take "RGBW подсветка статус" over "камин подсветка статус"
+            # even though both share {zone, подсветка}.
+            score = len(cid & sid) + (2 if s.main == cmd.main else 0) \
+                + (3 if sid == cid else 0)
             if score > best_score:
                 best, best_score = s, score
         return best
@@ -263,18 +271,23 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             if st5:
                 entity["brightness_state_address"] = st5.address
                 consumed.add(st5.address)
-            for sib in same_main_gas(ga):
-                if sib.address in consumed:
-                    continue
-                if sib.category in ("lighting", "unknown") and sib.dpt_main == 1 \
-                        and sib.kind == "command" and _identity_match(ga.name, sib.name):
-                    entity["address"] = sib.address
-                    s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
-                    if s1:
-                        entity["state_address"] = s1.address
-                        consumed.add(s1.address)
-                    consumed.add(sib.address)
-                    break
+            # two-pass sibling pick: EXACT identity first, subset only as a
+            # fallback — else "RGBW подсветка яркость" ({living, подсветка})
+            # grabs "камин подсветка" ({living, камин, подсветка}) by subset
+            # while its true on/off sits one address further.
+            sibs = [s for s in same_main_gas(ga)
+                    if s.address not in consumed and s.dpt_main == 1
+                    and s.kind == "command" and s.category in ("lighting", "unknown")]
+            my_ident = _pair_ident(ga.name)
+            sib = next((s for s in sibs if _pair_ident(s.name) == my_ident), None) \
+                or next((s for s in sibs if _identity_match(ga.name, s.name)), None)
+            if sib is not None:
+                entity["address"] = sib.address
+                s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
+                if s1:
+                    entity["state_address"] = s1.address
+                    consumed.add(s1.address)
+                consumed.add(sib.address)
             attach_colour(entity, ga)   # RGB/RGBW/xyY/colour-temp of this zone
             lights.append(entity)
             consumed.add(ga.address)

@@ -186,13 +186,21 @@ def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, An
                            "populated — leave spare address space per this project's convention.",
             })
         elif not reserve_mains and source != "profile":
-            # inferred taxonomy: no main group is reserve-like at all — the
-            # project has no spare address space anywhere
-            findings.append({
-                "severity": "info", "code": "policy_no_reserve", "address": "-",
-                "message": "No reserve main group exists in the project — every main is "
-                           "populated. Leave spare address space for future extensions.",
-            })
+            # inferred taxonomy can't see reserves (reserve GAs are non-functional
+            # by intent) — before complaining, look for reserve-intent GAs and
+            # reserve-named group ranges directly.
+            has_reserve = any(g.intent == "reserve" for g in project.gas.values())
+            if not has_reserve:
+                rtok = ("резерв", "reserve", "spare")
+                names = [g.main_name for g in project.gas.values()] + \
+                        [g.middle_name for g in project.gas.values()]
+                has_reserve = any(t in (n or "").lower() for n in names for t in rtok)
+            if not has_reserve:
+                findings.append({
+                    "severity": "info", "code": "policy_no_reserve", "address": "-",
+                    "message": "No reserve main group exists in the project — every main is "
+                               "populated. Leave spare address space for future extensions.",
+                })
 
     errors = sum(1 for f in findings if f["severity"] == "error")
     warns = sum(1 for f in findings if f["severity"] == "warning")
