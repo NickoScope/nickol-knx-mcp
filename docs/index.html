@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>nickol-knx-mcp — design-time KNX/ETS6 assistant (MCP server)</title>
-<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server. Design a project from a spec into a full implementation kit (ETS XML/CSV, report, Home Assistant YAML, test protocol, handover pack); audit & repair an existing .knxproj with concrete fix proposals; generate the Home Assistant layer. Exact vendor device models parsed from ETS app-programs. No live bus access. 25 tools. Includes a full demo house + smart HA brain." />
+<meta name="description" content="A design-time KNX/ETS6 assistant exposed as an MCP server. Design a project from a spec into a full implementation kit (ETS XML/CSV, report, Home Assistant YAML, test protocol, handover pack); audit & repair an existing .knxproj with concrete fix proposals; generate the Home Assistant layer; or compose a new project from parametrised room templates. Exact vendor device models parsed from ETS app-programs. No live bus access. 30 tools. Includes a full demo house + smart HA brain." />
 <style>
   :root{
     --bg:#0d0f12;--panel:#14171c;--card:#181c22;--card2:#1c2027;--line:#242a33;
@@ -180,7 +180,7 @@
   </div>
   <div class="grid g3" style="margin-top:18px">
     <div class="card"><h3>🔒 No bus access</h3><p>Zero networking/bus libraries in the dependency tree. <code>bus_access: false</code> — structural, not a promise.</p></div>
-    <div class="card"><h3>🧩 25 MCP tools</h3><p><b>Validate</b> (naming · DPT &amp; sub-DPT · status · KNX Secure · Matter) · <b>repair</b> (propose fixes, not just flag) · <b>decompose devices</b> into GA recipes or <b>exact vendor models</b> · <b>diff</b> two versions · <b>grade</b> completeness · <b>generate</b> HA YAML, ETS XML/CSV, handover pack, test protocol &amp; KNX IoT. All read-only — see the <a href="#scenarios">three scenarios ↓</a>.</p></div>
+    <div class="card"><h3>🧩 30 MCP tools</h3><p><b>Validate</b> (naming · DPT &amp; sub-DPT · status · KNX Secure · Matter) · <b>repair</b> (propose fixes, not just flag) · <b>decompose devices</b> into GA recipes or <b>exact vendor models</b> · <b>diff</b> two versions · <b>grade</b> completeness · <b>compose</b> a new project from room templates · <b>generate</b> HA YAML, ETS XML/CSV, handover pack, test protocol &amp; KNX IoT. <b>Read-only where it counts</b> — never mutates your source <code>.knxproj</code> or touches the bus. See the <a href="#scenarios">four scenarios ↓</a>.</p></div>
     <div class="card"><h3>🌍 EN / DE / RU</h3><p>Classifies by DPT + multilingual name keywords. Validated on ETS 4.2 / 5.0 / 5.5 / 6 fixtures, a real <b>signed ETS6 round-trip</b>, and a <b>685-GA Zennio</b> project (false errors there: 29 → 6).</p></div>
   </div>
 </div></section>
@@ -188,7 +188,7 @@
 <!-- SCENARIOS -->
 <section id="scenarios"><div class="wrap">
   <div class="eyebrow">What you can do</div>
-  <h2>Three scenarios, one read-only toolchain</h2>
+  <h2>Four scenarios, one read-only toolchain</h2>
   <p class="lead">From a blank specification to a commissioned, smart-home-connected project — or straight
   into an existing <code>.knxproj</code> that needs checking and finishing.</p>
   <div class="grid g3" style="margin-top:18px">
@@ -212,6 +212,15 @@
       <code>expose</code> block, Matter lint and a KNX IoT (Turtle/RDF) semantic export. Ships with an
       <b>ops-companion skill</b> (<a href="https://github.com/NickoScope/nickol-knx-mcp/tree/main/skills/ha-git-backup">ha-git-backup</a>):
       real git history of your deployed <code>/config</code> + encrypted offsite backups.</p></div>
+    <div class="card"><h3>🧱 4 · Compose a new project</h3><p>Start from a blank slate: pick
+      <b>parametrised room templates</b> (bedroom · children · living · kitchen · bathroom · corridor),
+      choose a <b>basic/comfort</b> preset per slot, and <code>compose_rooms</code> builds a <b>new</b>
+      project → an <b>allocation manifest</b> + ETS-importable <b>GA XML/CSV</b> + a <b>device BOM</b>
+      proposal. The generated <code>.knxproj</code> is re-read by the standard loader and passes all four
+      linters (<b>0 errors / 0 warnings</b>). Still <b>read-only where it counts</b> — dry-run by
+      default, and it only ever writes a <b>new</b> project, never your existing one or the bus.
+      <span style="color:var(--faint)">R2: docking into an existing project + exact device selection —
+      planned.</span></p></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>🧩 The foundation — a growing device library</h3>
     <p><code>parse_devices_from_project</code> extracts <b>exact vendor object models</b> (object numbers ·
