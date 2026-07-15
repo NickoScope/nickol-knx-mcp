@@ -1,0 +1,49 @@
+# Room Template — Bathroom / WC (Санузел)
+schema_version: 1
+slot_id: bathroom
+labels:
+  ru: Санузел
+  en: Bathroom
+
+parameters:
+  lighting_circuits:
+    default: 1
+    provenance: {source: preset_rule, note: "1 ceiling circuit"}
+  windows:
+    default: 0
+    provenance: {source: preset_rule, note: "many bathrooms are windowless"}
+  area_m2:
+    default: 6
+    role: hint
+    provenance: {source: preset_default, user_overridden: false}
+
+slots:
+  - slot_id: main_light
+    labels: {ru: свет, en: light}
+    presets:
+      basic:   {enabled: true, function: lighting_switch, multiplicity: {param: lighting_circuits}}
+      comfort: {enabled: true, function: lighting_switch, multiplicity: {param: lighting_circuits}}
+
+  - slot_id: mirror_light
+    labels: {ru: свет зеркала, en: mirror light}
+    presets:
+      basic:   {enabled: false}
+      comfort: {enabled: true, function: lighting_switch, multiplicity: {fixed: 1}}
+
+  - slot_id: window
+    labels: {ru: окно, en: window}
+    presets:
+      basic:   {enabled: true, function: shutter, multiplicity: {param: windows}}
+      comfort: {enabled: true, function: shutter, multiplicity: {param: windows}}
+
+  - slot_id: floor_heating
+    labels: {ru: тёплый пол, en: floor heating}
+    presets:
+      basic:   {enabled: false}
+      comfort: {enabled: true, function: climate_floor, multiplicity: {fixed: 1}}
+
+automation_intents:
+  - intent: humidity_ventilation
+    description: "Run ventilation above a humidity threshold."
+    criticality: convenience
+    implementation: external

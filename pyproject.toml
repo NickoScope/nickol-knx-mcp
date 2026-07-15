@@ -40,3 +40,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["nickol_knx_mcp"]
+
+[tool.setuptools.package-data]
+nickol_knx_mcp = ["room_templates/*.yaml", "room_templates/*.md"]

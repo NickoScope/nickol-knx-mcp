@@ -250,7 +250,7 @@ keyring handling, and the recommended workflow).
 
 ---
 
-## MCP tools (28)
+## MCP tools (30)
 
 **Read**
 | Tool | Purpose |
@@ -295,6 +295,12 @@ keyring handling, and the recommended workflow).
 | `generate_knx_iot(output_path?)` | KNX IoT semantic export (Turtle/RDF) |
 | `project_report(output_path?, name_regex?)` | Markdown report |
 | `workspace_info()` | workspace path + safety guarantees |
+
+**Room Library** (R1 — compose a new project from room templates)
+| Tool | Purpose |
+|------|---------|
+| `validate_room_template(template?, path?)` | validate a room template (built-in slot_id or a custom YAML) against the R1 schema |
+| `compose_rooms(rooms, language="ru", project_name?, output_dir?, dry_run=true)` | build a **new** project from a list of rooms → allocation `manifest`, ETS GA XML/CSV, device `bom` proposal; generated `.knxproj` is re-read by the standard loader and linted (0 errors / 0 warnings). New projects only, dry-run by default. |
 
 ---
 
@@ -356,7 +362,7 @@ nickol-knx-mcp/
 │   ├── generate_ha.py    # Home Assistant KNX YAML generation
 │   ├── generate_ets.py   # ETS XML + CSV generation
 │   ├── report.py         # Markdown report
-│   └── server.py         # FastMCP server, 28 tools, confined writes
+│   └── server.py         # FastMCP server, 30 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── skills/

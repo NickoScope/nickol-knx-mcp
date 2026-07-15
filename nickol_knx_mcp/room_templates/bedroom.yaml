@@ -1,0 +1,63 @@
+# Room Template — Bedroom (Спальня)
+# Public contract: see SCHEMA.md. Identity is the semantic slot_id, NOT the name.
+schema_version: 1
+slot_id: bedroom
+labels:
+  ru: Спальня
+  en: Bedroom
+
+# Parameters seed defaults. area_m2 is a HINT (recommender), never normative:
+# in R1 it does not change GA counts, it only documents the sizing assumption.
+parameters:
+  lighting_circuits:
+    default: 1
+    provenance: {source: preset_rule, note: "1 dimmable ceiling circuit for a standard bedroom"}
+  windows:
+    default: 2
+    provenance: {source: preset_rule, note: "typical master bedroom has 2 windows"}
+  area_m2:
+    default: 14
+    role: hint
+    provenance: {source: preset_default, user_overridden: false,
+                 note: "typical; seeds defaults only, not a normative fact"}
+
+slots:
+  # Main ceiling light: a plain switch in basic, a dimmer in comfort (per-slot
+  # preset, so a house can pick comfort climate but basic light).
+  - slot_id: main_light
+    labels: {ru: основной свет, en: main light}
+    presets:
+      basic:   {enabled: true, function: lighting_switch, multiplicity: {param: lighting_circuits}}
+      comfort: {enabled: true, function: lighting_dimmer, multiplicity: {param: lighting_circuits}}
+
+  - slot_id: bedside_light
+    labels: {ru: прикроватный свет, en: bedside light}
+    presets:
+      basic:   {enabled: false}
+      comfort: {enabled: true, function: lighting_switch, multiplicity: {fixed: 2}}
+
+  - slot_id: window
+    labels: {ru: окно, en: window}
+    presets:
+      basic:   {enabled: true, function: shutter, multiplicity: {param: windows}}
+      comfort: {enabled: true, function: shutter, multiplicity: {param: windows}}
+
+  - slot_id: presence
+    labels: {ru: датчик, en: sensor}
+    presets:
+      basic:   {enabled: false}
+      comfort: {enabled: true, function: presence, multiplicity: {fixed: 1}}
+
+  - slot_id: floor_heating
+    labels: {ru: тёплый пол, en: floor heating}
+    presets:
+      basic:   {enabled: false}
+      comfort: {enabled: true, function: climate_floor, multiplicity: {fixed: 1}}
+
+# Non-executable declarations only (metadata). The engine does NOT run these —
+# safety-related logic stays external (Home Assistant / the KNX program).
+automation_intents:
+  - intent: presence_lights_off
+    description: "Turn bedroom lights off when unoccupied."
+    criticality: convenience
+    implementation: external
