@@ -224,15 +224,17 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 
 ---
 
-## 5. Инструменты MCP (25)
+## 5. Инструменты MCP (30)
 
-**Чтение:** `load_project` · `list_group_addresses` · `get_devices` · `get_topology`
+**Чтение:** `load_project` · `list_group_addresses` · `get_devices` · `get_topology` · `explain_ga`
 
-**Валидация:** `check_naming` · `check_missing_status` · `check_dpt` (+ **sub-DPT** проверка) · `check_secure` (KNX Secure posture + keyring-чеклист) · `check_matter` (Matter-готовность) · `check_energy` (энергодомен) · `analyze_all`
+**Валидация:** `check_naming` · `check_missing_status` · `check_dpt` (+ **sub-DPT** проверка) · `check_secure` (KNX Secure posture + keyring-чеклист) · `check_matter` (Matter-готовность) · `check_energy` (энергодомен) · `analyze_all` · `check_policy` (Project Policy Profile — *ваша* конвенция)
 
-**Починка и дизайн:** `suggest_repairs` (**предлагает фиксы, а не только флагает**) · `suggest_names` · `decompose_device` (устройство → декомпозиция: **точная вендорская модель** из локального каталога или generic-рецепт) · `list_device_recipes` (device-library: Zennio + ABB) · `parse_devices_from_project` (**точные модели устройств** из app-programs `.knxproj`/`.knxprod` → YAML каталога) · `grade_completeness` (скелет vs as-built) · `diff_projects` (семантический дифф двух версий)
+**Починка и дизайн:** `suggest_repairs` (**предлагает фиксы, а не только флагает**) · `suggest_names` · `decompose_device` (устройство → декомпозиция: **точная вендорская модель** из локального каталога или generic-рецепт) · `list_device_recipes` (device-library: Zennio + ABB) · `parse_devices_from_project` (**точные модели устройств** из app-programs `.knxproj`/`.knxprod` → YAML каталога) · `check_device_parameters` (**кросс-девайс QA параметров** — «неправильное» устройство среди одинаковых) · `grade_completeness` (скелет vs as-built) · `diff_projects` (семантический дифф двух версий)
 
 **Генерация:** `generate_ha_package` (цвет + климат + expose) · `generate_ets_group_addresses` · `generate_handover_pack` (пакет сдачи) · `generate_test_protocol` (протокол приёмки) · `generate_knx_iot` (Turtle/RDF) · `project_report` · `workspace_info`
+
+**Room Library** (R1 — собрать новый проект из шаблонов комнат): `validate_room_template` · `compose_rooms`
 
 <details><summary>Полная таблица (сигнатуры)</summary>
 
@@ -242,6 +244,7 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 | `list_group_addresses(category?, kind?)` | список GA с классификацией, фильтры |
 | `get_devices()` | устройства + их communication objects |
 | `get_topology()` | топология (areas / lines / devices) |
+| `explain_ga(address)` | **провенанс** одного GA: почему он так классифицирован — доказательства по каждому решению с уровнем уверенности (**authoritative** ETS Function > **structural** DPT > **heuristic** имя), как спарен статус, и **конфликты** (имя говорит «AC», DPT — свет → `contested`) |
 | `check_naming(name_regex?)` | проверка именования/структуры |
 | `check_missing_status()` | актуаторы без статусного объекта |
 | `check_dpt()` | отсутствующие/несогласованные DPT + sub-DPT |
@@ -249,11 +252,13 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 | `check_matter()` | Matter-готовность функций |
 | `check_energy()` | метеринг/энергодомен |
 | `analyze_all(name_regex?)` | все проверки разом |
+| `check_policy(profile_path?, write_example_to?)` | проверка по **Project Policy Profile** (ваша таксономия main-групп, именование, парность) — или, без профиля, по таксономии, **выведенной из самого проекта**; флагует GA, отклоняющиеся от *вашей* конвенции, а не от универсального стандарта |
 | `suggest_repairs()` | предложить фиксы для находок |
 | `suggest_names()` | гигиена именования |
 | `decompose_device(order_number, channels?)` | устройство → декомпозиция GA: **точная вендорская модель** из локального каталога (`NICKOL_KNX_CATALOG`) или generic-рецепт |
 | `list_device_recipes()` | встроенная device-library |
 | `parse_devices_from_project(path, output_path?, password?)` | извлечь **точные модели объектов устройств** из app-programs внутри `.knxproj`/`.knxprod` → YAML device-library (питает локальный каталог) |
+| `check_device_parameters(path, password?, min_group?)` | **кросс-девайс QA параметров**: найти устройство, чьи ETS-параметры отличаются от N одинаковых собратьев (та самая «неправильная» термоголовка/датчик) — `clear_outliers` (вероятная ошибка) + `split_configs` (сбалансированные варианты, на ревью) |
 | `grade_completeness()` | грейд полноты (скелет vs as-built) |
 | `diff_projects(path_a, path_b, …)` | семантический дифф двух `.knxproj` |
 | `generate_ha_package(output_path?)` | HA KNX YAML + список review |
@@ -263,6 +268,8 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 | `generate_knx_iot(output_path?)` | KNX IoT (Turtle/RDF) |
 | `project_report(output_path?, name_regex?)` | Markdown-отчёт |
 | `workspace_info()` | путь и содержимое workspace |
+| `validate_room_template(template?, path?)` | проверить шаблон комнаты (встроенный `slot_id` или свой YAML) по схеме R1 |
+| `compose_rooms(rooms, language="ru", project_name?, output_dir?, dry_run=true)` | собрать **новый** проект из списка комнат → allocation-`manifest`, ETS GA XML/CSV, предложение device `bom`; сгенерированный `.knxproj` перечитывается штатным загрузчиком и линтуется (0 ошибок / 0 предупреждений). Только новые проекты, dry-run по умолчанию. |
 
 </details>
 
@@ -304,7 +311,7 @@ nickol-knx-mcp/
 │   ├── report.py         # Markdown-отчёт
 │   ├── room_library.py   # Room Library R1 — сборка нового проекта из шаблонов
 │   ├── room_templates/   # YAML-шаблоны комнат + SCHEMA.md (публичный контракт)
-│   └── server.py         # FastMCP сервер, 25 инструментов, confined writes
+│   └── server.py         # FastMCP сервер, 30 инструментов, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── CLAUDE.md             # ETS Assistant skill / playbook
