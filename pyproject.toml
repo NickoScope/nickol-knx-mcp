@@ -22,6 +22,7 @@ dependencies = [
     "mcp>=1.10,<2",  # v2 renames mcp.server.fastmcp.FastMCP -> mcp.server.MCPServer (breaking)
     "xknxproject>=3.8",
     "PyYAML>=6.0",
+    "defusedxml>=0.7",  # hardened XML parsing of untrusted .knxproj (XXE/billion-laughs)
 ]
 
 [project.urls]

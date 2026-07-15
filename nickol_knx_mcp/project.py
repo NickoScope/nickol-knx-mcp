@@ -16,6 +16,7 @@ from xknxproject.models import KNXProject
 
 from .dpt_map import classify_dpt, dpt_key
 from .intent import classify_intent, INTENT_FUNCTIONAL
+from .safexml import preflight_archive
 
 
 # Multilingual keyword sets (EN / DE / RU) used by the heuristic fallbacks.
@@ -162,6 +163,7 @@ def _build_range_name_map(raw: KNXProject) -> dict[str, str]:
 def load_project(path: str, password: Optional[str] = None,
                  language: Optional[str] = None) -> LoadedProject:
     """Parse a .knxproj file into an enriched, read-only model."""
+    preflight_archive(path)  # reject zip-bomb / oversize / traversal before xknxproject reads it
     kwargs: dict[str, Any] = {"path": path}
     if password:
         kwargs["password"] = password

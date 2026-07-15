@@ -22,9 +22,10 @@ from __future__ import annotations
 
 import re
 import zipfile
-import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from typing import Any, Optional
+
+from .safexml import open_archive, safe_read, safe_fromstring, SafeArchiveError, SafeXmlError
 
 _NUMERIC_RE = re.compile(r"^-?\d+$")
 
@@ -70,7 +71,7 @@ def _resolve_names(zf: zipfile.ZipFile, refids: set[str]) -> dict[str, str]:
         if not cand:
             continue
         try:
-            axml = ET.fromstring(zf.read(cand[0]))
+            axml = safe_fromstring(safe_read(zf, cand[0]))
         except Exception:
             continue
         pref: dict[str, str] = {}
@@ -98,7 +99,9 @@ def check_device_parameters(path: str, password: Optional[str] = None,
     balanced split-configs (review), with resolved parameter names.
     """
     try:
-        zf = zipfile.ZipFile(path)
+        zf = open_archive(path)
+    except SafeArchiveError as e:
+        return {"error": f"cannot open .knxproj: {e}"}
     except Exception as e:  # noqa: BLE001
         return {"error": f"cannot open .knxproj: {e}"}
 
@@ -106,8 +109,8 @@ def check_device_parameters(path: str, password: Optional[str] = None,
     if not proj0:
         return {"error": "no P-*/0.xml (project part) found in archive"}
     try:
-        root = ET.fromstring(zf.read(proj0[0]))
-    except ET.ParseError:
+        root = safe_fromstring(safe_read(zf, proj0[0]))
+    except SafeXmlError:
         return {"error": "project part is not plain XML — the .knxproj is likely "
                          "password-protected/encrypted; parameters cannot be read."}
 

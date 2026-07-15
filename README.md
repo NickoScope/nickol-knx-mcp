@@ -333,6 +333,9 @@ keyring handling, and the recommended workflow).
 - **Read-only on your project.** `project.py` is the only module that touches `.knxproj`, and it
   only reads.
 - **Confined writes.** All output is constrained to `NICKOL_KNX_WORKSPACE`; paths outside it are rejected.
+- **Hardened against hostile project files.** A `.knxproj` is an untrusted ZIP-of-XML, so parsing runs
+  through `safexml.py`: DTD/entity XML is refused (billion-laughs / XXE), and archives are pre-flighted
+  against size / entry / decompression-ratio caps with path-traversal names rejected (zip-bomb defense).
 - **Human-in-the-loop.** Generate a `project_report` and review it **before** importing into ETS or
   deploying into Home Assistant.
 
@@ -347,12 +350,13 @@ nickol-knx-mcp/
 ├── nickol_knx_mcp/
 │   ├── dpt_map.py        # DPT → category / kind / HA platform / value_type
 │   ├── project.py        # the ONLY module that reads .knxproj (read-only)
+│   ├── safexml.py        # hardened ZIP/XML parsing of untrusted .knxproj (zip-bomb / XXE defense)
 │   ├── pairing.py        # command↔status pairing by name tokens
 │   ├── analyze.py        # naming / missing-status / DPT checks
 │   ├── generate_ha.py    # Home Assistant KNX YAML generation
 │   ├── generate_ets.py   # ETS XML + CSV generation
 │   ├── report.py         # Markdown report
-│   └── server.py         # FastMCP server, 25 tools, confined writes
+│   └── server.py         # FastMCP server, 28 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── skills/

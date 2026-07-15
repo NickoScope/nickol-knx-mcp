@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Hardened parsing of untrusted `.knxproj` / `.knxprod`** (`safexml.py`). A project file is a
+  user-supplied ZIP-of-XML, so both XML and ZIP attack classes apply; every place we open an archive
+  or parse XML ourselves now goes through one hardened module. **XML:** a dependency-free reject of any
+  `<!DOCTYPE`/`<!ENTITY` (the billion-laughs / XXE vector — legitimate ETS XML never carries one), plus
+  `defusedxml` parser-level blocking when installed (added as a dependency). **ZIP:** a pre-flight
+  against absolute caps (archive size, entry count, per-member and total decompressed size, compression
+  ratio) rejects zip-bombs, member names are checked for path-traversal / absolute paths, and each
+  member is read through a streaming cap so a header that under-declares its size still can't exhaust
+  memory. Wired into `load_project`, `check_device_parameters` and the app-program parser; on a
+  violation callers return a normal `{"error": ...}` rather than a traceback. Still strictly read-only.
+  Raised by external security review. `tests/test_safexml.py`.
+
 ### Added
 
 - **Provenance / confidence** (`explain.py`, new MCP tool `explain_ga`). The enriched model mixes ETS

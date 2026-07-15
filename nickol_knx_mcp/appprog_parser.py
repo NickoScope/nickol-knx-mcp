@@ -22,6 +22,8 @@ import re
 import zipfile
 from typing import Any, Optional
 
+from .safexml import preflight_archive, safe_read, SafeArchiveError
+
 _ATTR_RE = re.compile(r'(\w+)="([^"]*)"')
 _COMOBJ_RE = re.compile(r"<ComObject\b([^>]*?)/?>")
 _COMREF_RE = re.compile(r"<ComObjectRef\b([^>]*?)/?>")
@@ -250,6 +252,10 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
     """
     if not os.path.isfile(path):
         return {"error": f"file not found: {path}", "devices": [], "coverage": {}}
+    try:
+        preflight_archive(path)
+    except SafeArchiveError as e:
+        return {"error": f"cannot open archive: {e}", "devices": [], "coverage": {}}
 
     pwd = password.encode() if password else None
     devices: list[dict[str, Any]] = []
@@ -263,7 +269,7 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
         for n in names:
             if n.lower().endswith("knx_master.xml"):
                 try:
-                    master = z.read(n, pwd=pwd).decode("utf-8", "replace")
+                    master = safe_read(z, n, pwd).decode("utf-8", "replace")
                     mfr_names.update(re.findall(
                         r'<Manufacturer Id="(M-[0-9A-Fa-f]+)"[^>]*Name="([^"]+)"', master))
                 except Exception:
@@ -276,7 +282,7 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
             mcode = hw.split("/", 1)[0]
             seen_mfr.add(mcode)
             try:
-                hw_xml = z.read(hw, pwd=pwd).decode("utf-8", "replace")
+                hw_xml = safe_read(z, hw, pwd).decode("utf-8", "replace")
             except Exception:
                 continue
             for entry in _hardware_map(hw_xml):
@@ -294,7 +300,7 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
                     })
                     continue
                 if app_path not in app_cache:
-                    xml_text = z.read(app_path, pwd=pwd).decode("utf-8", "replace")
+                    xml_text = safe_read(z, app_path, pwd).decode("utf-8", "replace")
                     ver = _APPVER_RE.search(xml_text[:8000])
                     app_cache[app_path] = (_parse_comobjects(xml_text),
                                            ver.group(1) if ver else None)
