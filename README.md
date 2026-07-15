@@ -250,7 +250,7 @@ keyring handling, and the recommended workflow).
 
 ---
 
-## MCP tools (27)
+## MCP tools (28)
 
 **Read**
 | Tool | Purpose |
@@ -259,6 +259,7 @@ keyring handling, and the recommended workflow).
 | `list_group_addresses(category?, kind?)` | list GAs with classification and filters |
 | `get_devices()` | devices + their communication objects |
 | `get_topology()` | topology (areas / lines / devices) |
+| `explain_ga(address)` | **provenance** for one GA: why it's classified this way — evidence per decision with a confidence tier (**authoritative** ETS Function > **structural** DPT > **heuristic** name), how its status was paired, and **conflicts** (name says "AC", DPT says lighting → `contested`) |
 
 **Validate**
 | Tool | Purpose |

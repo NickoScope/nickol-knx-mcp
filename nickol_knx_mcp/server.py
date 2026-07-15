@@ -33,6 +33,7 @@ from .iot import generate_knx_iot_turtle
 from .param_check import check_device_parameters as _check_device_parameters
 from .policy import (check_policy as _check_policy, load_policy as _load_policy,
                      example_policy_yaml as _example_policy_yaml)
+from .explain import explain_ga as _explain_ga
 
 mcp = FastMCP("nickol-knx")
 
@@ -378,6 +379,17 @@ def check_policy(profile_path: Optional[str] = None,
     if write_example_to:
         return {"example_written": _safe_write(write_example_to, _example_policy_yaml())}
     return _check_policy(_project(), _load_policy(profile_path))
+
+
+@mcp.tool()
+def explain_ga(address: str) -> dict[str, Any]:
+    """**Provenance** for one group address — why the tool classified it the way it did.
+    Replays the classification and shows, per decision (category / kind / status pairing),
+    the signals that fired with a **confidence tier**: authoritative (an ETS Function role) >
+    structural (the KNX DPT) > heuristic (a name keyword). Flags **conflicts** (e.g. a GA
+    the DPT calls `lighting` while its name says "AC") — the hotspot for silent
+    misclassification. Read-only; use before trusting a category or generating an entity."""
+    return _explain_ga(_project(), address)
 
 
 @mcp.tool()

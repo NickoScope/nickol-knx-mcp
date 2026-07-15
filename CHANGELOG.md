@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Provenance / confidence** (`explain.py`, new MCP tool `explain_ga`). The enriched model mixes ETS
+  facts, DPT-derived structure and name heuristics; downstream tools then treat the result almost like a
+  fact. `explain_ga(address)` makes the reasoning auditable for one GA: per decision (category / kind /
+  status pairing) it reports the signals that fired with a confidence tier — **authoritative** (an ETS
+  Function role) > **structural** (the KNX DPT) > **heuristic** (a name keyword) — and flags **conflicts**
+  (e.g. a GA the DPT calls `lighting` while the name says "AC" → `contested`), the hotspot for silent
+  misclassification. Additive and read-only (no change to the core model). Asked for by three independent
+  reviewers (two external councils + a field integrator). `tests/test_explain.py`. Tool count 27 → 28.
+
 - **Role-aware feedback completeness** (`detect_role_completeness` in `analyze.py`, surfaced through
   `check_missing_status`). "Does the function have *a* status?" was not enough — a dimmer with an on/off
   status but no brightness status silently passed and inflated coverage/Matter scores. The new check
