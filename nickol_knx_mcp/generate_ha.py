@@ -127,6 +127,18 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     slat_addrs = {g.address for g in project.gas.values()
                   if g.category == "shutter" and _is_slat(g.name)}
 
+    # Map each GA address to the ETS Function(s) that own it. A cover's step/stop
+    # and position/status must never be paired across an ETS Function boundary:
+    # in a room with both a window and an awning the names share a zone token
+    # ("Room A"), so name-token matching alone grabs the wrong shutter's step/stop
+    # (issue #11). ETS Function membership is the authoritative grouping.
+    addr_to_fns: dict[str, set[str]] = {}
+    for fkey, fn in (project.functions or {}).items():
+        for a_key, ref in (fn.get("group_addresses", {}) or {}).items():
+            a = ref.get("address") or a_key   # dict key is the address fallback (cf. pairing.py)
+            if a:
+                addr_to_fns.setdefault(a, set()).add(fkey)
+
     def status_for(cmd: GARecord):
         # 1. ETS Function role pairing is authoritative (names not needed).
         paired = fpairs.get(cmd.address)
@@ -222,14 +234,23 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             continue
         entity = {"name": ga.name, "move_long_address": ga.address}
         ptoks = _ident_tokens(ga.name)
+        my_fns = addr_to_fns.get(ga.address, set())
         for sib in same_main_gas(ga):
             if sib.address in consumed or sib.address == ga.address:
                 continue
             if sib.category != "shutter":
                 continue
-            # only attach siblings of the SAME shutter when both carry a zone
-            # identity (prevents cross-wiring multiple blinds in one main group)
-            if ptoks and _ident_tokens(sib.name) and not (ptoks & _ident_tokens(sib.name)):
+            sib_fns = addr_to_fns.get(sib.address, set())
+            same_fn = bool(sib_fns & my_fns)
+            # Never cross an ETS Function boundary: a sibling owned by a DIFFERENT
+            # function is another shutter's GA even when the zone token matches
+            # (a window vs an awning in the same room) — issue #11.
+            if sib_fns and not same_fn:
+                continue
+            # A same-function sibling is authoritative (names not needed);
+            # otherwise require a shared zone identity as before.
+            if not same_fn and ptoks and _ident_tokens(sib.name) \
+                    and not (ptoks & _ident_tokens(sib.name)):
                 continue
             is_stop = (sib.dpt_main == 1 and sib.dpt_sub in (7, 10, 17)) or _is_stop(sib.name)
             if is_stop and "move_short_address" not in entity:
