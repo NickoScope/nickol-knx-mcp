@@ -136,10 +136,10 @@ validated group-address structure — and the **full document set to implement i
    (inventory, GA map, coverage %, Secure posture, QA findings, topology SVG).
 
 Full methodology: [`docs/spec-to-structure.md`](docs/spec-to-structure.md). Field-checked by
-reconstructing a real as-built ETS project (3,600+ group addresses) from its specification alone:
-**~92 % structural match** (taxonomy, domains, automation logic, DPT distribution) at **zero
-validation errors** — the remaining delta is the integrator's per-device parameterisation, which no
-spec encodes.
+reconstructing a real 14-room as-built ETS project from its 42-page specification alone:
+**96 % structural match** (662 vs 687 GA), 10 / 10 domain taxonomy, at **zero validation errors** —
+full write-up in the **[case study](docs/case-study.md)**. The remaining delta is the integrator's
+per-device parameterisation, which no spec encodes.
 
 ### 🔍 Scenario 2 — Audit, repair & finish an existing project
 
