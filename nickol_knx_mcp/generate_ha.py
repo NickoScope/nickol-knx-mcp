@@ -42,6 +42,23 @@ def _ident_tokens(name: str) -> set:
 _UPDOWN_PHRASES = ("up/down", "auf/ab", "ab/auf", "updown", "up-down", "вверх/вниз")
 _STOP_WORDS = ("stop", "stopp", "стоп")
 
+# Tokens that mark a bare 1.007/1.010 as belonging to ANOTHER domain, so it must
+# never be admitted as a cover's step/stop even if its name says "stop" — a
+# "stop" is an OPERATION signal, not a DOMAIN one (council review, issue #11).
+_FOREIGN_DOMAIN_TOKENS = frozenset({
+    "light", "licht", "lamp", "lampe", "dim", "dimm", "dimmen", "dimming", "led",
+    "socket", "steckdose", "outlet", "heiz", "heizung", "heating", "hvac", "klima",
+    "свет", "розетка", "диммер"})
+# NB: ventilation words (vent/Lüftung/fan) are intentionally NOT here — a roof-window
+# or ventilation-flap opener is a legitimate cover, so those stay admissible.
+# Central/collective tokens: a house-wide "Alle Stopp" 1.007 is not one cover's own
+# step/stop and must not be greedily stolen by the first cover (council review). NB:
+# "master" is intentionally NOT here — it is a common room qualifier (Master Bedroom)
+# and excluding it dropped legitimate covers (gate-1 audit); real macros use all/zentral.
+_CENTRAL_TOKENS = frozenset({
+    "all", "alle", "zentral", "zentrale", "central", "global", "gesamt",
+    "universal", "все", "центр", "общий"})
+
 
 def _is_updown(name: str) -> bool:
     """A shutter move (long) command: 'up/down', 'auf/ab', or both directions."""
@@ -72,6 +89,12 @@ def _is_shutter_control(g, slat_addrs) -> bool:
     if g.address in slat_addrs:
         return True
     if g.dpt_main == 1 and g.dpt_sub in (7, 10):
+        toks = set(base_tokens(g.name or ""))
+        # A foreign-domain step (lighting dim-stop, HVAC) or a central/collective
+        # "Alle Stopp" is not a cover's own step/stop — reject before the name
+        # operation signal (council review: operation != domain; no master-steal).
+        if toks & _FOREIGN_DOMAIN_TOKENS or toks & _CENTRAL_TOKENS:
+            return False
         low = (g.name or "").lower()
         return (_is_stop(g.name) or _is_updown(g.name)
                 or any(w in low for w in _BLIND_GENERIC))
@@ -285,9 +308,13 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
 
         def _rank(item):
             # same ETS Function first (authoritative), then the strongest name
-            # overlap (type+zone beats zone alone), then the nearest sub index.
+            # overlap (type+zone beats zone alone), then the nearest sub index, then
+            # a stable lexicographic address tiebreak so the pick is DETERMINISTIC
+            # across parses on a full tie (council review; a true semantic tie is a
+            # known limitation — determinism here is not a correctness claim).
             sib, same_fn, overlap = item
-            return (1 if same_fn else 0, overlap, -abs((sib.sub or 0) - (ga.sub or 0)))
+            return (1 if same_fn else 0, overlap, -abs((sib.sub or 0) - (ga.sub or 0)),
+                    -(sib.main or 0), -(sib.middle or 0), -(sib.sub or 0))
 
         def _take(pred, key):
             pool = [c for c in cands

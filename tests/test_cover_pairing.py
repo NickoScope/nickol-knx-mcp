@@ -70,6 +70,20 @@ def _build():
     gas["2/6/0"] = _ga("2/6/0", "Nordseite Rollläden auf/ab", 1, 8)
     gas["2/6/1"] = _ga("2/6/1", "Nordseite Licht Schritt", 1, 7)      # foreign step
     gas["2/6/2"] = _ga("2/6/2", "Nordseite Rollläden Stopp", 1, 10)   # own stop
+    # E. a foreign lighting step that DOES carry a stop word ("Licht Stopp") must
+    # still be rejected — a "stop" is an operation signal, not a domain one
+    # (council review). The roller takes its own stop.
+    gas["2/7/0"] = _ga("2/7/0", "Ostseite Rollläden auf/ab", 1, 8)
+    gas["2/7/1"] = _ga("2/7/1", "Ostseite Licht Stopp", 1, 7)         # foreign, has "stop"
+    gas["2/7/2"] = _ga("2/7/2", "Ostseite Rollläden Stopp", 1, 10)    # own stop
+    # F. a central/collective "Alle Stopp" must not be greedily stolen as one
+    # cover's step/stop; with no own stop the cover fails closed (council review).
+    gas["2/8/0"] = _ga("2/8/0", "Nordost Markise auf/ab", 1, 8)
+    gas["2/8/9"] = _ga("2/8/9", "Nordost Alle Stopp", 1, 7)           # central macro
+    # G. "Master" is a room qualifier, NOT a central macro — a Master-zone cover
+    # with a bare stop must keep its own step/stop (gate-1 audit regression).
+    gas["2/9/0"] = _ga("2/9/0", "Master Schlafzimmer auf/ab", 1, 8)
+    gas["2/9/1"] = _ga("2/9/1", "Master Schlafzimmer Start/Stopp", 1, 7)
 
     raw = {"info": {"group_address_style": "ThreeLevel", "schema_version": "21"},
            "group_addresses": gas, "communication_objects": {}, "devices": {},
@@ -101,10 +115,16 @@ def main():
         "2/5/10": ("2/5/11", None),       # C: roller takes its own, NOT 2/5/16
         "2/5/15": ("2/5/16", None),       # C: awning keeps its own
         "2/6/0":  ("2/6/2",  None),       # D: own stop, NOT the foreign light step
+        "2/7/0":  ("2/7/2",  None),       # E: own stop, NOT the "Licht Stopp"
+        "2/8/0":  (None,     None),       # F: no own stop -> fail closed, not the central
+        "2/9/0":  ("2/9/1",  None),       # G: "Master" is a zone, not a macro
     }
-    # D: the foreign lighting step must never be borrowed as a cover control.
-    assert "2/6/1" not in [c.get("move_short_address") for c in covers.values()], \
-        "a foreign 1.007 (lighting step) was mis-paired as a cover step/stop"
+    used_shorts = [c.get("move_short_address") for c in covers.values()]
+    # D/E: a foreign lighting step must never be borrowed as a cover control.
+    assert "2/6/1" not in used_shorts, "foreign 1.007 'Licht Schritt' mis-paired"
+    assert "2/7/1" not in used_shorts, "foreign 1.007 'Licht Stopp' mis-paired"
+    # F: the central 'Alle Stopp' must not be stolen by any cover.
+    assert "2/8/9" not in used_shorts, "central 'Alle Stopp' was greedily stolen"
     for mv, (step, spos) in expected.items():
         assert mv in covers, f"missing cover for {mv}: {sorted(covers)}"
         got = covers[mv].get("move_short_address")
