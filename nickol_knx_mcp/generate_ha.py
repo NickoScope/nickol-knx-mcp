@@ -57,6 +57,27 @@ def _is_stop(name: str) -> bool:
     return any(w in low for w in _STOP_WORDS)
 
 
+def _is_shutter_control(g, slat_addrs) -> bool:
+    """A bare step/stop object is a shutter control even when the classifier left
+    its category 'unknown' for want of a name keyword or Function role — the
+    function-less collective case (issue #11 group C). DPT 1.007 (step) / 1.010
+    (start-stop), or a slat object. Position 5.001 still requires a shutter
+    category (it classifies reliably), so it is intentionally NOT admitted here.
+
+    The bare-DPT admission REQUIRES a shutter-ish name signal (stop / up-down / a
+    generic blind word): DPT 1.007/1.010 alone is domain-agnostic, so admitting it
+    on the DPT alone would let a foreign 1.007 (e.g. a lighting relative-dim step)
+    sharing only a zone token be mis-paired as a cover's step/stop — audit finding
+    on the issue #11 fix. A slat address is already shutter-derived, so it stands."""
+    if g.address in slat_addrs:
+        return True
+    if g.dpt_main == 1 and g.dpt_sub in (7, 10):
+        low = (g.name or "").lower()
+        return (_is_stop(g.name) or _is_updown(g.name)
+                or any(w in low for w in _BLIND_GENERIC))
+    return False
+
+
 # Function words that differ between a command and its status (on/off, value,
 # state, brightness, ...). Stripping them leaves the device/zone identity, so a
 # command pairs to its feedback even when the identity is a single token
@@ -235,40 +256,52 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         entity = {"name": ga.name, "move_long_address": ga.address}
         ptoks = _ident_tokens(ga.name)
         my_fns = addr_to_fns.get(ga.address, set())
+        # Gather the eligible siblings once, then pick the BEST candidate per role
+        # rather than first-match — so a step/stop that shares the move's type AND
+        # zone token beats one that shares the zone alone (a "West Side Roller
+        # Shutters" move must take its own step/stop, not the "West Side Awnings"
+        # one) — issue #11 group C.
+        cands = []  # (sib, same_fn, overlap)
         for sib in same_main_gas(ga):
             if sib.address in consumed or sib.address == ga.address:
                 continue
-            if sib.category != "shutter":
+            # Admit shutter-category siblings AND bare step/stop DPTs the
+            # classifier left 'unknown' (function-less collectives — issue #11).
+            if sib.category != "shutter" and not _is_shutter_control(sib, slat_addrs):
                 continue
             sib_fns = addr_to_fns.get(sib.address, set())
             same_fn = bool(sib_fns & my_fns)
             # Never cross an ETS Function boundary: a sibling owned by a DIFFERENT
             # function is another shutter's GA even when the zone token matches
-            # (a window vs an awning in the same room) — issue #11.
+            # (a window vs an awning in the same room) — issue #11 group B.
             if sib_fns and not same_fn:
                 continue
+            overlap = len(ptoks & _ident_tokens(sib.name))
             # A same-function sibling is authoritative (names not needed);
-            # otherwise require a shared zone identity as before.
-            if not same_fn and ptoks and _ident_tokens(sib.name) \
-                    and not (ptoks & _ident_tokens(sib.name)):
+            # otherwise require a shared zone/type identity as before.
+            if not same_fn and ptoks and _ident_tokens(sib.name) and overlap == 0:
                 continue
-            is_stop = (sib.dpt_main == 1 and sib.dpt_sub in (7, 10, 17)) or _is_stop(sib.name)
-            if is_stop and "move_short_address" not in entity:
-                entity["move_short_address"] = sib.address
-                consumed.add(sib.address)
-            elif sib.address in slat_addrs and sib.dpt_main == 1 \
-                    and "move_short_address" not in entity:
-                # venetian slat (tilt) = the short-move/step of this blind
-                entity["move_short_address"] = sib.address
-                consumed.add(sib.address)
-            elif sib.dpt_main == 5 and sib.kind == "command" \
-                    and "position_address" not in entity:
-                entity["position_address"] = sib.address
-                consumed.add(sib.address)
-            elif sib.dpt_main == 5 and _is_status_ga(sib) \
-                    and "position_state_address" not in entity:
-                entity["position_state_address"] = sib.address
-                consumed.add(sib.address)
+            cands.append((sib, same_fn, overlap))
+
+        def _rank(item):
+            # same ETS Function first (authoritative), then the strongest name
+            # overlap (type+zone beats zone alone), then the nearest sub index.
+            sib, same_fn, overlap = item
+            return (1 if same_fn else 0, overlap, -abs((sib.sub or 0) - (ga.sub or 0)))
+
+        def _take(pred, key):
+            pool = [c for c in cands
+                    if c[0].address not in consumed and pred(c[0])]
+            best = max(pool, key=_rank, default=None)
+            if best is not None:
+                entity[key] = best[0].address
+                consumed.add(best[0].address)
+
+        # step/stop or slat -> the short move; then position command; then status.
+        _take(lambda s: (s.dpt_main == 1 and s.dpt_sub in (7, 10, 17))
+              or _is_stop(s.name) or s.address in slat_addrs, "move_short_address")
+        _take(lambda s: s.dpt_main == 5 and s.kind == "command", "position_address")
+        _take(lambda s: s.dpt_main == 5 and _is_status_ga(s), "position_state_address")
         covers.append(entity)
         consumed.add(ga.address)
         # A3: surface the actuator-dependent flags that are NOT in the .knxproj —

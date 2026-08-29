@@ -178,6 +178,17 @@ def _classify_category(name: str, main_name: str, middle_name: str,
     return dpt_cat
 
 
+# ETS Function roles that unambiguously mark a shutter/blind object. Matched as
+# substrings of the (case-folded) role, so "MoveUpDown"/"StopStepUpDown" both hit.
+# Provenance: the exact role strings "MoveUpDown" and "StopStepUpDown" are taken
+# from Kris1166's real ETS-6 sunblind Function dump (issue #11 field data via
+# explain_ga) — not invented. The list may not be exhaustive for every ETS
+# FunctionType; extend it if another real project surfaces a shutter role that
+# isn't covered (source over assumption).
+_SHUTTER_ROLE_TOKENS = ("updown", "moveup", "movedown", "stepupdown",
+                        "stopstep", "stepstop", "slat")
+
+
 @dataclass
 class GARecord:
     """Enriched group-address record used by all analysis tools."""
@@ -344,6 +355,30 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
             middle_name=middle_name,
         )
         gas[rec.address] = rec
+
+    # Authoritative shutter classification from ETS Function roles. A GA whose
+    # Function role is a shutter role (MoveUpDown / StopStepUpDown / slat) IS a
+    # shutter object — even when its bare DPT is domain-agnostic (1.007 step,
+    # 1.010 start/stop) and its name carries no shutter keyword. The Function
+    # role outranks DPT and name (explain_ga's own hierarchy), so it rescues the
+    # step/stop GAs a name-only classifier leaves 'unknown' (issue #11, field
+    # data by Kris1166). Never demotes: only promotes a non-shutter GA.
+    for fn in (raw.get("functions", {}) or {}).values():
+        for a_key, ref in (fn.get("group_addresses", {}) or {}).items():
+            role = (ref.get("role") or "").lower()
+            if not any(t in role for t in _SHUTTER_ROLE_TOKENS):
+                continue
+            rec = gas.get(ref.get("address") or a_key)
+            if rec is None or rec.category == "shutter":
+                continue
+            # Guard: a shutter role only promotes a plausibly-shutter DPT — a 1-bit
+            # control (move/step/stop) or a 5.x position — never retype a 9.x
+            # temperature / 13.x energy GA on a role substring like "updown".
+            if rec.dpt_main not in (1, 5):
+                continue
+            rec.category = "shutter"
+            if rec.ha_platform in ("light", "switch", "unknown"):
+                rec.ha_platform = "cover"
 
     return LoadedProject(
         path=path,
