@@ -14,7 +14,7 @@ import re
 from collections import defaultdict
 from typing import Any, Optional
 
-from .project import LoadedProject, GARecord, STATUS_KEYWORDS
+from .project import LoadedProject, GARecord, name_is_status
 from .pairing import (find_status, function_status_pairs, base_tokens,
                       positional_status, self_reporting)
 from .intent import INTENT_FUNCTIONAL, INTENT_RESERVE, INTENT_SCRATCH
@@ -161,8 +161,7 @@ def _function_role_status(project: LoadedProject) -> list[dict[str, Any]]:
 def _is_status_ga(ga: GARecord) -> bool:
     if ga.kind == "status":
         return True
-    low = ga.name.lower()
-    return any(k in low for k in STATUS_KEYWORDS)
+    return name_is_status(ga.name)
 
 
 # Central / group-macro command names ("Общее освещение - Все группы", "Все

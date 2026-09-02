@@ -31,6 +31,27 @@ COMMAND_KEYWORDS = [
     "soll", "вкл", "выкл", "упр", "команд", "задан",
 ]
 
+# Standalone status abbreviations that sit as a whole trailing token ("… RM").
+# The substring keywords above carry "rm "/"rm_" (a following delimiter) and so
+# MISS a name that *ends* in the bare token, and base_tokens() drops "rm"/"fb"
+# as stopwords, so token-overlap pairing can't see them either — a DPT-5.001
+# shutter feedback named "… RM" then falls to the lighting default (issue #12,
+# field data by Kris1166). Region conventions vary; RM/FB are the German-market
+# standard for Rückmeldung / Feedback.
+_STATUS_ABBREV = frozenset({"rm", "fb"})
+
+
+def name_is_status(name: str) -> bool:
+    """True if a GA name marks it a status/feedback object — via the substring
+    keywords OR a standalone status abbreviation token (RM/FB) that both the
+    substring form and the tokenizer miss."""
+    low = (name or "").lower()
+    if any(k in low for k in STATUS_KEYWORDS):
+        return True
+    for ch in "/-_.,()[]:":
+        low = low.replace(ch, " ")
+    return any(t in _STATUS_ABBREV for t in low.split())
+
 # Domain terms by name (used to decide a GA's functional domain as ONE signal,
 # combined with the DPT and the group-range context — see _classify_category).
 # Checked in this priority order (most specific first; lighting is the generic
@@ -256,7 +277,7 @@ def _split_three_level(address: str) -> tuple[Optional[int], Optional[int], Opti
 def _override_kind_by_name(name: str, kind: str) -> str:
     """Refine command/status using name keywords (helps when DPT is generic)."""
     low = name.lower()
-    if any(k in low for k in STATUS_KEYWORDS):
+    if name_is_status(name):
         return "status"
     if any(k in low for k in COMMAND_KEYWORDS):
         # only upgrade unknown -> command; never overwrite explicit sensor
@@ -356,29 +377,55 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         )
         gas[rec.address] = rec
 
-    # Authoritative shutter classification from ETS Function roles. A GA whose
-    # Function role is a shutter role (MoveUpDown / StopStepUpDown / slat) IS a
-    # shutter object — even when its bare DPT is domain-agnostic (1.007 step,
-    # 1.010 start/stop) and its name carries no shutter keyword. The Function
-    # role outranks DPT and name (explain_ga's own hierarchy), so it rescues the
-    # step/stop GAs a name-only classifier leaves 'unknown' (issue #11, field
-    # data by Kris1166). Never demotes: only promotes a non-shutter GA.
+    # Authoritative shutter classification from ETS Function MEMBERSHIP.
+    # A Function that carries a shutter role (MoveUpDown / StopStepUpDown / slat)
+    # on ANY of its members is a shutter Function — so every GA inside it is a
+    # shutter object, even one with a blank role, a domain-agnostic bare DPT
+    # (1.007 step, 1.010 start/stop) and no shutter keyword in its name:
+    #   * the step/stop a name-only classifier leaves 'unknown' (issue #11), and
+    #   * a DPT-5.001 position feedback named only "… RM" (Rückmeldung) that
+    #     otherwise falls to the lighting brightness default (issue #12).
+    # The Function outranks DPT and name (explain_ga's hierarchy). Never demotes;
+    # only promotes a non-shutter GA whose DPT is plausibly a shutter object
+    # (1.x control / 5.x position) — never a 9.x temperature / 13.x energy GA.
+    # An ETS Function is a free grouping, not proof of a single domain (an
+    # integrator can drop lighting, shutters and a scene recall into one "Floor 1"
+    # Function). So promote a member to shutter only on POSITIVE shutter evidence,
+    # not blanket membership (LLM-council review of the issue #12 fix):
+    #   * the member is itself a step/stop control (DPT 1.007 / 1.010), or a
+    #     DPT-5.001 POSITION STATUS (a feedback — never a 5.001 command, which could
+    #     be a scene recall / dimming value), AND
+    #   * the Function actually carries an up/down MOVE (DPT 1.008) — the sibling
+    #     that makes it a real shutter, not just a shutter-role substring, AND
+    #   * the member's name carries no EXPLICIT non-shutter domain (defense in depth).
+    # This rescues the issue #11 step/stop and the issue #12 "… RM" position feedback
+    # while leaving a scene recall / dimmer feedback / boolean lock in a mixed
+    # Function untouched.
+    def _promote_to_shutter(rec: Optional[GARecord], has_move: bool) -> None:
+        if rec is None or rec.category == "shutter" or not has_move:
+            return
+        is_step = rec.dpt_main == 1 and rec.dpt_sub in (7, 10)
+        is_pos_status = rec.dpt_main == 5 and rec.dpt_sub == 1 and rec.kind == "status"
+        if not (is_step or is_pos_status):
+            return
+        dom = _domain_from_text(rec.name)
+        if dom and dom != "shutter":
+            return
+        rec.category = "shutter"
+        if rec.ha_platform in ("light", "switch", "unknown"):
+            rec.ha_platform = "cover"
+
     for fn in (raw.get("functions", {}) or {}).values():
-        for a_key, ref in (fn.get("group_addresses", {}) or {}).items():
-            role = (ref.get("role") or "").lower()
-            if not any(t in role for t in _SHUTTER_ROLE_TOKENS):
-                continue
-            rec = gas.get(ref.get("address") or a_key)
-            if rec is None or rec.category == "shutter":
-                continue
-            # Guard: a shutter role only promotes a plausibly-shutter DPT — a 1-bit
-            # control (move/step/stop) or a 5.x position — never retype a 9.x
-            # temperature / 13.x energy GA on a role substring like "updown".
-            if rec.dpt_main not in (1, 5):
-                continue
-            rec.category = "shutter"
-            if rec.ha_platform in ("light", "switch", "unknown"):
-                rec.ha_platform = "cover"
+        members = fn.get("group_addresses", {}) or {}
+        recs = [gas.get(ref.get("address") or a_key) for a_key, ref in members.items()]
+        has_shutter_role = any(
+            any(t in (ref.get("role") or "").lower() for t in _SHUTTER_ROLE_TOKENS)
+            for ref in members.values())
+        has_move = any(r is not None and r.dpt_main == 1 and r.dpt_sub == 8 for r in recs)
+        if not has_shutter_role:
+            continue
+        for rec in recs:
+            _promote_to_shutter(rec, has_move)
 
     return LoadedProject(
         path=path,
