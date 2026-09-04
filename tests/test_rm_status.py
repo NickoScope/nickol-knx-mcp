@@ -57,6 +57,26 @@ def _build():
     gas["2/1/60"] = _ga("2/1/60", "Zone20 Rollladen Bewegen", 1, 8)
     gas["2/2/60"] = _ga("2/2/60", "Living Room Light On", 1, 1)   # stray light in a shutter fn
     fns["FN-Mixed-60"] = _fn("Mixed", ("2/1/60", "MoveUpDown"), ("2/2/60", ""))
+    # RESIDUAL (Kris re-test 2026-09-04, 15/29): actuator-level Functions carry BLANK
+    # or raw-GUID roles — no role token anywhere — yet hold a 1.008 move. The RM
+    # must still promote: a shutter Function is recognised by its up/down MOVE, not
+    # only by a role string. Step/stop is 1.017 here (what the actuator emits).
+    gas["2/1/0"] = _ga("2/1/0", "Zone01 Fenster Bewegen", 1, 8)
+    gas["2/2/0"] = _ga("2/2/0", "Zone01 Fenster Schritt/Stop", 1, 17)
+    gas["2/3/0"] = _ga("2/3/0", "Zone01 Fenster RM", 5, 1)
+    fns["FN-guid-0"] = _fn("Fenster", ("2/1/0", "a1b2-guid"), ("2/2/0", "c3d4-guid"),
+                           ("2/3/0", ""))
+    gas["2/1/6"] = _ga("2/1/6", "Zone02 kl. Fenster Bewegen", 1, 8)
+    gas["2/2/6"] = _ga("2/2/6", "Zone02 kl. Fenster Schritt/Stop", 1, 7)
+    gas["2/3/6"] = _ga("2/3/6", "Zone02 kl. Fenster RM", 5, 1)
+    fns["FN-blank-6"] = _fn("Fenster", ("2/1/6", ""), ("2/2/6", ""), ("2/3/6", ""))
+    # ANOMALY 2/3/1 (explained): the move HAS a role, the step/stop is DPT 1.009
+    # ("Enable" — the reporter's own modeling slip, not a step DPT). The RM promotes
+    # via the move's role while the 1.009 step/stop honestly stays unknown.
+    gas["2/1/1"] = _ga("2/1/1", "Zone16 Fenster Bewegen", 1, 8)
+    gas["2/2/1"] = _ga("2/2/1", "Zone16 Fenster Schritt/Stop", 1, 9)
+    gas["2/3/1"] = _ga("2/3/1", "Zone16 Fenster RM", 5, 1)
+    fns["FN-anom-1"] = _fn("Fenster", ("2/1/1", "MoveUpDown"), ("2/2/1", ""), ("2/3/1", ""))
     # NEGATIVE 3 (LLM-council): a DPT-5.001 scene-recall COMMAND (blank role, neutral
     # name) sharing a shutter Function must NOT become a cover — it is not a position
     # STATUS, so promotion must skip it even though the Function is a shutter one.
@@ -88,6 +108,15 @@ def main():
     # negative 2: a stray light inside a heterogeneous shutter function stays lighting
     assert p.gas["2/2/60"].category == "lighting", \
         f"stray light in a shutter fn was over-promoted: {p.gas['2/2/60'].category}"
+    # residual: blank / GUID-role Functions still promote their RM via the 1.008 move,
+    # and the 1.017 step/stop promotes too (the cover builder treats 1.017 as a stop).
+    for a in ("2/3/0", "2/3/6"):
+        assert p.gas[a].category == "shutter" and p.gas[a].kind == "status", \
+            f"{a}: blank/GUID-role Function RM not promoted: {p.gas[a].category}/{p.gas[a].kind}"
+    assert p.gas["2/2/0"].category == "shutter", "1.017 step/stop in a blank-role fn must promote"
+    # anomaly: RM promotes via the move's role; the 1.009 (Enable) step/stop stays unknown.
+    assert p.gas["2/3/1"].category == "shutter", "anomaly RM 2/3/1 must promote"
+    assert p.gas["2/2/1"].category != "shutter", "a 1.009 'Enable' is not a step DPT — stays as-is"
     # negative 3: a 5.001 scene-recall COMMAND in a shutter function is NOT promoted
     # (only a 5.001 position STATUS is), while the step/stop 2/2/70 still is.
     assert p.gas["2/4/70"].category != "shutter", \
@@ -101,6 +130,10 @@ def main():
     # 2. Each cover gets its RM GA as position_state — and the RM GA is NOT a light.
     assert covers["2/1/26"].get("position_state_address") == "2/3/26", covers["2/1/26"]
     assert covers["2/1/50"].get("position_state_address") == "2/3/50", covers["2/1/50"]
+    # residual: blank / GUID-role covers get their RM as position_state too (end-to-end)
+    assert covers["2/1/0"].get("position_state_address") == "2/3/0", covers["2/1/0"]
+    assert covers["2/1/6"].get("position_state_address") == "2/3/6", covers["2/1/6"]
+    assert covers["2/1/1"].get("position_state_address") == "2/3/1", covers["2/1/1"]
     light_addrs = {a for l in lights.values() for a in
                    (l.get("address"), l.get("state_address"), l.get("brightness_address"),
                     l.get("brightness_state_address"))}

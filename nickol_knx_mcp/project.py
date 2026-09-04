@@ -404,7 +404,9 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
     def _promote_to_shutter(rec: Optional[GARecord], has_move: bool) -> None:
         if rec is None or rec.category == "shutter" or not has_move:
             return
-        is_step = rec.dpt_main == 1 and rec.dpt_sub in (7, 10)
+        # 1.017 (trigger) is what several actuator templates emit for step/stop; the
+        # cover builder already treats it as a stop, so promotion must agree.
+        is_step = rec.dpt_main == 1 and rec.dpt_sub in (7, 10, 17)
         is_pos_status = rec.dpt_main == 5 and rec.dpt_sub == 1 and rec.kind == "status"
         if not (is_step or is_pos_status):
             return
@@ -421,8 +423,16 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         has_shutter_role = any(
             any(t in (ref.get("role") or "").lower() for t in _SHUTTER_ROLE_TOKENS)
             for ref in members.values())
-        has_move = any(r is not None and r.dpt_main == 1 and r.dpt_sub == 8 for r in recs)
-        if not has_shutter_role:
+        # The licensing move must be an UNCONTESTED shutter move: a 1.008 whose name
+        # pins another domain classifies 'unknown' and must not license its neutral
+        # siblings (gate-1 audit) — positive evidence only.
+        has_move = any(r is not None and r.category == "shutter"
+                       and r.dpt_main == 1 and r.dpt_sub == 8 for r in recs)
+        # A shutter Function is recognised by a shutter ROLE token OR by an up/down
+        # MOVE member (DPT 1.008 is shutter-specific). Roles are often blank or a raw
+        # GUID on actuator-level Functions, so role strings alone silently skipped
+        # 15/29 real position feedbacks (issue #12 re-test by Kris1166).
+        if not (has_shutter_role or has_move):
             continue
         for rec in recs:
             _promote_to_shutter(rec, has_move)
