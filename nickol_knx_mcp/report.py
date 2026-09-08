@@ -18,6 +18,8 @@ from .generate_ha import generate_ha_yaml
 _SEV_ICON = {"error": "🔴", "warning": "🟡", "info": "🔵"}
 
 
+FEEDBACK_URL = "https://github.com/NickoScope/nickol-knx-mcp/issues/new?template=real_project_test.yml"
+
 def _section(title: str, findings: list[dict[str, Any]]) -> str:
     if not findings:
         return f"### {title}\n\n_No issues found._\n"
@@ -118,6 +120,15 @@ def build_report(project: LoadedProject,
         "3. Re-run this report until errors are clear.\n"
         "4. Generate ETS CSV/XML and HA YAML, commit to Git, then import into ETS "
         "and deploy to Home Assistant.\n"
+    )
+    # A gentle, one-line nudge at the very end — the report is the artefact a
+    # human actually reads after running the tool on a real project, so this is
+    # where a field report is most likely to happen. Anonymised is fine.
+    md.append(
+        "\n---\n*Ran this on a real ETS project? Two lines in a "
+        f"[real-project test report]({FEEDBACK_URL}) — what it got right, what it "
+        "got wrong — are what make the next release better. Anonymised addresses "
+        "are perfectly fine.*\n"
     )
 
     summary = {

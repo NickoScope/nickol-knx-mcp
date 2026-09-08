@@ -21,7 +21,7 @@ from .analyze import (validate_naming, detect_missing_status, detect_dpt_issues,
                       detect_topology_issues, secure_posture)
 from .generate_ha import generate_ha_yaml
 from .generate_ets import generate_ets_csv, generate_ets_xml
-from .report import build_report
+from .report import build_report, FEEDBACK_URL
 from .handover import build_handover
 from .device_library import decompose_device as _decompose_device, list_recipes
 from .appprog_parser import (parse_project as _parse_project,
@@ -95,6 +95,11 @@ def load_project(path: str, password: Optional[str] = None,
         "devices": len(proj.devices),
         "functions": len(proj.functions),
         "ets_tool_version": proj.info.get("tool_version"),
+        # The first call every new user makes — the one place a gentle nudge for a
+        # real-project field report reaches exactly the people who ran it.
+        "feedback": ("Ran this on a real ETS project? Two lines on what it got "
+                     "right/wrong help the next release: "
+                     f"{FEEDBACK_URL} (anonymised is fine)."),
     }
 
 
