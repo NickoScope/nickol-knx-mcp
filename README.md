@@ -289,7 +289,7 @@ keyring handling, and the recommended workflow).
 | `check_matter()` | Matter-readiness lint (which functions round-trip to a Matter cluster) |
 | `check_energy()` | metering/energy DPT check + PV/battery/EVSE scaffold |
 | `analyze_all(name_regex?)` | run every check at once |
-| `check_policy(profile_path?, write_example_to?)` | validate against a **Project Policy Profile** (your main-group taxonomy, naming, pairing) — or, with no profile, against the taxonomy **inferred from the project itself**; flags GAs that deviate from *your* convention, not a universal standard |
+| `check_policy(profile_path?, write_example_to?)` | validate against a **Project Policy Profile** (your main-group taxonomy, naming, pairing) — or, with no profile, against the taxonomy **inferred from the project itself**; flags GAs that deviate from *your* convention, not a universal standard. `write_example_to` writes an example profile **seeded from the loaded project's own main groups** (mains the project doesn't have are never listed) |
 
 **Repair & design**
 | Tool | Purpose |

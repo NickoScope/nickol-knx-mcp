@@ -399,11 +399,18 @@ def check_policy(profile_path: Optional[str] = None,
     agreed rules (main-group taxonomy, naming regex, command/status exemptions),
     not one universal "standard". Flags GAs whose domain doesn't match the main
     group your policy assigns, and names that don't match your pattern. Pass
-    `profile_path` to a YAML profile (omit to use the CLAUDE.md default, which is
-    a starting profile to override). Set `write_example_to` to drop a commented
-    example profile into the workspace. Report-only."""
+    `profile_path` to a YAML profile (omit to validate against the taxonomy inferred
+    from the project itself). Set `write_example_to` to drop a commented example
+    profile into the workspace — **seeded from the loaded project's own main groups**
+    (mains that do not exist in the project are not written). Report-only."""
     if write_example_to:
-        return {"example_written": _safe_write(write_example_to, _example_policy_yaml())}
+        proj = _STATE["project"]
+        seeded = (f"project '{(proj.info or {}).get('name') or proj.path}' (main groups inferred "
+                  f"from the project itself)" if proj is not None else
+                  "defaults (no project loaded — call load_project first to get an example "
+                  "seeded from your own main groups)")
+        return {"example_written": _safe_write(write_example_to, _example_policy_yaml(proj)),
+                "seeded_from": seeded}
     return _check_policy(_project(), _load_policy(profile_path))
 
 

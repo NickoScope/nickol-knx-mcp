@@ -253,7 +253,7 @@ claude mcp add nickol-knx -e NICKOL_KNX_WORKSPACE="$HOME/knx-workspace" -- /abs/
 | `check_matter()` | Matter-готовность функций |
 | `check_energy()` | метеринг/энергодомен |
 | `analyze_all(name_regex?)` | все проверки разом |
-| `check_policy(profile_path?, write_example_to?)` | проверка по **Project Policy Profile** (ваша таксономия main-групп, именование, парность) — или, без профиля, по таксономии, **выведенной из самого проекта**; флагует GA, отклоняющиеся от *вашей* конвенции, а не от универсального стандарта |
+| `check_policy(profile_path?, write_example_to?)` | проверка по **Project Policy Profile** (ваша таксономия main-групп, именование, парность) — или, без профиля, по таксономии, **выведенной из самого проекта**; флагует GA, отклоняющиеся от *вашей* конвенции, а не от универсального стандарта. `write_example_to` пишет пример профиля, **собранный из главных групп загруженного проекта** (несуществующие группы не пишутся) |
 | `suggest_repairs()` | предложить фиксы для находок |
 | `suggest_names()` | гигиена именования |
 | `decompose_device(order_number, channels?)` | устройство → декомпозиция GA: **точная вендорская модель** из локального каталога (`NICKOL_KNX_CATALOG`) или generic-рецепт |

@@ -46,6 +46,9 @@ jobs:
       - name: RM/Rückmeldung shutter feedback classifies as status, not light (issue #12)
         run: python tests/test_rm_status.py
 
+      - name: Policy profile — inferred taxonomy, declared profile, project-seeded example (issue #13)
+        run: python tests/test_policy.py
+
       - name: Console script is installed
         run: |
           python -c "import importlib.metadata as m; print('entry points:', [e.name for e in m.entry_points(group='console_scripts') if e.name == 'nickol-knx-mcp'])"

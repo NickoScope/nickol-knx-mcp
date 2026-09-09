@@ -94,20 +94,10 @@ def _infer_taxonomy(project: LoadedProject, min_group: int = 3,
                     min_share: float = 0.6) -> dict[int, list[str]]:
     """Infer each main group's domain from the project itself (dominant category
     with a clear majority). Mains with no clear majority are left out — we do not
-    guess a taxonomy the project doesn't actually follow."""
-    per_main: dict[int, Counter] = defaultdict(Counter)
-    for ga in project.gas.values():
-        if ga.intent != INTENT_FUNCTIONAL or ga.main is None:
-            continue
-        if ga.category and ga.category != "unknown":
-            per_main[ga.main][ga.category] += 1
-    tax: dict[int, list[str]] = {}
-    for m, c in per_main.items():
-        total = sum(c.values())
-        dom, n = c.most_common(1)[0]
-        if total >= min_group and n / total >= min_share:
-            tax[m] = [dom]
-    return tax
+    guess a taxonomy the project doesn't actually follow. (Thin view over
+    ``taxonomy_seed`` so the example profile and the checker cannot drift.)"""
+    return {m: info["domain"] for m, info in
+            taxonomy_seed(project, min_group, min_share).items() if info["domain"]}
 
 
 def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, Any]:
@@ -222,14 +212,55 @@ def check_policy(project: LoadedProject, policy: dict[str, Any]) -> dict[str, An
     }
 
 
-def example_policy_yaml() -> str:
-    """A commented example profile an integrator can copy and adapt."""
-    return (
+def taxonomy_seed(project: LoadedProject, min_group: int = 3,
+                  min_share: float = 0.6) -> dict[int, dict[str, Any]]:
+    """Per main group of THIS project: the inferred domain (or None when there is
+    no clear majority), the main-range name, and the category mix behind it.
+    Used to seed an example profile from the project instead of from a template."""
+    per_main: dict[int, Counter] = defaultdict(Counter)
+    names: dict[int, str] = {}
+    unknown: Counter = Counter()
+    for ga in project.gas.values():
+        if ga.intent != INTENT_FUNCTIONAL or ga.main is None:
+            continue
+        if ga.main_name and ga.main not in names:
+            names[ga.main] = ga.main_name
+        if ga.category and ga.category != "unknown":
+            per_main[ga.main][ga.category] += 1
+        else:
+            unknown[ga.main] += 1
+            per_main.setdefault(ga.main, Counter())
+    seed: dict[int, dict[str, Any]] = {}
+    for m in sorted(per_main):
+        c = per_main[m]
+        total = sum(c.values())
+        dom, n = c.most_common(1)[0] if total else (None, 0)
+        resolved = bool(total >= min_group and dom and n / total >= min_share)
+        seed[m] = {
+            "domain": [dom] if resolved else None,
+            "name": names.get(m, ""),
+            "total": total,
+            "unknown": unknown.get(m, 0),
+            "mix": [(k, round(v / total * 100)) for k, v in c.most_common(3)] if total else [],
+        }
+    return seed
+
+
+def example_policy_yaml(project: Optional[LoadedProject] = None) -> str:
+    """A commented example profile an integrator can copy and adapt.
+
+    With a loaded project the ``main_groups`` block is **seeded from that
+    project's own inferred taxonomy** (issue #13: a static template listed main
+    groups the project does not have, and the model went off to "correct" a
+    perfectly fine layout). Mains with no clear majority are listed commented-out
+    with their category mix so the integrator decides. Without a project, the
+    default methodology taxonomy is written, clearly labelled as such.
+    """
+    head = (
         "# nickol-knx Project Policy Profile — your project's rules, not a universal standard.\n"
         "# Pass its path to check_policy(profile_path=...). Any key you omit falls back to the default.\n"
-        "name: \"My project policy\"\n\n"
-        "# Which functional domain each main group is meant to hold:\n"
-        "main_groups:\n"
+    )
+    default_block = (
         "  0: [central, scene]\n"
         "  1: [lighting]\n"
         "  2: [shutter]\n"
@@ -237,14 +268,47 @@ def example_policy_yaml() -> str:
         "  4: [sensor]\n"
         "  5: [energy]\n"
         "  6: [diagnostics]\n"
-        "  7: [reserve]\n\n"
-        "naming:\n"
+        "  7: [reserve]\n"
+    )
+    tail = (
+        "\nnaming:\n"
         "  # names must match this regex (omit to skip); e.g. Zone_Function_Role:\n"
         "  regex: null\n"
         "  status_suffix: Status\n\n"
         "pairing:\n"
         "  require_status_for: [lighting, shutter, hvac]\n"
         "  exempt: [scene, sensor, central, diagnostics, energy]\n\n"
-        "reserve:\n"
-        "  expect_range: true\n"
     )
+    if project is None:
+        return (head + "name: \"My project policy\"\n\n"
+                "# Which functional domain each main group is meant to hold.\n"
+                "# (No project loaded: this is the DEFAULT methodology taxonomy, not yours —\n"
+                "#  load_project first to get an example seeded from your own main groups.)\n"
+                "main_groups:\n" + default_block + tail +
+                "reserve:\n  expect_range: true\n")
+
+    seed = taxonomy_seed(project)
+    pname = str((project.info or {}).get("name") or project.path).replace("\\", "/").replace('"', "'")
+    lines = [head, f"# Seeded from project \"{pname}\": {len(seed)} main group(s) present.\n",
+             f"name: \"{pname} policy\"\n\n",
+             "# Which functional domain each main group holds — inferred from THIS project.\n",
+             "# Uncomment / edit any line you disagree with; mains not listed do not exist here.\n",
+             "main_groups:\n" if seed else
+             "main_groups: {}   # no three-level main groups found (two-level / free style?) — declare yours here\n"]
+    for m, info in seed.items():
+        label = f'"{info["name"]}"' if info["name"] else "(unnamed)"
+        mix = ", ".join(f"{k} {v} %" for k, v in info["mix"]) or "no classified GAs"
+        unk = f", {info['unknown']} unknown" if info["unknown"] else ""
+        if info["domain"]:
+            lines.append(f"  {m}: [{info['domain'][0]}]   # {label}: {info['total']} GAs — {mix}{unk}\n")
+        else:
+            lines.append(f"  # {m}: []   # {label}: mixed, no clear majority ({mix}{unk}) — decide yourself\n")
+    lines.append("\n# For reference only — the default methodology taxonomy (NOT your project's):\n")
+    lines.extend("#" + l + "\n" for l in default_block.rstrip("\n").split("\n"))
+    has_reserve = any(i["domain"] == ["reserve"] for i in seed.values()) or any(
+        t in (i["name"] or "").lower() for i in seed.values() for t in ("reserve", "spare", "резерв"))
+    lines.append(tail)
+    lines.append("reserve:\n" + (
+        "  expect_range: true\n" if has_reserve else
+        "  expect_range: false   # no reserve main group found in this project; set true if you keep one\n"))
+    return "".join(lines)

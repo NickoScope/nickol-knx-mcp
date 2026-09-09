@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`check_policy(write_example_to=…)` writes an example profile seeded from the loaded project's own
+  main groups** instead of a static template (issue #13, avataru). The template listed mains the project
+  did not have (sensor/energy/diagnostics/reserve), contradicting the real layout and sending the model off
+  to "correct" a fine taxonomy. Now: each existing main is written with its inferred domain, range name and
+  category mix; mains with no clear majority are written commented-out with their mix so the integrator
+  decides; the default taxonomy stays only as a labelled comment; `reserve.expect_range` follows the
+  project. `_infer_taxonomy` and the example now share one implementation (`taxonomy_seed`). Regression
+  cases in `tests/test_policy.py` (now in CI).
+
 ### Added
 
 - **`check_topology()` — topology & individual-address sanity, grounded in the KNX standard** (tool
