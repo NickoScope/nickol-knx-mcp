@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`suggest.py` — structure-first entity suggestions (experimental, library-only, no MCP tool yet).**
+  Prototype of a second Home Assistant KNX `SuggestionProvider` (core PR #180891 contract): device
+  channel → communication-object flags (write = command sink, transmit = status source) → DPT pattern
+  → HA UI entity config (`ga_switch`, `ga_brightness`, `ga_up_down`, `ga_position_state`,
+  `ga_temperature_current`, …). Names are used only as tie-breaks and always recorded in
+  `metadata.review`. Channels the FB provider covers are skipped; channel-less devices get pseudo-channels
+  from vendor object texts; shared status GAs and duplicate writers are handled. `tests/test_suggest.py`
+  reproduces the FB provider's own nameless fixture from structure alone; `tools/eval_suggest.py`
+  measures agreement with the name/Function engine on real projects.
+
 ### Fixed
 
 - **`check_policy(write_example_to=…)` writes an example profile seeded from the loaded project's own
