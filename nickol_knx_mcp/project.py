@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 from typing import Any, Optional
 
 from xknxproject import XKNXProj
@@ -293,7 +294,7 @@ def _build_range_name_map(raw: KNXProject) -> dict[str, str]:
     """
     out: dict[str, str] = {}
 
-    def walk(rng: dict[str, Any], depth: int) -> None:
+    def walk(rng: Mapping[str, Any], depth: int) -> None:
         start = rng.get("address_start")
         name = rng.get("name", "")
         if isinstance(start, int):

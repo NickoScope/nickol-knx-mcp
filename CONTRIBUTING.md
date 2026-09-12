@@ -59,6 +59,17 @@ pip install -e .
 python tests/test_pipeline.py
 ```
 
+### Lint and types
+
+```bash
+ruff check nickol_knx_mcp tests tools
+uvx --with-editable . mypy        # the package must be installed, or mypy misses xknxproject's types
+```
+
+Run mypy with the package installed. Without it, `ignore_missing_imports` silently hides every
+mismatch against xknxproject's own TypedDicts, and CI, which does install it, will disagree.
+Ruff is configured to `E9,F` only: real errors, no style rules.
+
 CI runs the smoke test on Python 3.10–3.12 for every push and PR.
 
 ### Local corpus guard
