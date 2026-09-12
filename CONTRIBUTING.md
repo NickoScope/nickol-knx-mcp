@@ -68,3 +68,10 @@ Be kind and constructive. This is a hobby/community project; assume good faith.
 ## License
 
 By contributing, you agree your contributions are licensed under the [MIT License](LICENSE).
+
+## Releasing
+
+See [docs/RELEASE.md](docs/RELEASE.md) — version bump in three files (`pyproject.toml`,
+`nickol_knx_mcp/__init__.py`, `server.json` twice), PyPI upload, and a publish to the official
+MCP Registry. The registry's ownership check is case-sensitive and a PyPI version can never be
+re-uploaded, so the checklist is worth following literally.
