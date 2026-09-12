@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import yaml
 
@@ -583,7 +583,8 @@ def _device_of(project: dict[str, Any], ga: str) -> tuple[str, str]:
 
 
 def _fallback_suggestions(project: dict[str, Any], covered: set[str]) -> list[dict[str, Any]]:
-    loaded = build_loaded_from_raw(project, project.get("info", {}).get("name") or "project.knxproj")
+    loaded = build_loaded_from_raw(cast("Any", project),
+                                   project.get("info", {}).get("name") or "project.knxproj")
     res = generate_ha_yaml(loaded)
     doc = yaml.safe_load(res["yaml"]) or {}
     knx = doc.get("knx") or {}

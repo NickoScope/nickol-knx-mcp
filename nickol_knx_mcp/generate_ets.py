@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Mapping
 from typing import Any
 from xml.sax.saxutils import escape
 
@@ -28,7 +29,7 @@ def _hierarchy(project: LoadedProject) -> dict[int, dict[str, Any]]:
     main_names: dict[int, str] = {}
     mid_names: dict[tuple[int, int], str] = {}
 
-    def walk(rng: dict[str, Any]) -> None:
+    def walk(rng: Mapping[str, Any]) -> None:
         start = rng.get("address_start")
         name = rng.get("name", "")
         if isinstance(start, int):
