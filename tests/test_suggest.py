@@ -16,8 +16,8 @@ def _ga(a, dpt, name=None):
     return {"name": name or f"GA {a}", "address": a, "description": "", "dpt": dpt}
 
 
-def _co(dev, links, *, write=False, transmit=False, read=False, dpts=None, channel=None):
-    return {"name": "", "number": 0, "text": "", "function_text": "", "description": "",
+def _co(dev, links, *, write=False, transmit=False, read=False, dpts=None, channel=None, text=""):
+    return {"name": "", "number": 0, "text": text, "function_text": "", "description": "",
             "device_address": dev, "device_application": None, "module_def": None,
             "channel": channel, "dpts": dpts or [], "object_size": "",
             "flags": {"read": read, "write": write, "communication": True, "transmit": transmit,
@@ -44,6 +44,14 @@ def _project():
         ("3/0/1", TEMP), ("3/0/2", TEMP), ("3/0/3", TEMP), ("3/0/4", MODE), ("3/0/5", MODE),
         ("4/0/1", TEMP), ("4/0/2", SW), ("7/0/1", SW),
     ]}
+    # multi-output actuator: vendor puts every output in ONE channel, separated only by the
+    # object text marker "[n]" (Zennio Lumento/MAXinBOX pattern). Must yield TWO entities,
+    # not one abandoned channel plus a pile of sensors.
+    for i, base in ((1, 9), (2, 12)):
+        gas[f"9/0/{base}"] = _ga(f"9/0/{base}", SW)
+        gas[f"9/0/{base+1}"] = _ga(f"9/0/{base+1}", SW)
+        gas[f"9/0/{base+2}"] = _ga(f"9/0/{base+2}", PCT)
+    gas["9/9/9"] = _ga("9/9/9", SW, "Aktor Sammelstörung")
     gas["8/0/1"] = _ga("8/0/1", SW, "Kitchen socket switch")
     gas["8/0/2"] = _ga("8/0/2", SW, "Kitchen socket switch status")
     cos = {
@@ -83,6 +91,15 @@ def _project():
         "co-81": _co("1.4.1", ["4/0/2"], transmit=True, channel="S-1"),
         # FB-covered channel: must be skipped (the FB provider owns it)
         "co-90": _co("1.6.1", ["7/0/1"], write=True, channel="CH-1"),
+        # multi-output dimmer, one channel, outputs distinguished by "[1]" / "[2]"
+        "co-m1c": _co("1.8.1", ["9/0/9"], write=True, channel="CH-1", text="[1] Switch On/Off"),
+        "co-m1s": _co("1.8.1", ["9/0/10"], transmit=True, read=True, channel="CH-1", text="[1] On/Off (Status)"),
+        "co-m1d": _co("1.8.1", ["9/0/11"], write=True, channel="CH-1", text="[1] Absolute Dimming"),
+        "co-m2c": _co("1.8.1", ["9/0/12"], write=True, channel="CH-1", text="[2] Switch On/Off"),
+        "co-m2s": _co("1.8.1", ["9/0/13"], transmit=True, read=True, channel="CH-1", text="[2] On/Off (Status)"),
+        "co-m2d": _co("1.8.1", ["9/0/14"], write=True, channel="CH-1", text="[2] Absolute Dimming"),
+        # device diagnostics on the same device: a real object, but not an entity to suggest
+        "co-diag": _co("1.8.1", ["9/9/9"], transmit=True, channel="CH-1", text="Internal Error: Communication"),
         # device WITHOUT channels, named GAs → fallback (name pairing)
         "co-95": _co("1.7.1", ["8/0/1"], write=True),
         "co-96": _co("1.7.1", ["8/0/2"], transmit=True),
@@ -97,6 +114,7 @@ def _project():
         "1.3.1": _dev("1.3.1", "Raumtemperaturregler", {"CH-1": _ch("RTR", ["co-70", "co-71", "co-72", "co-73", "co-74"])}),
         "1.4.1": _dev("1.4.1", "Sensor", {"S-1": _ch("Messwerte", ["co-80", "co-81"])}),
         "1.6.1": _dev("1.6.1", "Modern Aktor", {"CH-1": _ch("Ausgang FB", ["co-90"], fbs=["417"])}),
+        "1.8.1": _dev("1.8.1", "Dimmaktor 2-fach", {"CH-1": _ch("LED", ["co-m1c", "co-m1s", "co-m1d", "co-m2c", "co-m2s", "co-m2d", "co-diag"])}),
         "1.7.1": _dev("1.7.1", "Old Aktor", {}),
     }
     return {"info": {"name": "suggest-test", "group_address_style": "ThreeLevel", "schema_version": "21",
@@ -170,14 +188,31 @@ def main():
     assert f["suggestions"]["switch"]["knx"]["ga_switch"] == {"write": "8/0/1", "state": "8/0/2"}
     assert h["pseudo_channels"] == 1 and h["fallback"] == 0, h
 
-    # 10. no GA appears in two suggestions
+    # 10. multi-output channel splits by the vendor "[n]" marker: two lights, statuses consumed,
+    #     and no sensor fallout from those objects
+    m1, m2 = by["1.8.1_CH-1_1"], by["1.8.1_CH-1_2"]
+    assert m1["suggestions"]["light"]["knx"] == {
+        "ga_switch": {"write": "9/0/9", "state": "9/0/10"},
+        "ga_brightness": {"write": "9/0/11"}}, m1["suggestions"]["light"]["knx"]
+    assert m2["suggestions"]["light"]["knx"]["ga_switch"] == {"write": "9/0/12", "state": "9/0/13"}
+    assert "[1]" in m1["secondary_info"] and "[2]" in m2["secondary_info"], m1["secondary_info"]
+    assert not any(s2["id"].startswith("1.8.1_") and s2["platform_options"][0].endswith("sensor")
+                   for s2 in res["suggestions"]), "multi-output statuses leaked into sensors"
+    assert h["subunits"] >= 2, h
+
+    # 11. device diagnostics are dropped, not suggested, and counted
+    assert h["diagnostics_skipped"] == 1, h
+    assert not any("9/9/9" in str(s2["suggestions"]) for s2 in res["suggestions"]), "diagnostics suggested"
+
+    # 12. no GA appears in two suggestions
     seen = {}
     for s2 in res["suggestions"]:
         for p, ps in s2["suggestions"].items():
             for m in ps["matched_group_addresses"]:
                 assert seen.setdefault(m["address"], s2["id"]) == s2["id"], f"{m['address']} in two suggestions"
     print(f"test_suggest: OK — {len(res['suggestions'])} suggestions from structure alone on a nameless "
-          f"fixture (FB-provider parity for switch/cover/TW/RGB), climate, sensors, FB-skip, name fallback; hints={h}")
+          f"fixture (FB-provider parity for switch/cover/TW/RGB), climate, sensors, FB-skip, "
+          f"multi-output split, diagnostics filter, pseudo-channels; hints={h}")
 
 
 if __name__ == "__main__":

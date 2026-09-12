@@ -25,6 +25,7 @@ Pure functions, no HA imports — the HA provider class is a ~30-line wrapper.
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -103,6 +104,41 @@ def _links_of(project: dict[str, Any], co_ids, shared: Optional[set[str]] = None
         ga = gas[links[0]]
         text = " ".join(x for x in (co.get("text"), co.get("function_text"), co.get("name")) if x)
         out.append(_Link(cid, links[0], links[1:], _dpt(ga), ga.get("name") or "", role, text))
+    return out
+
+
+_SUBUNIT_RE = re.compile(r"^\s*\[([^\]]{1,6})\]")
+# object texts that describe the device's own health/plumbing, not a building sensor
+_DIAG_WORDS = ("error", "fehler", "diagnos", "heartbeat", "watchdog", "alive", "version",
+               "firmware", "communication fail", "bus voltage", "reset", "scene number",
+               "identification", "störung", "ошибк", "авари", "диагност")
+
+
+def _subunit(link: "_Link") -> Optional[str]:
+    """Vendor sub-unit marker of a communication object, e.g. "[2] Switch On/Off" -> "2".
+
+    Multi-output actuators (Zennio Lumento/MAXinBOX, many others) put every output of a
+    device into ONE ETS channel and separate them only in the object text. Without this
+    split a 4-output dimmer looks like one channel with four switch commands, the channel
+    is abandoned, and all of its status objects fall through to sensor suggestions.
+    """
+    m = _SUBUNIT_RE.match(link.text or "")
+    return m.group(1).strip() if m else None
+
+
+def _split_subunits(links: list["_Link"]) -> list[tuple[Optional[str], list["_Link"]]]:
+    """Split a channel into vendor sub-units; [(None, links)] when there is nothing to split."""
+    groups: dict[str, list[_Link]] = defaultdict(list)
+    loose: list[_Link] = []
+    for l in links:
+        t = _subunit(l)
+        (groups[t] if t else loose).append(l)
+    if len(groups) < 2:
+        return [(None, links)]
+    out: list[tuple[Optional[str], list[_Link]]] = [(t, ls) for t, ls in groups.items()]
+    if loose:
+        # objects without a marker (device-wide: errors, scene, temperature) stay separate
+        out.append((None, loose))
     return out
 
 
@@ -287,15 +323,24 @@ def _classify_channel(project: dict[str, Any], links: list[_Link], chan_name: st
     return None
 
 
-def _sensor_suggestions(project: dict[str, Any], links: list[_Link], sink_gas: set[str]
+def _sensor_suggestions(project: dict[str, Any], links: list[_Link], sink_gas: set[str],
+                        skipped: Optional[list] = None
                         ) -> list[tuple[list[str], dict[str, dict[str, Any]], dict[str, Any], _Link]]:
-    """State-only channels (no sink anywhere for the GA) → sensor / binary_sensor per GA."""
+    """State-only channels (no sink anywhere for the GA) → sensor / binary_sensor per GA.
+
+    Device diagnostics (error flags, communication failures, firmware/version objects) are
+    dropped: they are real KNX objects but not entities a user wants suggested; they land in
+    ``hints["diagnostics_skipped"]`` instead."""
+    skipped = skipped if skipped is not None else []
     out = []
     for l in links:
         if l.role != "source" or l.ga in sink_gas:
             continue
         m, s = l.dpt
         if m is None:
+            continue
+        if _has(l.text, _DIAG_WORDS) or _has(l.name, _DIAG_WORDS):
+            skipped.append(l)          # device health, not a building sensor
             continue
         meta = {"tier": "structural", "evidence": ["channel", "flags:transmit-only", "dpt"], "review": []}
         if m == 1:
@@ -396,7 +441,7 @@ def suggest_entities(project: dict[str, Any], *, skip_fb_covered: bool = True,
     covered: set[str] = set()          # GAs explained by a structural suggestion
     primaries: set[str] = set()        # primary GA per emitted entity (dedupe)
     stats = {"channels": 0, "skipped_fb_covered": 0, "structural": 0, "sensors": 0,
-             "fallback": 0, "review": 0, "duplicates_skipped": 0, "pseudo_channels": 0, "unwired_flagged": 0}
+             "fallback": 0, "review": 0, "duplicates_skipped": 0, "pseudo_channels": 0, "unwired_flagged": 0, "subunits": 0, "diagnostics_skipped": 0}
 
     for dev_addr, dev in (project.get("devices") or {}).items():
         dev_name = dev.get("name") or dev.get("hardware_name") or dev_addr
@@ -415,12 +460,28 @@ def suggest_entities(project: dict[str, Any], *, skip_fb_covered: bool = True,
                 continue
             if not links:
                 continue
-            res = _classify_channel(project, links, ch.get("name") or "")
-            items = [res] if res else []
-            taken = {m["address"] for m in _matched(res[1][res[0][0]], gas)} if res else set()
-            sens = _sensor_suggestions(project, links, sink_gas | taken)
+            units = _split_subunits(links)
+            if len(units) > 1:
+                stats["subunits"] += len(units)
+            items: list = []
+            taken: set[str] = set()
+            sens: list = []
+            for unit_id, unit_links in units:
+                res = _classify_channel(project, unit_links, ch.get("name") or "")
+                if res:
+                    items.append((*res, unit_id))
+                    taken |= {m["address"] for m in _matched(res[1][res[0][0]], gas)}
+            for unit_id, unit_links in units:
+                dropped: list = []
+                sens.extend(_sensor_suggestions(project, unit_links, sink_gas | taken, dropped))
+                stats["diagnostics_skipped"] += len(dropped)
+                # a diagnostics object stays out of the name-based fallback too, otherwise the
+                # engine resurrects it one step later as a binary sensor
+                covered.update(l.ga for l in dropped)
             for platforms, confs, meta, *rest in items + sens:
-                lnk = rest[0] if rest else None
+                lnk = rest[0] if rest and isinstance(rest[0], _Link) else None
+                unit = rest[0] if rest and not isinstance(rest[0], _Link) else (
+                    _subunit(lnk) if lnk else None)
                 first = confs[platforms[0]]
                 mg = _matched(first, gas)
                 prim = next((m["address"] for m in mg if m["address"] in
@@ -442,11 +503,12 @@ def suggest_entities(project: dict[str, Any], *, skip_fb_covered: bool = True,
                     primaries.add(prim)
                 name = (lnk.name if lnk else (ch.get("name") or "")) or \
                     _common_prefix_name([m["name"] for m in mg]) or dev_name
-                sid = f"{dev_addr}_{ch_id}" + (f"_{lnk.ga}" if lnk else "")
+                sid = f"{dev_addr}_{ch_id}" + (f"_{unit}" if unit else "") + (f"_{lnk.ga}" if lnk else "")
                 suggestions.append({
                     "id": sid, "source": PROVIDER_ID, "suggested_name": name,
                     "group_id": dev_addr, "group_name": dev_name,
-                    "secondary_info": ch.get("name") or "",
+                    "secondary_info": (f"{ch.get('name') or ''} [{unit}]".strip() if unit
+                                       else (ch.get("name") or "")),
                     "platform_options": platforms,
                     "suggestions": {p: {"knx": c, "matched_group_addresses": _matched(c, gas),
                                         "unmatched_dpas": []} for p, c in confs.items()},

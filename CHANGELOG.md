@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`suggest.py`: multi-output actuators are split by their vendor object marker.** Zennio-style
+  devices (Lumento DX4, MAXinBOX, KLIC-DI…) put every output of a device into ONE ETS channel and
+  separate them only in the object text (`[1] Switch On/Off`, `[2] On/Off (Status)`). The channel
+  classifier used to see several switch commands in one channel, give up, and let every status object
+  fall through to a sensor suggestion. Channels are now split into vendor sub-units first. On a real
+  3646-GA project: entities 341 → 513, sensor noise 752 → 367, agreement with the name/Function engine
+  92 % → 95 % (platform) and 94 % → 95 % (address keys).
+- **Device diagnostics are no longer suggested as sensors** (error flags, communication failures,
+  firmware/version, bus voltage, reset — matched in the vendor object text or the GA name, EN/DE/RU).
+  They are counted in `hints["diagnostics_skipped"]` and kept out of the name-based fallback as well.
+  53 such objects on the same project.
+
 ## [0.8.1] - 2026-09-12
 
 ### Added
