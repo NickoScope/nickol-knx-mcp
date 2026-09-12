@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Official MCP Registry preparation**: `server.json` (schema 2025-12-11, `registryType: pypi`,
+  server name `io.github.nickoscope/nickol-knx-mcp`, stdio transport, the two optional env vars) and the
+  ownership marker `<!-- mcp-name: … -->` in the README, which the registry checks inside the published
+  PyPI description. Package builds clean (`uv build`, `twine check` PASSED). Publishing itself still needs
+  a PyPI token (owner action), then `mcp-publisher login github && mcp-publisher publish`.
+
+### Added
+
 - **`suggest.py` — structure-first entity suggestions (experimental, library-only, no MCP tool yet).**
   Prototype of a second Home Assistant KNX `SuggestionProvider` (core PR #180891 contract): device
   channel → communication-object flags (write = command sink, transmit = status source) → DPT pattern

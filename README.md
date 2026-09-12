@@ -1,5 +1,7 @@
 # nickol-knx-mcp
 
+<!-- mcp-name: io.github.nickoscope/nickol-knx-mcp -->
+
 **A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
 
 Four things you can do with it — all **without ever touching the live KNX bus**:

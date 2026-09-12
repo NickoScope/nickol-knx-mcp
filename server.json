@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.nickoscope/nickol-knx-mcp",
+  "title": "nickol-knx",
+  "description": "Design-time KNX/ETS assistant: read-only .knxproj analysis (naming, DPT, command/status pairing, KNX Secure, topology), device decomposition, and generation of Home Assistant YAML, ETS exports and an as-built handover pack. No live-bus access.",
+  "version": "0.8.0",
+  "repository": {
+    "url": "https://github.com/NickoScope/nickol-knx-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://nickoscope.github.io/nickol-knx-mcp",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "nickol-knx-mcp",
+      "version": "0.8.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "NICKOL_KNX_WORKSPACE",
+          "description": "Directory the server may write generated files into (reports, HA YAML, ETS exports). Defaults to ./knx-workspace",
+          "isRequired": false
+        },
+        {
+          "name": "NICKOL_KNX_CATALOG",
+          "description": "Optional path to a local device catalog for exact vendor decomposition",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
