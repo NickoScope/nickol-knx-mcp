@@ -14,8 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   PyPI description. Package builds clean (`uv build`, `twine check` PASSED). Publishing itself still needs
   a PyPI token (owner action), then `mcp-publisher login github && mcp-publisher publish`.
 
-### Added
-
 - **`suggest.py` — structure-first entity suggestions (experimental, library-only, no MCP tool yet).**
   Prototype of a second Home Assistant KNX `SuggestionProvider` (core PR #180891 contract): device
   channel → communication-object flags (write = command sink, transmit = status source) → DPT pattern
