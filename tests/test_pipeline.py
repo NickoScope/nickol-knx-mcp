@@ -443,7 +443,7 @@ print("OK: full zone -> valid climate; mode-only zone -> review")
 # Regression (Track B): handover pack assembles a document + valid SVG diagram.
 # --------------------------------------------------------------------------- #
 print("\n=== REGRESSION: handover pack (Track B) ===")
-from nickol_knx_mcp.handover import build_handover, build_topology_svg
+from nickol_knx_mcp.handover import build_handover
 
 _hp = build_handover(proj)
 _hmd = _hp["markdown"]

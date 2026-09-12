@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Runtime dependencies. Grouped so a quiet week produces one PR, not five.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      python-deps:
+        patterns: ["*"]
+    commit-message:
+      prefix: deps
+
+  # Action versions. These are pinned by tag and go stale silently.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci

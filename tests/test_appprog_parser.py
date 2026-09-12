@@ -2,7 +2,7 @@
 
 Self-contained: builds a minimal ETS-shaped archive in memory — no real project needed.
 """
-import sys, os, io, zipfile, tempfile
+import sys, os, zipfile, tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from nickol_knx_mcp.appprog_parser import parse_project, to_catalog_yaml, summary

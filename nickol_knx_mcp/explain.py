@@ -17,7 +17,7 @@ misclassification hides.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from .project import (LoadedProject, _override_kind_by_name, _domain_from_text,
                       _SOFT_DPT)

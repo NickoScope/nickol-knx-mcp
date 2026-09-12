@@ -426,7 +426,7 @@ def validate_template(tmpl: dict[str, Any]) -> dict[str, Any]:
             findings.append(_finding("error", "slot_id_duplicate",
                                      f"Slot id '{sid}' is used more than once.", slot=sid))
         else:
-            seen_slots.add(sid)
+            seen_slots.add(str(sid))
         slabels = slot.get("labels") or {}
         for lang in SUPPORTED_LANGUAGES:
             if not (slabels.get(lang) or "").strip():

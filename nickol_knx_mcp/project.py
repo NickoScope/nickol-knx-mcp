@@ -434,8 +434,8 @@ def build_loaded_from_raw(raw: KNXProject, path: str) -> LoadedProject:
         # 15/29 real position feedbacks (issue #12 re-test by Kris1166).
         if not (has_shutter_role or has_move):
             continue
-        for rec in recs:
-            _promote_to_shutter(rec, has_move)
+        for member in recs:
+            _promote_to_shutter(member, has_move)
 
     return LoadedProject(
         path=path,

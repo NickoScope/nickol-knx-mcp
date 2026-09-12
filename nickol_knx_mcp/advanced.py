@@ -16,7 +16,7 @@ from collections import Counter
 from typing import Any
 
 from .project import LoadedProject
-from .pairing import find_status, base_tokens
+from .pairing import find_status
 from .intent import INTENT_FUNCTIONAL
 
 
@@ -71,7 +71,8 @@ _MATTER = {
 def matter_readiness(project: LoadedProject) -> dict[str, Any]:
     """Which controllable functions round-trip to a Matter cluster, and what's missing."""
     stats = _status_gas(project)
-    ready, not_ready = [], []
+    ready: list[dict[str, Any]] = []
+    not_ready: list[dict[str, Any]] = []
     no_cluster: Counter = Counter()
     for ga in _functional_commands(project):
         cluster = _MATTER.get(ga.category)

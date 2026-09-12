@@ -134,8 +134,8 @@ def classify_dpt(main: Optional[int], sub: Optional[int]) -> DptInfo:
         return {"category": CATEGORY_UNKNOWN, "kind": KIND_UNKNOWN,
                 "ha_platform": "unknown", "value_type": None, "label": "No DPT assigned"}
     if (main, sub) in _EXACT:
-        return dict(_EXACT[(main, sub)])  # copy
+        return _EXACT[(main, sub)].copy()  # copy
     if main in _MAIN_FALLBACK:
-        return dict(_MAIN_FALLBACK[main])
+        return _MAIN_FALLBACK[main].copy()
     return {"category": CATEGORY_UNKNOWN, "kind": KIND_UNKNOWN,
             "ha_platform": "unknown", "value_type": None, "label": f"DPT {main}"}

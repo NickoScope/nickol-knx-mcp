@@ -31,7 +31,7 @@ _HW_SPLIT_RE = re.compile(r"<Hardware\b")
 _APPREF_RE = re.compile(r'<ApplicationProgramRef\s+RefId="([^"]+)"')
 _APPVER_RE = re.compile(r'ApplicationVersion="(\d+)"')
 _SIZE_RE = re.compile(r"(\d+)\s*(Bit|Byte)", re.I)
-_CH_TOKEN_RE = re.compile(r"\[([A-Za-z]{1,3}\d+)\]")          # display token: [C1] [O12] [T3]
+_CH_TOKEN_RE = re.compile(r"\[([A-Za-z]{1,3})\d+\]")          # display token: [C1] [O12] [T3]
 _LF_RE = re.compile(r"^\s*\[LF\]")
 
 # KNX manufacturer id (hex in the M-code) -> vendor name (common ones; extend freely)
@@ -87,7 +87,7 @@ def _channel_token(text: str, name: str) -> Optional[str]:
     """Return the repeating-block key for an object, e.g. 'C', 'O', 'T', or None (general)."""
     m = _CH_TOKEN_RE.search(text or "")
     if m:
-        return re.match(r"([A-Za-z]{1,3})", m.group(1)).group(1)
+        return m.group(1)
     m = re.search(r"\bch\[(\d+)\]", name or "")   # internal 'oX.ch[0].y' form
     return "ch" if m else None
 
@@ -169,7 +169,9 @@ def _parse_comobjects(xml_text: str) -> list[dict[str, Any]]:
 
 def _detect_blocks(objs: list[dict[str, Any]]) -> dict[str, Any]:
     """Best-effort per-channel block/stride + general/[LF] split from object names."""
-    general, lf, chan = [], [], {}
+    general: list = []
+    lf: list = []
+    chan: dict[str, Any] = {}
     for o in objs:
         text = o["name"] or ""
         if _LF_RE.match(text):
@@ -301,9 +303,9 @@ def parse_project(path: str, password: Optional[str] = None) -> dict[str, Any]:
                     continue
                 if app_path not in app_cache:
                     xml_text = safe_read(z, app_path, pwd).decode("utf-8", "replace")
-                    ver = _APPVER_RE.search(xml_text[:8000])
+                    verm = _APPVER_RE.search(xml_text[:8000])
                     app_cache[app_path] = (_parse_comobjects(xml_text),
-                                           ver.group(1) if ver else None)
+                                           verm.group(1) if verm else None)
                 objs, ver = app_cache[app_path]
                 bd = _detect_blocks(objs)
                 no_dpt = sum(1 for o in objs if o["dpt"] is None)

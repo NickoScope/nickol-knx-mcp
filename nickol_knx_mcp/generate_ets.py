@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import csv
 import io
-from typing import Any, Optional
+from typing import Any
 from xml.sax.saxutils import escape
 
 from .project import LoadedProject

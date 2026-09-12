@@ -240,7 +240,7 @@ def _classify_channel(project: dict[str, Any], links: list[_Link], chan_name: st
             return None
         evidence.append("object_text")
         cur = t_cur_src[0]
-        knx: dict[str, Any] = {"ga_temperature_current": _ga_conf(cur, "state")}; used.add(cur.ga)
+        knx = {"ga_temperature_current": _ga_conf(cur, "state")}; used.add(cur.ga)
         if cur.role == "sink":
             review.append("measured temperature taken from the thermostat's external-sensor INPUT object")
         if sp_cmd:

@@ -43,3 +43,18 @@ packages = ["nickol_knx_mcp"]
 
 [tool.setuptools.package-data]
 nickol_knx_mcp = ["room_templates/*.yaml", "room_templates/*.md"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 110
+
+[tool.ruff.lint]
+# Deliberately narrow: real errors, not style. E9 = syntax/IO errors, F = pyflakes
+# (undefined names, unused imports, broken f-strings). Style rules are left off so the
+# gate stays meaningful instead of noisy.
+select = ["E9", "F"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+files = ["nickol_knx_mcp"]

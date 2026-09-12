@@ -5,7 +5,7 @@ group addresses are named "GA x/y/z" — NO semantics in names — and there are
 functional blocks. A structure-first provider must still produce the same configs
 the FB provider produces from DPAs, purely from device channels + object flags + DPTs.
 """
-from nickol_knx_mcp.suggest import suggest_entities, FB_COVERED
+from nickol_knx_mcp.suggest import suggest_entities
 
 SW, PCT, CT, RGB, UPD, STEP, STOP, TEMP, MODE = ({"main": 1, "sub": 1}, {"main": 5, "sub": 1},
     {"main": 7, "sub": 600}, {"main": 232, "sub": 600}, {"main": 1, "sub": 8},

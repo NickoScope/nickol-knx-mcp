@@ -3,7 +3,6 @@ zip-bomb (tiny archive -> gigabytes) and an XML billion-laughs/XXE payload are
 in scope. These tests build hostile fixtures in a temp dir and assert each is
 refused, while an honest small archive/XML still parses.
 """
-import io
 import os
 import tempfile
 import zipfile

@@ -14,7 +14,6 @@ from typing import Any, Optional
 
 from .project import LoadedProject
 from .analyze import detect_missing_status, detect_dpt_issues, _expected_subdpt
-from .intent import INTENT_FUNCTIONAL
 
 
 # command DPT main -> the status/feedback DPT to synthesise for it
@@ -125,11 +124,11 @@ def suggest_repairs(project: LoadedProject) -> dict[str, Any]:
         if f["code"] != "missing_status_address":
             continue
         addr = f["address"]
-        ga = project.gas.get(addr)
-        if ga is None:
+        sga = project.gas.get(addr)
+        if sga is None:
             continue
-        sdpt = _STATUS_DPT.get(ga.dpt_main, "1.011")
-        new = _next_free(used, ga.main if ga.main is not None else 1, prefer_middle=4)
+        sdpt = _STATUS_DPT.get(sga.dpt_main, "1.011") if sga.dpt_main is not None else "1.011"
+        new = _next_free(used, sga.main if sga.main is not None else 1, prefer_middle=4)
         proposals.append({
             "code": "missing_status", "action": "add_ga", "address": new, "for": addr,
             "name": f"{ga.name}{_suffix(ga.name, ' (статус)', ' (status)')}", "dpt": sdpt,

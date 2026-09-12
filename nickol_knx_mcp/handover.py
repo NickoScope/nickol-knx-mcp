@@ -88,12 +88,13 @@ def _feedback_coverage(project: LoadedProject,
     total = len(commands)
     with_status = max(total - gaps, 0)
     pct = round(100 * with_status / total) if total else 0
-    return {
+    summary: dict[str, Any] = {
         "commands": total, "with_status": with_status, "missing": gaps,
         "pct": pct,
         "formula": f"{with_status} / {total} functional command GAs have a status = {pct}%"
                    if total else "no functional command GAs — coverage undefined",
     }
+    return summary
 
 
 # --------------------------------------------------------------------------- #

@@ -34,7 +34,7 @@ def generate_knx_iot_turtle(project: LoadedProject) -> str:
         "# Pragmatic skeleton (datapoint per functional group address), NOT the full",
         "# certified KNX IoT ontology. Review before use.",
         "",
-        f'proj:project a knx:Installation ;',
+        'proj:project a knx:Installation ;',
         f'  rdfs:label "{_esc(project.info.get("name","KNX project"))}" ;',
         f'  knx:groupAddressStyle "{_esc(project.info.get("group_address_style","ThreeLevel"))}" .',
         "",
