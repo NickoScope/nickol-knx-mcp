@@ -1,6 +1,6 @@
 # nickol-knx-mcp
 
-<!-- mcp-name: io.github.nickoscope/nickol-knx-mcp -->
+<!-- mcp-name: io.github.NickoScope/nickol-knx-mcp -->
 
 **A design-time KNX / ETS6 assistant exposed as an [MCP](https://modelcontextprotocol.io) server.**
 

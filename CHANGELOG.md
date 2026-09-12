@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-12
+
+### Added
+
+- **Published to PyPI and prepared for the official MCP Registry.** `server.json` (schema 2025-12-11,
+  `registryType: pypi`, server name `io.github.NickoScope/nickol-knx-mcp`) plus the `mcp-name` ownership
+  marker in the README, which the registry reads from the published PyPI description. 0.8.0 carried the
+  marker in the wrong case, which the registry rejects, hence this release.
+
 ### Added
 
 - **Official MCP Registry preparation**: `server.json` (schema 2025-12-11, `registryType: pypi`,
