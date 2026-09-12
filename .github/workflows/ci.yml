@@ -52,6 +52,9 @@ jobs:
       - name: Structure-first entity suggestions (HA SuggestionProvider prototype)
         run: python tests/test_suggest.py
 
+      - name: Stable ordering + cursor paging for large tool results
+        run: python tests/test_paging.py
+
       - name: Console script is installed
         run: |
           python -c "import importlib.metadata as m; print('entry points:', [e.name for e in m.entry_points(group='console_scripts') if e.name == 'nickol-knx-mcp'])"

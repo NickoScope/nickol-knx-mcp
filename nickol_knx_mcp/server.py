@@ -55,6 +55,29 @@ def _project() -> LoadedProject:
     return p
 
 
+def _ga_sort_key(address: str) -> tuple:
+    """Stable ordering for group addresses across styles.
+
+    ThreeLevel "1/2/3" and TwoLevel "1/2" sort numerically per part; free-style "1234"
+    sorts numerically; anything unparseable sorts last, lexically. Two group addresses
+    never compare equal unless they are the same address, so a cursor is unambiguous.
+    """
+    parts = (address or "").split("/")
+    try:
+        nums = tuple(int(p) for p in parts)
+        return (0, len(nums), nums, address or "")
+    except ValueError:
+        return (1, 0, (), address or "")
+
+
+def _ia_sort_key(address: str) -> tuple:
+    """Stable ordering for individual addresses "area.line.device"."""
+    try:
+        return (0, tuple(int(p) for p in (address or "").split(".")), address or "")
+    except ValueError:
+        return (1, (), address or "")
+
+
 def _safe_write(rel_or_abs_path: str, content: str) -> str:
     """Write inside the workspace only. Returns the absolute path written."""
     _WORKSPACE.mkdir(parents=True, exist_ok=True)
@@ -107,43 +130,72 @@ def load_project(path: str, password: Optional[str] = None,
 def list_group_addresses(category: Optional[str] = None,
                          kind: Optional[str] = None,
                          missing_dpt_only: bool = False,
-                         limit: int = 500) -> list[dict[str, Any]]:
-    """List parsed group addresses with classification.
+                         limit: int = 500,
+                         cursor: Optional[str] = None) -> dict[str, Any]:
+    """List parsed group addresses with classification, in a **stable order**.
 
     Filters: category (lighting/shutter/hvac/sensor/scene/energy/diagnostics),
     kind (command/status/sensor), missing_dpt_only.
+
+    Paging: results are always sorted by the group address itself (main/middle/sub
+    numerically, free-style addresses numerically, anything else lexically), so the
+    order does not depend on how the project happened to parse and a retry returns
+    the same page. Pass the returned `next_cursor` back as `cursor` for the next
+    page; `next_cursor` is null on the last page. `total_matched` reports how many
+    addresses match the filters, so a truncated answer is never silent.
     """
     proj = _project()
-    out = []
-    for ga in proj.gas.values():
-        if category and ga.category != category:
-            continue
-        if kind and ga.kind != kind:
-            continue
-        if missing_dpt_only and ga.dpt_main is not None:
-            continue
-        out.append({
+    rows = [ga for ga in proj.gas.values()
+            if not (category and ga.category != category)
+            and not (kind and ga.kind != kind)
+            and not (missing_dpt_only and ga.dpt_main is not None)]
+    rows.sort(key=lambda ga: _ga_sort_key(ga.address))
+    total = len(rows)
+    start = 0
+    if cursor:
+        ck = _ga_sort_key(cursor)
+        start = next((i for i, ga in enumerate(rows) if _ga_sort_key(ga.address) > ck), total)
+    page = rows[start:start + max(1, limit)]
+    return {
+        "group_addresses": [{
             "address": ga.address, "name": ga.name, "dpt": ga.dpt,
             "category": ga.category, "kind": ga.kind, "intent": ga.intent,
             "ha_platform": ga.ha_platform, "secure": ga.data_secure,
             "description": ga.description,
-        })
-        if len(out) >= limit:
-            break
-    return out
+        } for ga in page],
+        "total_matched": total,
+        "returned": len(page),
+        "next_cursor": page[-1].address if start + len(page) < total else None,
+    }
 
 
 @mcp.tool()
-def get_devices() -> list[dict[str, Any]]:
-    """List devices: individual address, name, order number, manufacturer."""
+def get_devices(limit: int = 500, cursor: Optional[str] = None) -> dict[str, Any]:
+    """List devices (individual address, name, order number, manufacturer), sorted by
+    individual address (area/line/device numerically). Same paging contract as
+    `list_group_addresses`: `next_cursor` / `total_matched` / `returned`."""
     proj = _project()
-    return [{
-        "individual_address": d.get("individual_address"),
-        "name": d.get("name"),
-        "order_number": d.get("order_number"),
-        "manufacturer": d.get("manufacturer_name"),
-        "communication_objects": len(d.get("communication_object_ids", []) or []),
-    } for d in proj.devices.values()]
+    devs = sorted(proj.devices.values(),
+                  key=lambda d: _ia_sort_key(d.get("individual_address") or ""))
+    total = len(devs)
+    start = 0
+    if cursor:
+        ck = _ia_sort_key(cursor)
+        start = next((i for i, d in enumerate(devs)
+                      if _ia_sort_key(d.get("individual_address") or "") > ck), total)
+    page = devs[start:start + max(1, limit)]
+    return {
+        "devices": [{
+            "individual_address": d.get("individual_address"),
+            "name": d.get("name"),
+            "order_number": d.get("order_number"),
+            "manufacturer": d.get("manufacturer_name"),
+            "communication_objects": len(d.get("communication_object_ids", []) or []),
+        } for d in page],
+        "total_matched": total,
+        "returned": len(page),
+        "next_cursor": (page[-1].get("individual_address") if start + len(page) < total else None),
+    }
 
 
 @mcp.tool()
