@@ -32,6 +32,16 @@ uvx twine check dist/*
 
 Both artifacts must say PASSED.
 
+Run the local corpus guard before the build — it is the only check that sees real ETS projects:
+
+```bash
+python tools/corpus_check.py
+```
+
+It must exit 0. If it reports drift, either the change is a regression, or the new numbers are
+intended and `tools/corpus_check.py --update` belongs in a commit of its own before the release.
+Do not release on unexplained drift.
+
 ## 3. Upload to PyPI (owner, needs the API token)
 
 ```bash

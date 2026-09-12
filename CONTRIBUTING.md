@@ -61,6 +61,31 @@ python tests/test_pipeline.py
 
 CI runs the smoke test on Python 3.10–3.12 for every push and PR.
 
+### Local corpus guard
+
+Public CI only sees the synthetic fixtures in `tests/`. Most real regressions show up on real
+ETS projects, which are confidential and never leave the maintainer's machine. `tools/corpus_check.py`
+closes that gap locally: it runs every project of a private corpus through the full pipeline
+(parse -> checks -> HA YAML -> entity suggestions) and compares the resulting counts against a
+recorded baseline.
+
+```bash
+cp tools/corpus_map.example.json tools/corpus_map.json   # once: point it at local .knxproj files
+python tools/corpus_check.py              # exits 1 and prints every metric that moved
+python tools/corpus_check.py --tolerance 2  # allow 2% drift per metric
+python tools/corpus_check.py --update       # re-record the baseline after an intended change
+```
+
+`tools/corpus_map.json` is gitignored, because real project paths carry client names. The corpus
+root defaults to a sibling `demo-home-for-friend/` directory and can be overridden with
+`NICKOL_KNX_CORPUS_DIR`. Without a map the script exits 2 and does nothing.
+
+`tools/corpus_baseline.json` is committed, but it holds numbers only: counts, severity and code
+histograms, and a short digest of each source file. No project names, no paths, no addresses.
+The corpus itself stays out of the repository. Contributors without the corpus can skip this
+step; the maintainer runs it before every release, and `--update` belongs in the same commit as
+the change that moved the numbers, so the diff shows what moved and why.
+
 ## Code of conduct
 
 Be kind and constructive. This is a hobby/community project; assume good faith.

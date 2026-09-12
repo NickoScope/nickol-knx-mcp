@@ -1,0 +1,17 @@
+{
+  "_comment": "Copy to corpus_map.json and point each path at a real .knxproj. corpus_map.json is gitignored: paths and client names never enter the repo. Labels are what the baseline stores, so keep them neutral.",
+  "projects": [
+    {
+      "label": "vendor-a-large",
+      "path": "some-folder/big-project.knxproj"
+    },
+    {
+      "label": "vendor-b-flat",
+      "path": "some-folder/flat.knxproj"
+    },
+    {
+      "label": "demo",
+      "path": "demo-home/demo-home.knxproj"
+    }
+  ]
+}

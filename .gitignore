@@ -30,3 +30,6 @@ knx-workspace/
 .idea/
 .vscode/
 *.swp
+
+# local corpus map: real project paths, never committed
+tools/corpus_map.json

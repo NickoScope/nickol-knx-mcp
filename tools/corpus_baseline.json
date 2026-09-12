@@ -1,0 +1,357 @@
+{
+  "projects": {
+    "demo": {
+      "categories": {
+        "diagnostics": 5,
+        "energy": 4,
+        "hvac": 78,
+        "lighting": 91,
+        "scene": 4,
+        "sensor": 30,
+        "shutter": 24,
+        "unknown": 2
+      },
+      "devices": 0,
+      "file_digest": "77273cacf3f9",
+      "findings_by_code": {
+        "central_macro_no_status": 2,
+        "duplicate_name": 1,
+        "inconsistent_dpt": 1,
+        "missing_dpt": 1,
+        "missing_status_address": 2,
+        "missing_value_status": 2,
+        "scene_no_status": 4,
+        "subdpt_suspect": 1
+      },
+      "findings_by_severity": {
+        "error": 1,
+        "info": 6,
+        "warning": 7
+      },
+      "group_addresses": 238,
+      "ha_entities": {
+        "binary_sensor": 13,
+        "climate": 6,
+        "cover": 6,
+        "light": 12,
+        "sensor": 41,
+        "switch": 19
+      },
+      "ha_review_items": 57,
+      "suggestion_hints": {
+        "channels": 0,
+        "diagnostics_skipped": 0,
+        "duplicates_skipped": 0,
+        "fallback": 0,
+        "pseudo_channels": 0,
+        "review": 0,
+        "sensors": 0,
+        "skipped_fb_covered": 0,
+        "structural": 0,
+        "subunits": 0,
+        "unwired_flagged": 0
+      },
+      "suggestions_by_platform": {}
+    },
+    "hdl-ets6": {
+      "categories": {
+        "diagnostics": 5,
+        "hvac": 206,
+        "lighting": 425,
+        "sensor": 34,
+        "shutter": 135,
+        "unknown": 54
+      },
+      "devices": 53,
+      "file_digest": "a360d74c65ef",
+      "findings_by_code": {
+        "duplicate_name": 156,
+        "inconsistent_dpt": 15,
+        "line_without_coupler": 1,
+        "missing_dpt": 107,
+        "missing_status_address": 92,
+        "missing_value_status": 264,
+        "name_too_short": 1,
+        "relative_only_dimming": 20,
+        "reserve_without_dpt": 81,
+        "status_pairing_summary": 1
+      },
+      "findings_by_severity": {
+        "error": 107,
+        "info": 83,
+        "warning": 548
+      },
+      "group_addresses": 859,
+      "ha_entities": {
+        "binary_sensor": 66,
+        "climate": 3,
+        "cover": 1,
+        "expose": 1,
+        "light": 142,
+        "sensor": 55,
+        "switch": 85
+      },
+      "ha_review_items": 408,
+      "suggestion_hints": {
+        "channels": 229,
+        "diagnostics_skipped": 2,
+        "duplicates_skipped": 4,
+        "fallback": 0,
+        "pseudo_channels": 151,
+        "review": 41,
+        "sensors": 37,
+        "skipped_fb_covered": 0,
+        "structural": 80,
+        "subunits": 0,
+        "unwired_flagged": 29
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 14,
+        "light": 79,
+        "sensor": 23,
+        "switch": 1
+      }
+    },
+    "mixed-small": {
+      "categories": {
+        "hvac": 58,
+        "lighting": 95,
+        "sensor": 2,
+        "unknown": 12
+      },
+      "devices": 14,
+      "file_digest": "bfaf0f366105",
+      "findings_by_code": {
+        "central_macro_no_status": 5,
+        "line_without_coupler": 1,
+        "missing_dpt": 21,
+        "missing_status_address": 4,
+        "missing_value_status": 2,
+        "status_pairing_summary": 1
+      },
+      "findings_by_severity": {
+        "error": 21,
+        "info": 7,
+        "warning": 6
+      },
+      "group_addresses": 167,
+      "ha_entities": {
+        "expose": 1,
+        "light": 12,
+        "sensor": 19,
+        "switch": 20
+      },
+      "ha_review_items": 69,
+      "suggestion_hints": {
+        "channels": 52,
+        "diagnostics_skipped": 0,
+        "duplicates_skipped": 0,
+        "fallback": 0,
+        "pseudo_channels": 23,
+        "review": 7,
+        "sensors": 23,
+        "skipped_fb_covered": 0,
+        "structural": 7,
+        "subunits": 0,
+        "unwired_flagged": 1
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 8,
+        "climate": 6,
+        "light": 1,
+        "sensor": 15
+      }
+    },
+    "zennio-flat": {
+      "categories": {
+        "diagnostics": 47,
+        "energy": 39,
+        "hvac": 201,
+        "lighting": 179,
+        "scene": 4,
+        "sensor": 70,
+        "shutter": 49,
+        "unknown": 96
+      },
+      "devices": 41,
+      "file_digest": "d980991b0f9e",
+      "findings_by_code": {
+        "central_macro_no_status": 1,
+        "dpt_mismatch_co": 11,
+        "dpt_on_logic_object": 1,
+        "duplicate_name": 6,
+        "inconsistent_dpt": 2,
+        "line_without_coupler": 1,
+        "missing_dpt": 6,
+        "missing_status_address": 11,
+        "missing_value_status": 16,
+        "reserve_without_dpt": 23,
+        "safety_input_no_status": 22,
+        "status_pairing_summary": 1,
+        "subdpt_suspect": 7
+      },
+      "findings_by_severity": {
+        "error": 6,
+        "info": 49,
+        "warning": 53
+      },
+      "group_addresses": 685,
+      "ha_entities": {
+        "binary_sensor": 49,
+        "climate": 7,
+        "cover": 7,
+        "expose": 1,
+        "light": 15,
+        "sensor": 111,
+        "switch": 141
+      },
+      "ha_review_items": 324,
+      "suggestion_hints": {
+        "channels": 179,
+        "diagnostics_skipped": 21,
+        "duplicates_skipped": 4,
+        "fallback": 0,
+        "pseudo_channels": 6,
+        "review": 57,
+        "sensors": 70,
+        "skipped_fb_covered": 0,
+        "structural": 79,
+        "subunits": 71,
+        "unwired_flagged": 0
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 35,
+        "climate": 13,
+        "cover": 4,
+        "light": 56,
+        "sensor": 35,
+        "switch": 6
+      }
+    },
+    "zennio-large": {
+      "categories": {
+        "diagnostics": 150,
+        "energy": 1,
+        "hvac": 802,
+        "lighting": 1748,
+        "scene": 2,
+        "sensor": 225,
+        "shutter": 357,
+        "unknown": 361
+      },
+      "devices": 275,
+      "file_digest": "d305fb55d52e",
+      "findings_by_code": {
+        "central_macro_no_status": 26,
+        "dpt_mismatch_co": 2,
+        "dpt_on_logic_object": 3,
+        "duplicate_name": 25,
+        "line_without_coupler": 1,
+        "missing_dpt": 32,
+        "missing_status_address": 58,
+        "missing_value_status": 76,
+        "reserve_without_dpt": 169,
+        "safety_input_no_status": 47,
+        "scene_no_status": 2,
+        "status_pairing_summary": 1,
+        "subdpt_suspect": 1,
+        "topology_segment_limit": 1
+      },
+      "findings_by_severity": {
+        "error": 32,
+        "info": 250,
+        "warning": 162
+      },
+      "group_addresses": 3646,
+      "ha_entities": {
+        "binary_sensor": 89,
+        "climate": 23,
+        "cover": 40,
+        "expose": 1,
+        "light": 250,
+        "sensor": 343,
+        "switch": 524
+      },
+      "ha_review_items": 1545,
+      "suggestion_hints": {
+        "channels": 983,
+        "diagnostics_skipped": 53,
+        "duplicates_skipped": 157,
+        "fallback": 0,
+        "pseudo_channels": 328,
+        "review": 220,
+        "sensors": 367,
+        "skipped_fb_covered": 0,
+        "structural": 513,
+        "subunits": 309,
+        "unwired_flagged": 20
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 254,
+        "climate": 28,
+        "cover": 92,
+        "light": 356,
+        "sensor": 113,
+        "switch": 37
+      }
+    },
+    "shutters-medium": {
+      "categories": {
+        "diagnostics": 9,
+        "hvac": 162,
+        "lighting": 93,
+        "sensor": 9,
+        "shutter": 36,
+        "unknown": 40
+      },
+      "devices": 34,
+      "file_digest": "8ed1f5a53c9c",
+      "findings_by_code": {
+        "central_macro_no_status": 2,
+        "dpt_mismatch_co": 1,
+        "duplicate_name": 55,
+        "inconsistent_dpt": 2,
+        "missing_dpt": 42,
+        "missing_status_address": 64,
+        "missing_value_status": 2,
+        "relative_only_dimming": 4,
+        "status_pairing_summary": 1
+      },
+      "findings_by_severity": {
+        "error": 42,
+        "info": 3,
+        "warning": 128
+      },
+      "group_addresses": 349,
+      "ha_entities": {
+        "binary_sensor": 5,
+        "cover": 8,
+        "expose": 1,
+        "light": 1,
+        "sensor": 87,
+        "switch": 58
+      },
+      "ha_review_items": 233,
+      "suggestion_hints": {
+        "channels": 135,
+        "diagnostics_skipped": 8,
+        "duplicates_skipped": 4,
+        "fallback": 0,
+        "pseudo_channels": 106,
+        "review": 61,
+        "sensors": 38,
+        "skipped_fb_covered": 0,
+        "structural": 65,
+        "subunits": 0,
+        "unwired_flagged": 2
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 13,
+        "climate": 2,
+        "cover": 4,
+        "light": 59,
+        "sensor": 25
+      }
+    }
+  }
+}
