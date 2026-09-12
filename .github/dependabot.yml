@@ -10,6 +10,12 @@ updates:
     groups:
       python-deps:
         patterns: ["*"]
+    ignore:
+      # mcp 2.x removed mcp.server.fastmcp (FastMCP -> MCPServer). Verified against
+      # mcp 2.2.0: the import raises ModuleNotFoundError. Major bumps stay out until
+      # the server is ported; minor and patch updates still come through.
+      - dependency-name: mcp
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: deps
 
