@@ -19,14 +19,14 @@
         "inconsistent_dpt": 1,
         "missing_dpt": 1,
         "missing_status_address": 2,
-        "missing_value_status": 2,
+        "missing_value_status": 1,
         "scene_no_status": 4,
         "subdpt_suspect": 1
       },
       "findings_by_severity": {
         "error": 1,
         "info": 6,
-        "warning": 7
+        "warning": 6
       },
       "group_addresses": 238,
       "ha_entities": {
@@ -70,7 +70,7 @@
         "line_without_coupler": 1,
         "missing_dpt": 107,
         "missing_status_address": 92,
-        "missing_value_status": 264,
+        "missing_value_status": 132,
         "name_too_short": 1,
         "relative_only_dimming": 20,
         "reserve_without_dpt": 81,
@@ -79,7 +79,7 @@
       "findings_by_severity": {
         "error": 107,
         "info": 83,
-        "warning": 548
+        "warning": 416
       },
       "group_addresses": 859,
       "ha_entities": {
@@ -126,13 +126,13 @@
         "line_without_coupler": 1,
         "missing_dpt": 21,
         "missing_status_address": 4,
-        "missing_value_status": 2,
+        "missing_value_status": 1,
         "status_pairing_summary": 1
       },
       "findings_by_severity": {
         "error": 21,
         "info": 7,
-        "warning": 6
+        "warning": 5
       },
       "group_addresses": 167,
       "ha_entities": {
@@ -162,6 +162,64 @@
         "sensor": 15
       }
     },
+    "shutters-medium": {
+      "categories": {
+        "diagnostics": 9,
+        "hvac": 162,
+        "lighting": 93,
+        "sensor": 9,
+        "shutter": 36,
+        "unknown": 40
+      },
+      "devices": 34,
+      "file_digest": "8ed1f5a53c9c",
+      "findings_by_code": {
+        "central_macro_no_status": 2,
+        "dpt_mismatch_co": 1,
+        "duplicate_name": 55,
+        "inconsistent_dpt": 2,
+        "missing_dpt": 42,
+        "missing_status_address": 64,
+        "missing_value_status": 1,
+        "relative_only_dimming": 4,
+        "status_pairing_summary": 1
+      },
+      "findings_by_severity": {
+        "error": 42,
+        "info": 3,
+        "warning": 127
+      },
+      "group_addresses": 349,
+      "ha_entities": {
+        "binary_sensor": 5,
+        "cover": 8,
+        "expose": 1,
+        "light": 1,
+        "sensor": 87,
+        "switch": 58
+      },
+      "ha_review_items": 233,
+      "suggestion_hints": {
+        "channels": 135,
+        "diagnostics_skipped": 8,
+        "duplicates_skipped": 4,
+        "fallback": 0,
+        "pseudo_channels": 106,
+        "review": 61,
+        "sensors": 38,
+        "skipped_fb_covered": 0,
+        "structural": 65,
+        "subunits": 0,
+        "unwired_flagged": 2
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 13,
+        "climate": 2,
+        "cover": 4,
+        "light": 59,
+        "sensor": 25
+      }
+    },
     "zennio-flat": {
       "categories": {
         "diagnostics": 47,
@@ -184,7 +242,7 @@
         "line_without_coupler": 1,
         "missing_dpt": 6,
         "missing_status_address": 11,
-        "missing_value_status": 16,
+        "missing_value_status": 8,
         "reserve_without_dpt": 23,
         "safety_input_no_status": 22,
         "status_pairing_summary": 1,
@@ -193,7 +251,7 @@
       "findings_by_severity": {
         "error": 6,
         "info": 49,
-        "warning": 53
+        "warning": 45
       },
       "group_addresses": 685,
       "ha_entities": {
@@ -249,7 +307,7 @@
         "line_without_coupler": 1,
         "missing_dpt": 32,
         "missing_status_address": 58,
-        "missing_value_status": 76,
+        "missing_value_status": 38,
         "reserve_without_dpt": 169,
         "safety_input_no_status": 47,
         "scene_no_status": 2,
@@ -260,7 +318,7 @@
       "findings_by_severity": {
         "error": 32,
         "info": 250,
-        "warning": 162
+        "warning": 124
       },
       "group_addresses": 3646,
       "ha_entities": {
@@ -293,64 +351,6 @@
         "light": 356,
         "sensor": 113,
         "switch": 37
-      }
-    },
-    "shutters-medium": {
-      "categories": {
-        "diagnostics": 9,
-        "hvac": 162,
-        "lighting": 93,
-        "sensor": 9,
-        "shutter": 36,
-        "unknown": 40
-      },
-      "devices": 34,
-      "file_digest": "8ed1f5a53c9c",
-      "findings_by_code": {
-        "central_macro_no_status": 2,
-        "dpt_mismatch_co": 1,
-        "duplicate_name": 55,
-        "inconsistent_dpt": 2,
-        "missing_dpt": 42,
-        "missing_status_address": 64,
-        "missing_value_status": 2,
-        "relative_only_dimming": 4,
-        "status_pairing_summary": 1
-      },
-      "findings_by_severity": {
-        "error": 42,
-        "info": 3,
-        "warning": 128
-      },
-      "group_addresses": 349,
-      "ha_entities": {
-        "binary_sensor": 5,
-        "cover": 8,
-        "expose": 1,
-        "light": 1,
-        "sensor": 87,
-        "switch": 58
-      },
-      "ha_review_items": 233,
-      "suggestion_hints": {
-        "channels": 135,
-        "diagnostics_skipped": 8,
-        "duplicates_skipped": 4,
-        "fallback": 0,
-        "pseudo_channels": 106,
-        "review": 61,
-        "sensors": 38,
-        "skipped_fb_covered": 0,
-        "structural": 65,
-        "subunits": 0,
-        "unwired_flagged": 2
-      },
-      "suggestions_by_platform": {
-        "binary_sensor": 13,
-        "climate": 2,
-        "cover": 4,
-        "light": 59,
-        "sensor": 25
       }
     }
   }

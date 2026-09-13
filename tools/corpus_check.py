@@ -31,7 +31,7 @@ from xknxproject import XKNXProj
 
 from nickol_knx_mcp.project import build_loaded_from_raw
 from nickol_knx_mcp.analyze import (validate_naming, detect_missing_status, detect_dpt_issues,
-                                    detect_topology_issues, detect_role_completeness)
+                                    detect_topology_issues)
 from nickol_knx_mcp.generate_ha import generate_ha_yaml
 from nickol_knx_mcp.suggest import suggest_entities
 
@@ -65,8 +65,10 @@ def _metrics(path: Path) -> dict[str, Any]:
     proj = build_loaded_from_raw(raw, str(path))
 
     findings: list[dict[str, Any]] = []
+    # detect_missing_status already includes detect_role_completeness; calling both
+    # counted every missing_value_status finding twice.
     for check in (validate_naming, detect_missing_status, detect_dpt_issues,
-                  detect_topology_issues, detect_role_completeness):
+                  detect_topology_issues):
         findings.extend(check(proj) or [])
     sev: dict[str, int] = {}
     codes: dict[str, int] = {}
