@@ -17,6 +17,7 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 
 from .project import load_project as load_project_file, LoadedProject
+from .ga_export import load_ga_export as load_ga_export_file
 from .analyze import (validate_naming, detect_missing_status, detect_dpt_issues,
                       detect_topology_issues, secure_posture)
 from .generate_ha import generate_ha_yaml
@@ -125,6 +126,41 @@ def load_project(path: str, password: Optional[str] = None,
                      f"{FEEDBACK_URL} (anonymised is fine)."),
     }
 
+
+@mcp.tool()
+def load_ga_export(path: str) -> dict[str, Any]:
+    """Load an ETS group-address export (ga-export/01 XML) instead of a full .knxproj.
+
+    For when you only have the GA list: an ETS "Export Group Addresses" file, or the
+    ETS import file a planning tool produces (TapPlan and similar). Names, addresses,
+    DPTs, descriptions, the security flag and the range tree are read; the result
+    replaces the loaded project for every other tool.
+
+    Works: check_naming, check_missing_status, check_dpt, check_policy, check_secure,
+    analyze_all, suggest_repairs, project_report, generate_ha_package,
+    generate_ets_group_addresses. Nothing to read (the export has no devices, ETS
+    Functions or topology): get_devices, get_topology, check_topology,
+    decompose_device, check_device_parameters, parse_devices_from_project. Pairing
+    relies on names only, since there are no ETS Function roles.
+
+    Args:
+        path: Path to the exported .xml file.
+    """
+    proj = load_ga_export_file(path)
+    _STATE["project"] = proj
+    with_dpt = sum(1 for g in proj.gas.values() if g.dpt_main is not None)
+    return {
+        "loaded": True,
+        "source": "ga-export",
+        "name": proj.info.get("name"),
+        "ga_style": proj.style,
+        "group_addresses": len(proj.gas),
+        "with_dpt": with_dpt,
+        "devices": 0,
+        "import_warnings": proj.info.get("import_warnings", []),
+        "note": ("GA-only project: device, function and topology tools have nothing to read; "
+                 "command/status pairing uses names only."),
+    }
 
 @mcp.tool()
 def list_group_addresses(category: Optional[str] = None,

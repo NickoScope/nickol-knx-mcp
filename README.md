@@ -275,6 +275,7 @@ keyring handling, and the recommended workflow).
 | Tool | Purpose |
 |------|---------|
 | `load_project(path, password?, language?)` | parse a `.knxproj` (read-only) and cache it |
+| `load_ga_export(path)` | load an ETS group-address export (ga-export/01 XML, e.g. from ETS or TapPlan) as a project without devices |
 | `list_group_addresses(category?, kind?)` | list GAs with classification and filters |
 | `get_devices()` | devices + their communication objects |
 | `get_topology()` | topology (areas / lines / devices) |
@@ -384,7 +385,7 @@ nickol-knx-mcp/
 │   ├── report.py         # Markdown report
 │   ├── room_library.py   # Room Library R1 — compose a new project from templates
 │   ├── room_templates/   # built-in room YAML templates + SCHEMA.md (public contract)
-│   └── server.py         # FastMCP server, 31 tools, confined writes
+│   └── server.py         # FastMCP server, 32 tools, confined writes
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── skills/

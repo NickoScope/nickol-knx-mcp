@@ -131,7 +131,7 @@ def suggest_repairs(project: LoadedProject) -> dict[str, Any]:
         new = _next_free(used, sga.main if sga.main is not None else 1, prefer_middle=4)
         proposals.append({
             "code": "missing_status", "action": "add_ga", "address": new, "for": addr,
-            "name": f"{ga.name}{_suffix(ga.name, ' (статус)', ' (status)')}", "dpt": sdpt,
+            "name": f"{sga.name}{_suffix(sga.name, ' (статус)', ' (status)')}", "dpt": sdpt,
             "rationale": "status/feedback GA so Home Assistant reads real state",
         })
 

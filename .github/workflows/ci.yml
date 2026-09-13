@@ -76,6 +76,42 @@ jobs:
       - name: Stable ordering + cursor paging for large tool results
         run: python tests/test_paging.py
 
+      - name: GA-export intake, entity naming, climate setpoint shift
+        run: python tests/test_ga_export.py
+
+      - name: Repair proposals and council-review fixes
+        run: python tests/test_council_fixes.py
+
+      - name: Domain classifier (name + DPT + range context)
+        run: python tests/test_domain_classifier.py
+
+      - name: explain_ga provenance
+        run: python tests/test_explain.py
+
+      - name: Aggregates carry their evidence
+        run: python tests/test_explainable_aggregates.py
+
+      - name: Device parameter checks
+        run: python tests/test_param_check.py
+
+      - name: Value-status completeness (brightness / position)
+        run: python tests/test_role_completeness.py
+
+      - name: Room template library
+        run: python tests/test_room_library.py
+
+      - name: Root-cause regressions
+        run: python tests/test_root_cause.py
+
+      - name: Hardened archive and XML parsing
+        run: python tests/test_safexml.py
+
+      - name: Theben reference projects
+        run: python tests/test_theben_corrections.py
+
+      - name: Topology limits
+        run: python tests/test_topology.py
+
       - name: Console script is installed
         run: |
           python -c "import importlib.metadata as m; print('entry points:', [e.name for e in m.entry_points(group='console_scripts') if e.name == 'nickol-knx-mcp'])"

@@ -164,6 +164,72 @@ def _has(name: str, words) -> bool:
     return any(w in low for w in words)
 
 
+# Setpoint shift (HA climate `setpoint_shift_address`, DPT 6.010 or 9.002). The DPT
+# alone is not enough — 9.002 is any temperature difference — so a shift needs the
+# word as well. German "Sollwertverschiebung", Russian "смещение/сдвиг уставки".
+_SHIFT_WORDS = ("shift", "verschieb", "смещ", "сдвиг")
+_SHIFT_MODE = {(9, 2): "DPT9002", (6, 10): "DPT6010"}
+
+
+def _is_shift(g: GARecord) -> bool:
+    return (g.dpt_main, g.dpt_sub) in _SHIFT_MODE and _has(g.name, _SHIFT_WORDS)
+
+
+_NAME_TRIM = " \t-–—:;,./|_"
+_NAME_SPLIT = "/-_.,()[]:;|–—"
+
+# Words that name what an address DOES, never which device it is. Only these may be
+# cut off the end of an entity name. Anything else — a room, "дверь", "А/С", "ТП",
+# a channel letter — is identity and stays.
+_NAME_FUNC_WORDS = frozenset(_FUNC_WORDS | _DIR_WORDS | {
+    "operation", "mode", "hvac", "absolute", "relative", "open", "close", "switch",
+    "switching", "b.value", "bewegen", "fahren", "wert", "helligkeit",
+    "режим", "абсолютное", "относительное", "димм", "открыть", "закрыть",
+    "управление", "команда",
+})
+
+
+def _name_words(text: str) -> list[str]:
+    low = text.lower().replace("b.value", " value ")
+    for ch in _NAME_SPLIT:
+        low = low.replace(ch, " ")
+    return [w for w in low.split() if w]
+
+
+def _entity_name(anchor: str, member_names: list[str]) -> str:
+    """Name a multi-GA entity after what its addresses share, not after one of them.
+
+    A light built from "Kitchen Spots On-Off", "Kitchen Spots B.Value" and their
+    feedbacks should be "Kitchen Spots", not whichever address anchored it. Takes the
+    longest common word prefix of the member names, and only accepts it when every
+    word cut from the anchor is a function word (value, brightness, up/down, mode,
+    Движение, Яркость…). If the names diverge earlier — a different room or device
+    word, a channel number — the anchor name is kept, which is exactly the behaviour
+    before this change. The candidate must still carry an identity token.
+    """
+    names = [n for n in member_names if n and n.strip()]
+    if len(names) < 2:
+        return anchor
+    norm = [[w.strip(_NAME_TRIM).lower() for w in n.split()] for n in names]
+    common = 0
+    for i in range(min(len(ws) for ws in norm)):
+        if len({ws[i] for ws in norm}) != 1:
+            break
+        common = i + 1
+    anchor_words = anchor.split()
+    if common == 0 or common >= len(anchor_words):
+        return anchor
+    if [w.strip(_NAME_TRIM).lower() for w in anchor_words[:common]] != norm[0][:common]:
+        return anchor
+    dropped = _name_words(" ".join(anchor_words[common:]))
+    if any(w not in _NAME_FUNC_WORDS for w in dropped):
+        return anchor
+    candidate = " ".join(anchor_words[:common]).strip(_NAME_TRIM)
+    if not candidate or not _pair_ident(candidate):
+        return anchor
+    return candidate
+
+
 def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     """Return {'yaml': str, 'review': [...], 'counts': {...}}."""
     status_gas = [g for g in project.gas.values() if _is_status_ga(g)]
@@ -454,6 +520,8 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         ctrl_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and g.kind == "command")
         ctrl_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and _is_status_ga(g))
         valve = _pick(lambda g: g.dpt_main == 5 and _is_status_ga(g))
+        shift_cmd = _pick(lambda g: _is_shift(g) and not _is_status_ga(g))
+        shift_state = _pick(lambda g: _is_shift(g) and _is_status_ga(g))
 
         if not (cur and tgt_state):
             review.append({"reason": "manual_climate", "address": ga.address,
@@ -478,7 +546,15 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             ent["controller_mode_state_address"] = ctrl_state.address
         if valve:
             ent["command_value_state_address"] = valve.address
-        for m in (cur, tgt_state, tgt_cmd, op_cmd, op_state, ctrl_cmd, ctrl_state, valve):
+        if shift_cmd:
+            ent["setpoint_shift_address"] = shift_cmd.address
+        if shift_state:
+            ent["setpoint_shift_state_address"] = shift_state.address
+        shift_ref = shift_cmd or shift_state
+        if shift_ref:
+            ent["setpoint_shift_mode"] = _SHIFT_MODE[(shift_ref.dpt_main, shift_ref.dpt_sub)]
+        for m in (cur, tgt_state, tgt_cmd, op_cmd, op_state, ctrl_cmd, ctrl_state, valve,
+                  shift_cmd, shift_state):
             if m:
                 consumed.add(m.address)
         climates.append(ent)
@@ -491,11 +567,20 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             issues.append("operation_mode has a command but no state address")
         if ctrl_cmd and not ctrl_state:
             issues.append("controller_mode has a command but no state address")
-        if not tgt_cmd:
-            issues.append("setpoint is read-only (no target_temperature command)")
-        note = ("set `controller_modes`/`operation_modes` explicitly — HA auto-detection is "
-                "often wrong; if this zone uses setpoint-shift, provide BOTH the command and "
-                "state addresses and set `setpoint_shift_mode`")
+        if not tgt_cmd and not shift_cmd:
+            issues.append("setpoint is read-only (no target_temperature or setpoint shift command)")
+        if shift_cmd and not shift_state:
+            issues.append("setpoint shift has a command but no state address")
+        if shift_state and not shift_cmd:
+            issues.append("setpoint shift has a state but no command address")
+        if shift_ref:
+            note = ("set `controller_modes`/`operation_modes` explicitly — HA auto-detection is "
+                    f"often wrong; setpoint shift mapped as {ent['setpoint_shift_mode']} from the "
+                    "DPT, check it matches the thermostat's parameter")
+        else:
+            note = ("set `controller_modes`/`operation_modes` explicitly — HA auto-detection is "
+                    "often wrong; if this zone uses setpoint-shift, provide BOTH the command and "
+                    "state addresses and set `setpoint_shift_mode`")
         if issues:
             note += " — " + "; ".join(issues)
         review.append({"reason": "verify_climate", "address": ga.address,
@@ -575,6 +660,27 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                        "note": "Home Assistant Areas cannot be set in KNX YAML (assign each "
                        "entity to an Area in the HA UI); and entity `name`s drive voice/Assist "
                        "matching — keep them descriptive and unique."})
+
+    # Multi-GA entities are named after what their addresses share (see _entity_name).
+    # Two entities that would end up with the same name keep their anchor names, so
+    # the rename never merges two things into one Home Assistant name.
+    multi = [e for group in (lights, covers, climates) for e in group]
+    proposed: dict[int, str] = {}
+    for e in multi:
+        members = [project.gas[v].name for k, v in e.items()
+                   if k.endswith("address") and isinstance(v, str) and v in project.gas]
+        proposed[id(e)] = _entity_name(e["name"], members)
+    taken: dict[str, int] = {}
+    for e in multi:
+        key = proposed[id(e)].lower()
+        taken[key] = taken.get(key, 0) + 1
+    for e in switches + sensors + binary_sensors:
+        key = (e.get("name") or "").lower()
+        taken[key] = taken.get(key, 0) + 1
+    for e in multi:
+        new = proposed[id(e)]
+        if new != e["name"] and taken[new.lower()] == 1:
+            e["name"] = new
 
     knx: dict[str, Any] = {}
     if switches:

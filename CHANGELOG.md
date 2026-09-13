@@ -6,7 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`load_ga_export(path)`: audit a group-address list without a `.knxproj`.** Reads an ETS
+  ga-export/01 XML (ETS "Export Group Addresses", or the import file a planning tool such as TapPlan
+  writes) into a project without devices: names, addresses, DPTs (`DPST-x-y`, `DPT-x`), descriptions,
+  the `Security` flag and the range tree. GA-level checks and both generators work on it; device,
+  Function and topology tools have nothing to read and say so. Parsed through the same hardened XML
+  reader as `.knxproj` members, size-capped at 50 MB. Invalid or duplicate addresses and unknown DPT
+  tokens are skipped with an entry in `import_warnings`, never silently.
+- **Climate: setpoint shift.** A DPT 9.002 or 6.010 group address whose name says shift
+  (shift / Sollwertverschiebung / смещение / сдвиг) in a climate zone now maps to
+  `setpoint_shift_address` / `setpoint_shift_state_address` with `setpoint_shift_mode` `DPT9002` or
+  `DPT6010` taken from the DPT (keys per the Home Assistant KNX climate docs). It used to fall through
+  to a plain sensor.
+
 ### Changed
+
+- **Multi-address entities are named after what their addresses share.** A light built from
+  "Kitchen Spots On-Off", "Kitchen Spots B.Value" and their feedbacks is now "Kitchen Spots", not
+  "Kitchen Spots B.Value". Lights, covers and climates take the longest common word prefix of their
+  member names, but only when it still carries an identity token and does not drop a word containing a
+  digit; two entities that would collide keep their original names. Found by auditing a TapPlan export.
+  Only function words are ever cut (value, brightness, up/down, mode, Яркость, Абсолютное диммирование,
+  Движение, Вкл…); a room, device type, channel or anything else stays. On the maintainer's six real
+  projects 214 of 1189 entities got a shorter name and no address mapping changed. **A regenerated
+  package will therefore show different entity names than one generated before** — review the diff
+  before replacing a package that is already deployed.
+
+### Fixed
+
+- **`suggest_repairs` crashed on any project with a missing status GA** (`UnboundLocalError` in
+  `repair.py`). Introduced by a local-variable rename in the 12.09 typing cleanup; the test that covers
+  it was not part of CI, which is why it shipped. CI now runs every test file in `tests/` (11 were
+  missing), not a hand-picked subset.
 
 - **`suggest.py`: multi-output actuators are split by their vendor object marker.** Zennio-style
   devices (Lumento DX4, MAXinBOX, KLIC-DI…) put every output of a device into ONE ETS channel and
