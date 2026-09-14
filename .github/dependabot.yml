@@ -12,10 +12,13 @@ updates:
         patterns: ["*"]
     ignore:
       # mcp 2.x removed mcp.server.fastmcp (FastMCP -> MCPServer). Verified against
-      # mcp 2.2.0: the import raises ModuleNotFoundError. Major bumps stay out until
-      # the server is ported; minor and patch updates still come through.
+      # mcp 2.2.0: the import raises ModuleNotFoundError. 2.x stays out until the
+      # server is ported; 1.x updates still come through.
+      # An explicit version range, not update-types: the semver-major rule did not
+      # stop Dependabot from widening "<2" to "<3" (PRs #15, #16, #17). The docs do
+      # not say whether update-types applies to requirement widening; a range does.
       - dependency-name: mcp
-        update-types: ["version-update:semver-major"]
+        versions: [">=2"]
     commit-message:
       prefix: deps
 
