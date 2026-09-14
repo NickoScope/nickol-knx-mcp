@@ -4,7 +4,7 @@ Every release ships in three places that must stay in lockstep: **git** (tag + G
 **PyPI** (the artifact) and the **official MCP Registry** (metadata pointing at that artifact).
 Skipping the third one leaves the registry advertising an older version.
 
-Verified end to end on 2026-09-12 (0.8.0 → 0.8.1).
+Verified end to end on 2026-09-12 (0.8.0 → 0.8.1) and 2026-09-14 (0.8.2).
 
 ## 0. Before you start
 
@@ -80,10 +80,11 @@ mcp-publisher publish
 Confirm:
 
 ```bash
-curl -s "https://registry.modelcontextprotocol.io/v0/servers?search=nickol" | python3 -m json.tool | head -30
+curl -s "https://registry.modelcontextprotocol.io/v0/servers/io.github.NickoScope%2Fnickol-knx-mcp/versions" | python3 -m json.tool | head -40
 ```
 
-Expect `"status": "active"` and the new version.
+Expect the new version with `"status": "active"` and `"isLatest": true`. A plain `?search=` without
+`&version=latest` returned the previous version for a while after a successful publish (2026-09-14).
 
 ## 6. Git side
 
@@ -98,6 +99,9 @@ part is delegated to the `github-manager` agent (version / CHANGELOG / tag / rel
 | server name in the wrong case | `403 You have permission to publish: io.github.NickoScope/*` | match the GitHub login exactly |
 | marker in the published description in the wrong case | `400 … must appear as 'mcp-name: …' in the package README` | fix README, bump patch version, re-upload (PyPI forbids overwriting) |
 | PyPI JSON API lags a few minutes | `latest` still shows the old version | check `https://pypi.org/simple/nickol-knx-mcp/` instead |
+| registry login token expired (it lasts days, not weeks) | `401 Invalid or expired Registry JWT token` on `publish` | owner runs `mcp-publisher login github` again (device code in the browser), then publish |
+| registry search shows the old version right after publish | `?search=` returns the previous version | query `/v0/servers/<name>/versions` or add `&version=latest` |
+| `mcp-publisher` not on PATH | the binary was only extracted to a temp dir last time | re-download from the registry's GitHub releases, or keep it at a fixed path |
 
 ## Downstream
 
