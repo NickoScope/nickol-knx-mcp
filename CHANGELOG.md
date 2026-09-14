@@ -151,8 +151,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   temp re-domains to sensor without a fake conflict); **illuminance** terms ("освещённость" ≠
   "освещение"); and a **passive-range rule** — a measurement inside a Sensors/Energy/Diagnostics main
   takes that domain, while a command is never retyped by a passive range. Real-project noise after
-  both rounds: demo 2 outliers / 239 GAs (the two central macros), Minsk 10 / 685 (all defensible —
-  a genuinely mixed water/energy main), Razdory 75 / 3646 (~2%).
+  both rounds: demo 2 outliers / 239 GAs (the two central macros), a 685-GA flat 10 (all defensible —
+  a genuinely mixed water/energy main), a 3646-GA house 75 (~2%).
 
 ### Added
 
