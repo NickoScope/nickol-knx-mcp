@@ -105,7 +105,7 @@ The recommended full setup is four layers; only one needs to be built from scrat
 | 1. Live | states, control, debugging a running house | **official Home Assistant MCP Server** + KNX (XKNX) integration | No, already exists |
 | 2. **Design-time** | parse `.knxproj`, validate DPT/naming/status + GA-intent de-noise, generate HA YAML (colour lights + climate assembled) & ETS XML/CSV | **`nickol-knx-mcp` (this package)** | **YES — this is the gap** |
 | 3. Files + Git | YAML/CSV/XML, versioning the address schema | standard filesystem + git MCP servers | No, already exists |
-| 4. Skill | design rules (GA structure, naming, DPT, scenes) + ops discipline | `CLAUDE.md` + [`skills/`](skills/ha-git-backup) (ha-git-backup ops companion) | No, included |
+| 4. Playbook (optional) | written design rules your AI client reads (GA structure, naming, DPT, scenes) + an HA backup routine | plain files: `CLAUDE.md` + [`skills/ha-git-backup`](skills/ha-git-backup). Not served by the MCP server, which works without them | No, included |
 
 > **Safety by design:** layer 2 (this server) **physically cannot** connect to a bus. It has no
 > network/bus dependency at all — it only reads `.knxproj` and writes files into a confined
@@ -263,13 +263,14 @@ claude mcp add nickol-knx \
   -- /absolute/path/to/.venv/bin/nickol-knx-mcp
 ```
 
-Then drop `CLAUDE.md` into your project root — it acts as an ETS Assistant skill (design rules,
-safety rules, 3-level GA structure, command/status pairing, DPT discipline, naming, KNX Secure
-keyring handling, and the recommended workflow).
+Optionally, drop `CLAUDE.md` into your project root. It is a plain playbook your AI client reads (design
+rules, safety rules, 3-level GA structure, command/status pairing, DPT discipline, naming, KNX Secure
+keyring handling, and the recommended workflow). The server does not need it: parsing, checks and
+generation all run as code inside the MCP server.
 
 ---
 
-## MCP tools (31)
+## MCP tools (32)
 
 **Read**
 | Tool | Purpose |
@@ -389,8 +390,8 @@ nickol-knx-mcp/
 ├── tests/test_pipeline.py
 ├── examples/claude_desktop_config.json
 ├── skills/
-│   └── ha-git-backup/    # ops companion: 2-circuit HA backup (git history + encrypted offsite)
-├── CLAUDE.md             # ETS Assistant skill / playbook
+│   └── ha-git-backup/    # optional ops skill for your AI client: HA backup (git history + encrypted offsite)
+├── CLAUDE.md             # optional playbook for your AI client (not part of the server)
 ├── pyproject.toml
 └── README.md
 ```
