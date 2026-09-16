@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Climate entities no longer merge different devices of one room.** A room with floor heating, a
+  convector or radiator and an AC unit used to become a single Home Assistant climate: the convector's
+  setpoint, the AC's controller mode and the AC fan speed as the "valve". Valves were also taken from
+  unrelated 5.x statuses (light brightness, blind position), room "1.09" matched "2.09", and "Kids
+  room 1" took "Kids room 2 temperature". A climate is now assembled per room **and** device type
+  (floor / wall / radiator-convector / AC, detected in RU/EN/DE names): the room code ("1.09") and the
+  numbers in the anchor name must match, a shared untyped room sensor may serve every device in the
+  room as current temperature but never as a device's setpoint or mode, a valve needs a valve word and
+  an AC never gets one. Hardened after an LLM-council review: a word that sets another device of the
+  room apart ("shower", "hall") keeps its GAs away; if a control role still has more than one candidate
+  the device goes to review as `climate_ambiguous` instead of taking the first; two mode GAs that cannot
+  be told apart go to review as `climate_duplicate_anchor` instead of being dropped silently; room codes
+  only count at the start of a name ("21.5 °C", "16.10", "ДД 34.1" are not rooms); digits inside dotted
+  codes are not room numbers; only 20.102 and 20.105 start a climate; fan coils and VRV/VRF are their
+  own device types; valve words narrowed to valve / клапан / Stellwert. On seven real projects: no
+  control GA used by two climates, no address lost. A 1312-GA house goes from 16 climates (several
+  wrong) to 33 (one per device), manual climate review 33 -> 12; a 3646-GA villa keeps 21 of 23 and
+  sends the 3 it cannot disambiguate (three thermostats in one corridor, two identical AC mode GAs) to
+  review instead of guessing.
 - **Home Assistant lights without `address` are no longer generated.** A 5.001 lighting GA with no
   on/off GA in its zone used to become a light with only `brightness_address`, which Home Assistant
   rejects (`address` is required on a KNX light). On six real projects 51 such lights were generated,

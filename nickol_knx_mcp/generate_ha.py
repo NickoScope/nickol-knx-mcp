@@ -9,6 +9,7 @@ status GAs in a separate middle group are still matched.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import yaml
@@ -162,6 +163,85 @@ _CLIMATE_QUALIFIERS = {
 def _has(name: str, words) -> bool:
     low = name.lower()
     return any(w in low for w in words)
+
+
+# ---- Climate zone identity -------------------------------------------------------------
+# A room often holds several climate devices: floor heating, a radiator or convector, an AC
+# unit, sometimes wall heating or a second floor loop. Each is its own Home Assistant climate.
+# The zone used to be the room alone (device words were stripped as qualifiers, and "А/С"
+# vanishes in the tokenizer), so all of them were merged into one entity. Found on a real
+# 1312-GA house; hardened after an LLM-council review (same-type devices, ambiguous picks).
+
+# "1.09" style room code at the START of a name. The tokenizer drops the floor digit
+# ("1.09" -> "09"), which made 1.09 match 2.09 and a central "09. ..." GA. Mid-name dotted
+# numbers are device tags ("ДД 34.1"), dates ("16.10") or values ("21.5 °C"), not rooms.
+_ROOM_CODE_RE = re.compile(r"^\W*(\d{1,2})\s*\.\s*(\d{1,2})(?![\d.])")
+
+
+def _room_code(name: str) -> str | None:
+    m = _ROOM_CODE_RE.search(name or "")
+    return f"{int(m.group(1))}.{int(m.group(2)):02d}" if m else None
+
+
+_CLIMATE_DEVICE_PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
+    # bare "floor" only as a delimited name part ("Floor-Living-RealTemp") or right before
+    # valve/loop/circuit/heating, so a level ("1st floor", "ground floor") does not count
+    ("floor", re.compile(r"тепл\w*\s+пол|водян\w*\s+пол|\bтп\b|fu(?:ss|ß)boden|floor\s*heat|underfloor"
+                         r"|(?:^|[-_/])floor(?=[-_/]|$)|\bfloor(?=\s+(?:valve|loop|circuit|heating)\b)")),
+    ("wall", re.compile(r"тепл\w*\s+стен|\bстена\b|wandheiz|wall\s*heat")),
+    ("radiator", re.compile(r"радиатор|конвектор|батаре|radiator|convector|heizk(?:ö|oe)rper")),
+    # a fan coil is hydronic, not an AC unit; its own type keeps it apart from both
+    ("fancoil", re.compile(r"fan\s*-?\s*coil|фан\s*-?\s*койл|\bfcu\b")),
+    # bare German "Klima" is deliberately absent: it also just means "climate"
+    ("ac", re.compile(r"(?<![a-zа-я])(?:а/с|a/c|ac)(?![a-zа-я])|кондиционер|сплит|split|klimaanlage|air\s*con"
+                      r"|\bvr[vf]\b|\bврв\b")),
+)
+
+
+# Standalone numbers in a name ("Kids room 1", "2. Гостиная"). The tokenizer drops single
+# digits, so "Kids room 1" matched "Kids room 2". Digits glued to a word ("Статус_1") or
+# part of a dotted code or value ("1.09", "D.1.2", "21.5") are not counted.
+_NUMBER_RE = re.compile(r"(?<![\w.])\d+(?![\w]|\.\d)")
+
+
+def _numbers(name: str) -> frozenset:
+    return frozenset(int(n) for n in _NUMBER_RE.findall(name or ""))
+
+
+def _without_device_words(name: str) -> str:
+    """The name with every climate device word removed, so the room identity is the same for
+    "Convector - Mode", "Конвектор - Режим" and a shared "Air temperature" in that room."""
+    low = (name or "").lower().replace("ё", "е")
+    blank = [False] * len(low)
+    for _kind, rx in _CLIMATE_DEVICE_PATTERNS:
+        for m in rx.finditer(low):
+            # widen to whole words: "floor heat" inside "floor heating" must not leave "ing"
+            start, end = m.start(), m.end()
+            while start > 0 and low[start - 1].isalnum():
+                start -= 1
+            while end < len(low) and low[end].isalnum():
+                end += 1
+            for i in range(start, end):
+                blank[i] = True
+    return "".join(" " if b else ch for ch, b in zip(low, blank))
+
+
+def _climate_types(name: str) -> frozenset:
+    low = (name or "").lower().replace("ё", "е")
+    return frozenset(kind for kind, rx in _CLIMATE_DEVICE_PATTERNS if rx.search(low))
+
+
+def _addr_key(address: str) -> tuple:
+    try:
+        return (0, tuple(int(x) for x in (address or "").split("/")))
+    except ValueError:
+        return (1, (address or "",))
+
+
+# A 5.x status is a heating valve only when the name says so; an AC fan speed (5.001
+# "Вентилятор") or a generic "control value" is not.
+_VALVE_WORDS = ("клапан", "valve", "stellwert", "stellgr")
+
 
 
 # Setpoint shift (HA climate `setpoint_shift_address`, DPT 6.010 or 9.002). The DPT
@@ -518,36 +598,148 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
     # lives in a different main group than the mode). Emitted only when the HA-
     # required minimum is present (current temp + target-temp status); otherwise
     # the zone goes to review so we never write an invalid climate entity. ----
-    built_climate: list[set] = []
-    for ga in project.gas.values():
+    built_climate: set = set()
+    # only the two mode DPTs a climate entity uses; stable order so results never depend on
+    # how the project happened to parse
+    climate_anchors = sorted((g for g in project.gas.values()
+                              if g.category == "hvac" and g.kind == "command"
+                              and (g.dpt_main, g.dpt_sub) in ((20, 102), (20, 105))),
+                             key=lambda g: _addr_key(g.address))
+
+    def _zone_loc(g: GARecord) -> set:
+        return _pair_ident(_without_device_words(g.name)) - _CLIMATE_QUALIFIERS
+
+    def _zone_key(g: GARecord):
+        return _room_code(g.name) or frozenset(_zone_loc(g))
+
+    shared_current: set[str] = set()   # untyped room sensors already used as a current temperature
+    room_types: dict = {}               # room -> set of anchor device-type sets
+    room_anchor_locs: dict = {}         # room -> [(anchor address, its zone tokens)]
+    for a in climate_anchors:
+        room_types.setdefault(_zone_key(a), set()).add(_climate_types(a.name))
+        room_anchor_locs.setdefault(_zone_key(a), []).append((a.address, frozenset(_zone_loc(a))))
+
+    for ga in climate_anchors:
         if ga.address in consumed:
             continue
-        if ga.category != "hvac" or ga.kind != "command" or ga.dpt_main != 20:
+        zone_loc = _zone_loc(ga)
+        anchor_code = _room_code(ga.name)
+        anchor_types = _climate_types(ga.name)
+        anchor_numbers = _numbers(ga.name)
+        zkey = (_zone_key(ga), anchor_types, frozenset(zone_loc), anchor_numbers)
+        if zone_loc and zkey in built_climate:
+            # same room, device type and name identity as an entity already built: two mode
+            # GAs we cannot tell apart. Never drop it silently, never merge it.
+            review.append({"reason": "climate_duplicate_anchor", "address": ga.address,
+                           "name": ga.name, "dpt": ga.dpt,
+                           "hint": "Another HVAC mode GA with the same room, device type and name "
+                                   "already produced a climate entity — map this device manually."})
+            consumed.add(ga.address)
             continue
-        zone_loc = _pair_ident(ga.name) - _CLIMATE_QUALIFIERS
-        if zone_loc and any(zone_loc == d for d in built_climate):
-            continue  # this zone already produced a climate entity
-        zone = [g for g in project.gas.values()
-                if g.address not in consumed and zone_loc and zone_loc <= _pair_ident(g.name)]
+        typed_kinds = {t for t in room_types.get(_zone_key(ga), set()) if t}
+        typed_kinds_flat = frozenset().union(*typed_kinds) if typed_kinds else frozenset()
+        ambiguous_room = len(typed_kinds) >= 2
+        # words that set OTHER climate devices of this room apart ("душ", "холл"): a member
+        # carrying one of them belongs to that device, not to this one
+        foreign_words: set = set()
+        for other_addr, other_loc in room_anchor_locs.get(_zone_key(ga), []):
+            if other_addr != ga.address:
+                foreign_words |= set(other_loc) - zone_loc
 
-        def _pick(pred):
-            return next((g for g in zone if pred(g)), None)
+        def _member_ok(g: GARecord, role: str) -> bool:
+            member_code = _room_code(g.name)
+            if anchor_code and member_code != anchor_code:
+                return False
+            if not anchor_code and member_code:
+                return False
+            gt = _climate_types(g.name)
+            member_numbers = _numbers(g.name)
+            if role == "current" and not gt:
+                # a shared room sensor names the room, not the device ("Room 1 Temperature" for
+                # "Room 1 Floor heating 2"), so its numbers must be among the anchor's
+                if not member_numbers <= anchor_numbers:
+                    return False
+            elif not anchor_numbers <= member_numbers:
+                return False
+            if foreign_words & _pair_ident(_without_device_words(g.name)) \
+                    and not (role == "current" and not gt and anchor_code):
+                return False
+            if gt == anchor_types:
+                return True
+            # The anchor names no device type and no other device in the room has the member's
+            # type, so the typed member ("floor valve") belongs to this untyped device.
+            unique_type_for_untyped = bool(gt) and not anchor_types and not (gt & typed_kinds_flat)
+            if unique_type_for_untyped:
+                return True
+            if not gt:
+                # an untyped GA is shared room data; with several devices in the room it
+                # can only be the measured temperature, never a device's setpoint or mode
+                return role == "current" or not ambiguous_room
+            return False
+
+        # a shared, untyped room temperature sensor may serve every climate device in the room
+        zone_all = sorted((g for g in project.gas.values()
+                           if (g.address not in consumed or g.address in shared_current)
+                           and zone_loc and (zone_loc <= _pair_ident(g.name)
+                                             or zone_loc <= _pair_ident(_without_device_words(g.name)))),
+                          key=lambda g: _addr_key(g.address))
+        # prefer members of the anchor's own device type over shared, untyped ones
+        zone = ([g for g in zone_all if _climate_types(g.name) == anchor_types]
+                + [g for g in zone_all if _climate_types(g.name) != anchor_types])
+        # With a room code the room is already certain, so an untyped room sensor with the same
+        # code may be the current temperature even if it lacks the device's extra words
+        # ("1.09 Bath air temperature" for "1.09 Bath - Floor heating shower").
+        room_sensors = [] if not anchor_code else sorted(
+            (g for g in project.gas.values()
+             if (g.address not in consumed or g.address in shared_current)
+             and g not in zone and _room_code(g.name) == anchor_code and not _climate_types(g.name)),
+            key=lambda g: _addr_key(g.address))
+        ambiguous_roles: dict[str, list[str]] = {}
+
+        def _pick(pred, role: str):
+            pool = zone + room_sensors if role == "current" else zone
+            cands = [g for g in pool if pred(g) and _member_ok(g, role)
+                     and (role == "current" or g.address not in shared_current)]
+            if role == "current" or len(cands) <= 1:
+                # a current temperature only feeds the display; for it the preferred first
+                # candidate is enough. Control roles must be unambiguous.
+                return cands[0] if cands else None
+            own = [g for g in cands if _climate_types(g.name) == anchor_types]
+            if len(own) == 1:
+                return own[0]
+            ambiguous_roles[role] = [g.address for g in cands]
+            return None
 
         # Temperature GAs must be DPT 9.001 specifically — DPT main 9 also covers
         # humidity (9.007), CO2 (9.008), lux (9.004); never treat those as a setpoint.
         cur = _pick(lambda g: (g.dpt_main, g.dpt_sub) == (9, 1) and g.kind == "sensor"
-                    and not _has(g.name, _TARGET_WORDS))
+                    and not _has(g.name, _TARGET_WORDS), "current")
         tgt_state = _pick(lambda g: (g.dpt_main, g.dpt_sub) == (9, 1) and _is_status_ga(g)
-                          and _has(g.name, _TARGET_WORDS))
+                          and _has(g.name, _TARGET_WORDS), "target_state")
         tgt_cmd = _pick(lambda g: (g.dpt_main, g.dpt_sub) == (9, 1) and not _is_status_ga(g)
-                        and _has(g.name, _TARGET_WORDS))
-        op_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 102 and g.kind == "command")
-        op_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 102 and _is_status_ga(g))
-        ctrl_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and g.kind == "command")
-        ctrl_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and _is_status_ga(g))
-        valve = _pick(lambda g: g.dpt_main == 5 and _is_status_ga(g))
-        shift_cmd = _pick(lambda g: _is_shift(g) and not _is_status_ga(g))
-        shift_state = _pick(lambda g: _is_shift(g) and _is_status_ga(g))
+                        and _has(g.name, _TARGET_WORDS), "target")
+        op_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 102 and g.kind == "command",
+                       "operation_mode")
+        op_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 102 and _is_status_ga(g),
+                         "operation_mode_state")
+        ctrl_cmd = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and g.kind == "command",
+                         "controller_mode")
+        ctrl_state = _pick(lambda g: g.dpt_main == 20 and g.dpt_sub == 105 and _is_status_ga(g),
+                           "controller_mode_state")
+        # an AC unit has no heating valve; a valve GA in the room belongs to another device
+        valve = None if "ac" in anchor_types else \
+            _pick(lambda g: g.dpt_main == 5 and _is_status_ga(g) and _has(g.name, _VALVE_WORDS),
+                  "valve")
+        shift_cmd = _pick(lambda g: _is_shift(g) and not _is_status_ga(g), "setpoint_shift")
+        shift_state = _pick(lambda g: _is_shift(g) and _is_status_ga(g), "setpoint_shift_state")
+
+        if ambiguous_roles:
+            review.append({"reason": "climate_ambiguous", "address": ga.address,
+                           "name": ga.name, "dpt": ga.dpt, "candidates": ambiguous_roles,
+                           "hint": "More than one GA fits a control role of this climate device "
+                                   "(several devices share the naming) — pick the right ones manually."})
+            consumed.add(ga.address)
+            continue
 
         if not (cur and tgt_state):
             review.append({"reason": "manual_climate", "address": ga.address,
@@ -579,13 +771,15 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         shift_ref = shift_cmd or shift_state
         if shift_ref:
             ent["setpoint_shift_mode"] = _SHIFT_MODE[(shift_ref.dpt_main, shift_ref.dpt_sub)]
+        if cur is not None and not _climate_types(cur.name):
+            shared_current.add(cur.address)
         for m in (cur, tgt_state, tgt_cmd, op_cmd, op_state, ctrl_cmd, ctrl_state, valve,
                   shift_cmd, shift_state):
             if m:
                 consumed.add(m.address)
         climates.append(ent)
         if zone_loc:
-            built_climate.append(zone_loc)
+            built_climate.add(zkey)
         # B2 climate correctness: mode-command-without-state makes the mode unshowable;
         # controller/operation mode lists auto-detect wrong; setpoint-shift needs cmd+state.
         issues = []
