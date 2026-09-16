@@ -246,12 +246,12 @@
         "reserve_without_dpt": 23,
         "safety_input_no_status": 22,
         "status_pairing_summary": 1,
-        "subdpt_suspect": 7
+        "subdpt_suspect": 2
       },
       "findings_by_severity": {
         "error": 6,
         "info": 49,
-        "warning": 45
+        "warning": 40
       },
       "group_addresses": 685,
       "ha_entities": {
@@ -311,12 +311,12 @@
         "reserve_without_dpt": 25,
         "safety_input_no_status": 32,
         "status_pairing_summary": 1,
-        "subdpt_suspect": 17
+        "subdpt_suspect": 2
       },
       "findings_by_severity": {
         "error": 9,
         "info": 60,
-        "warning": 85
+        "warning": 70
       },
       "group_addresses": 1312,
       "ha_entities": {
@@ -377,13 +377,12 @@
         "safety_input_no_status": 47,
         "scene_no_status": 2,
         "status_pairing_summary": 1,
-        "subdpt_suspect": 1,
         "topology_segment_limit": 1
       },
       "findings_by_severity": {
         "error": 32,
         "info": 250,
-        "warning": 124
+        "warning": 123
       },
       "group_addresses": 3646,
       "ha_entities": {

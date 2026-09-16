@@ -79,6 +79,9 @@ jobs:
       - name: GA-export intake, entity naming, climate setpoint shift
         run: python tests/test_ga_export.py
 
+      - name: Regressions from a real 1312-GA house (subDPT false positives, HA lights, self-reporting status)
+        run: python tests/test_real_house_fixes.py
+
       - name: Repair proposals and council-review fixes
         run: python tests/test_council_fixes.py
 

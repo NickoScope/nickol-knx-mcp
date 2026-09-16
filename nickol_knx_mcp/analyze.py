@@ -211,6 +211,9 @@ def _is_safety_input(ga: GARecord) -> bool:
 # (tokens, main, sub, strong) — strong => also flag a wrong main.
 # --------------------------------------------------------------------------- #
 _SUBDPT_RULES: tuple = (
+    # power factor before power: "Фактор мощности" contains "мощност" but is 14.057
+    (("фактор мощност", "коэффициент мощност", "power factor", "leistungsfaktor", "cos φ", "cos phi"),
+     14, 57, True),
     (("влажност", "humidity", "feucht"), 9, 7, True),
     (("co2", "со2", "углекисл", "kohlendioxid"), 9, 8, True),
     (("освещённост", "освещенност", "luminosity", "lux", "helligkeit ("), 9, 4, True),
@@ -220,6 +223,24 @@ _SUBDPT_RULES: tuple = (
     (("яркост", "brightness", "значение яркости", "dimmwert", "helligkeitswert"), 5, 1, False),
     (("позици", "position", "stellung"), 5, 1, False),
 )
+
+
+# Other DPTs that legitimately carry the same quantity, so they are not "wrong".
+# Checked against xknx 3.20 (DPTPower2Byte 9.024 kW, DPTApparentPower 14.080,
+# DPTActiveEnergy 13.010 … DPTActiveEnergyMWh 13.016, DPTEnergy 14.031 J).
+# Energy names in Russian ("электроэнергия - текущее потребление, W") are routinely
+# used for power readings, so power DPTs are accepted under energy names too.
+_SUBDPT_ALTERNATIVES: dict[tuple[int, int], frozenset] = {
+    (14, 56): frozenset({(9, 24), (14, 80)}),
+    (13, 13): frozenset({(13, 10), (13, 11), (13, 12), (13, 14), (13, 15), (13, 16),
+                         (14, 31), (14, 56), (9, 24)}),
+}
+
+# A quantity word in the name of a 1-bit, date/time or text GA names what the flag,
+# threshold trigger or timestamp is ABOUT ("вкл по освещённости", "порог CO2",
+# "запись значения, дата"), not the value itself. On seven real projects every such
+# hit was a false positive (12 of 12 on 1-bit), so these mains are not checked.
+_SUBDPT_EXEMPT_MAINS = frozenset({1, 10, 11, 16, 19})
 
 
 def _expected_subdpt(name: str) -> Optional[tuple[int, int, bool]]:
@@ -469,10 +490,14 @@ def detect_dpt_issues(project: LoadedProject) -> list[dict[str, Any]]:
     for addr, ga in project.gas.items():
         if ga.intent != INTENT_FUNCTIONAL or ga.dpt_main is None:
             continue
+        if ga.dpt_main in _SUBDPT_EXEMPT_MAINS:
+            continue
         exp = _expected_subdpt(ga.name)
         if exp is None:
             continue
         em, es, strong = exp
+        if (ga.dpt_main, ga.dpt_sub) in _SUBDPT_ALTERNATIVES.get((em, es), frozenset()):
+            continue
         if ga.dpt_main == em and ga.dpt_sub != es:
             findings.append(_finding(
                 SEVERITY_WARN, "subdpt_suspect", addr,
