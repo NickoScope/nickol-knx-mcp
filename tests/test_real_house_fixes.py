@@ -76,4 +76,34 @@ assert "1/0/1" in lightsB and lightsB["1/0/1"].get("state_address") == "1/1/1", 
 assert not any(s["address"] == "1/0/1" for s in knxB.get("switch", [])), knxB
 print("OK: B — on/off lighting is a light with address + state_address, not a switch")
 
+# ---------------------------------------------------------------- C. self-reporting status
+def _proj_with_cos(rows, flags_by_addr):
+    gas, cos = {}, {}
+    for a, n, m, s in rows:
+        g = _ga(a, n, m, s)
+        if a in flags_by_addr:
+            cid = f"CO-{a}"
+            g["communication_object_ids"] = [cid]
+            cos[cid] = {"flags": flags_by_addr[a], "group_address_links": [a], "dpts": [], "text": "", "function_text": ""}
+        gas[a] = g
+    return build_loaded_from_raw({"group_addresses": gas, "communication_objects": cos,
+                                  "info": {"group_address_style": "ThreeLevel"}}, "mem")
+
+pC = _proj_with_cos(
+    [("1/0/5", "1.02 Hall - Ceiling light - on/off", 1, 1),
+     ("1/0/6", "1.03 Living - Floor lamp light - on/off", 1, 1),
+     ("5/0/5", "Workshop socket - on/off", 1, 1)],
+    {"1/0/5": {"write": True, "read": True, "transmit": True},
+     "1/0/6": {"write": True, "read": False, "transmit": False},
+     "5/0/5": {"write": True, "read": True, "transmit": True}})
+resC = generate_ha_yaml(pC)
+knxC = yaml.safe_load(resC["yaml"].split("\n\n", 1)[1])["knx"]
+ents = {e["address"]: e for plat in ("light", "switch") for e in knxC.get(plat, [])}
+assert ents["1/0/5"].get("state_address") == "1/0/5", ents
+assert ents["5/0/5"].get("state_address") == "5/0/5", ents
+assert "state_address" not in ents["1/0/6"], ents
+no_status = {r["address"] for r in resC["review"] if r["reason"] in ("light_without_status", "switch_without_status")}
+assert no_status == {"1/0/6"}, no_status
+print("OK: C — Read+Transmit object on the command GA is its own state; write-only stays in review")
+
 print("\nALL REAL-HOUSE REGRESSION TESTS PASSED")

@@ -15,7 +15,7 @@ import yaml
 
 from .project import LoadedProject, GARecord
 from .analyze import _is_status_ga
-from .pairing import find_status, base_tokens, function_status_pairs
+from .pairing import find_status, base_tokens, function_status_pairs, self_reporting
 
 # Venetian-blind slat (tilt) detection: a slat GA is the tilt of its parent
 # blind, not a standalone cover.
@@ -440,12 +440,16 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             if st5:
                 entity["brightness_state_address"] = st5.address
                 consumed.add(st5.address)
+            elif self_reporting(ga, project):
+                entity["brightness_state_address"] = ga.address
             if sib is not None:
                 entity["address"] = sib.address
                 s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
                 if s1:
                     entity["state_address"] = s1.address
                     consumed.add(s1.address)
+                elif self_reporting(sib, project):
+                    entity["state_address"] = sib.address
                 consumed.add(sib.address)
             attach_colour(entity, ga)   # RGB/RGBW/xyY/colour-temp of this zone
             lights.append(entity)
@@ -498,6 +502,11 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             if st:
                 entity["state_address"] = st.address
                 consumed.add(st.address)
+            elif self_reporting(ga, project):
+                # The actuator's status object (Read + Transmit) is linked to the command GA
+                # itself, so the command GA is its own state. detect_missing_status already
+                # treats these as satisfied; the generator now agrees.
+                entity["state_address"] = ga.address
             else:
                 review.append({"reason": "light_without_status" if is_light else "switch_without_status",
                                "address": ga.address, "name": ga.name})

@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and 14.031, and power factor has its own rule (14.057). Checked against xknx 3.20. On a real
   1312-GA house: 17 findings -> 2.
 
+- **Self-reporting commands get their state address.** When the actuator's status object (Read +
+  Transmit flags) is linked to the command GA itself, there is no separate status GA to find. The
+  generator now uses the command GA as `state_address` (and the brightness GA as
+  `brightness_state_address`) instead of reporting a missing status. `check_missing_status` already
+  treated these as satisfied; the two now agree. On a real house 43 fewer review items, 40 to 44
+  entities per large project gain a state address, and no entity count changes.
+
 ### Changed
 
 - **On/off lighting is generated as a Home Assistant `light`, not a `switch`.** The KNX light platform

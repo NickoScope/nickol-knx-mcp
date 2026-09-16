@@ -91,7 +91,7 @@
         "sensor": 55,
         "switch": 42
       },
-      "ha_review_items": 413,
+      "ha_review_items": 401,
       "suggestion_hints": {
         "channels": 229,
         "diagnostics_skipped": 2,
@@ -141,7 +141,7 @@
         "sensor": 19,
         "switch": 3
       },
-      "ha_review_items": 69,
+      "ha_review_items": 68,
       "suggestion_hints": {
         "channels": 52,
         "diagnostics_skipped": 0,
@@ -198,7 +198,7 @@
         "sensor": 87,
         "switch": 48
       },
-      "ha_review_items": 234,
+      "ha_review_items": 202,
       "suggestion_hints": {
         "channels": 135,
         "diagnostics_skipped": 8,
@@ -263,7 +263,7 @@
         "sensor": 111,
         "switch": 79
       },
-      "ha_review_items": 326,
+      "ha_review_items": 286,
       "suggestion_hints": {
         "channels": 179,
         "diagnostics_skipped": 21,
@@ -328,7 +328,7 @@
         "sensor": 159,
         "switch": 95
       },
-      "ha_review_items": 598,
+      "ha_review_items": 555,
       "suggestion_hints": {
         "channels": 305,
         "diagnostics_skipped": 40,
@@ -394,7 +394,7 @@
         "sensor": 343,
         "switch": 319
       },
-      "ha_review_items": 1589,
+      "ha_review_items": 1553,
       "suggestion_hints": {
         "channels": 983,
         "diagnostics_skipped": 53,
