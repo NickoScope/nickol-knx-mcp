@@ -398,20 +398,35 @@ assert _e["color_temperature_mode"] == "absolute", _e
 print("OK: RGBW + colour-temp assembled into one light entity")
 
 # -- B1: a light with no own brightness status must NOT borrow a sibling's -----
+# (both lights carry their on/off GA: Home Assistant requires `address` on a light,
+#  so a brightness-only light is invalid and goes to review — checked just below)
 _rawB = {"group_addresses": {
+    "1/0/11": ga("1/0/11", "Kitchen worktop LED on/off", 1, 1),
     "1/2/11": ga("1/2/11", "Kitchen worktop LED brightness", 5, 1),   # no own status
+    "1/0/12": ga("1/0/12", "Kitchen island pendants on/off", 1, 1),
     "1/2/12": ga("1/2/12", "Kitchen island pendants brightness", 5, 1),
     "1/5/12": ga("1/5/12", "Kitchen island pendants brightness status", 5, 1),
 }}
 _pB = build_loaded_from_raw(_rawB, "mem")
 _lB = _yaml.safe_load(generate_ha_yaml(_pB)["yaml"].split("\n\n", 1)[1])["knx"]["light"]
 _byname = {l["name"]: l for l in _lB}
-_worktop = _byname["Kitchen worktop LED brightness"]
-_island = _byname["Kitchen island pendants brightness"]
+_worktop = _byname["Kitchen worktop LED"]
+_island = _byname["Kitchen island pendants"]
 assert "brightness_state_address" not in _worktop, \
     f"B1 regression: worktop borrowed a status: {_worktop}"
 assert _island.get("brightness_state_address") == "1/5/12", _island
+assert all("address" in l for l in _lB), _lB
 print("OK: B1 — worktop took no status; island kept its own (no cross-borrow)")
+
+# -- a brightness GA with no on/off GA is not a valid HA light -> review ------
+_rawD = {"group_addresses": {
+    "1/2/20": ga("1/2/20", "Kitchen worktop LED brightness", 5, 1),
+}}
+_haD = generate_ha_yaml(build_loaded_from_raw(_rawD, "mem"))
+_pkgD = _yaml.safe_load(_haD["yaml"].split("\n\n", 1)[1]) or {}
+assert not (_pkgD.get("knx") or {}).get("light"), _pkgD
+assert any(r["reason"] == "light_without_switch" and r["address"] == "1/2/20" for r in _haD["review"]), _haD["review"]
+print("OK: brightness-only GA -> review light_without_switch, no invalid light in YAML")
 
 # -- A-climate: thermostat zone assembles; a mode-only zone goes to review -----
 _rawT = {"group_addresses": {

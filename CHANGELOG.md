@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Home Assistant lights without `address` are no longer generated.** A 5.001 lighting GA with no
+  on/off GA in its zone used to become a light with only `brightness_address`, which Home Assistant
+  rejects (`address` is required on a KNX light). On six real projects 51 such lights were generated,
+  mostly motion-detector parameters on 5.001 ("sensitivity", "daytime command"). They now go to the
+  review list as `light_without_switch`; no address is dropped silently.
+- **`subdpt_suspect` false positives.** A 1-bit, date/time or text GA named after a quantity
+  ("on by motion detector by illuminance", "CO2 threshold", "meter value recorded, date") is a flag or
+  timestamp, not the value, and is no longer checked (12 of 12 such hits in the corpus were false).
+  Legitimate DPTs of the same quantity are accepted: power 9.024 and 14.080, energy 13.010 to 13.016
+  and 14.031, and power factor has its own rule (14.057). Checked against xknx 3.20. On a real
+  1312-GA house: 17 findings -> 2.
+
+### Changed
+
+- **On/off lighting is generated as a Home Assistant `light`, not a `switch`.** The KNX light platform
+  takes a plain on/off light with `address` + `state_address`, and light entities are what Assist and
+  "all lights" act on. Lighting without a status GA is reported as `light_without_status`. Regenerated
+  packages move these entities from `switch:` to `light:` (220 on a real house); review before replacing
+  a deployed package.
+
 ## [0.8.2] - 2026-09-14
 
 ### Added

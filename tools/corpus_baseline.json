@@ -33,9 +33,9 @@
         "binary_sensor": 13,
         "climate": 6,
         "cover": 6,
-        "light": 12,
+        "light": 25,
         "sensor": 41,
-        "switch": 19
+        "switch": 6
       },
       "ha_review_items": 57,
       "suggestion_hints": {
@@ -87,11 +87,11 @@
         "climate": 3,
         "cover": 1,
         "expose": 1,
-        "light": 142,
+        "light": 180,
         "sensor": 55,
-        "switch": 85
+        "switch": 42
       },
-      "ha_review_items": 408,
+      "ha_review_items": 413,
       "suggestion_hints": {
         "channels": 229,
         "diagnostics_skipped": 2,
@@ -137,9 +137,9 @@
       "group_addresses": 167,
       "ha_entities": {
         "expose": 1,
-        "light": 12,
+        "light": 29,
         "sensor": 19,
-        "switch": 20
+        "switch": 3
       },
       "ha_review_items": 69,
       "suggestion_hints": {
@@ -194,11 +194,11 @@
         "binary_sensor": 5,
         "cover": 8,
         "expose": 1,
-        "light": 1,
+        "light": 10,
         "sensor": 87,
-        "switch": 58
+        "switch": 48
       },
-      "ha_review_items": 233,
+      "ha_review_items": 234,
       "suggestion_hints": {
         "channels": 135,
         "diagnostics_skipped": 8,
@@ -259,11 +259,11 @@
         "climate": 7,
         "cover": 7,
         "expose": 1,
-        "light": 15,
+        "light": 75,
         "sensor": 111,
-        "switch": 141
+        "switch": 79
       },
-      "ha_review_items": 324,
+      "ha_review_items": 326,
       "suggestion_hints": {
         "channels": 179,
         "diagnostics_skipped": 21,
@@ -324,9 +324,9 @@
         "climate": 16,
         "cover": 11,
         "expose": 1,
-        "light": 12,
+        "light": 232,
         "sensor": 159,
-        "switch": 315
+        "switch": 95
       },
       "ha_review_items": 598,
       "suggestion_hints": {
@@ -390,11 +390,11 @@
         "climate": 23,
         "cover": 40,
         "expose": 1,
-        "light": 250,
+        "light": 412,
         "sensor": 343,
-        "switch": 524
+        "switch": 319
       },
-      "ha_review_items": 1545,
+      "ha_review_items": 1589,
       "suggestion_hints": {
         "channels": 983,
         "diagnostics_skipped": 53,

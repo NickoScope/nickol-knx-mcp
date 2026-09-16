@@ -413,11 +413,6 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         if ga.address in consumed:
             continue
         if ga.category == "lighting" and ga.dpt_main == 5 and ga.kind == "command":
-            entity = {"name": ga.name, "brightness_address": ga.address}
-            st5 = status_for_dpt(ga, 5)   # brightness status (5.x)
-            if st5:
-                entity["brightness_state_address"] = st5.address
-                consumed.add(st5.address)
             # two-pass sibling pick: EXACT identity first, subset only as a
             # fallback — else "RGBW подсветка яркость" ({living, подсветка})
             # grabs "камин подсветка" ({living, камин, подсветка}) by subset
@@ -428,6 +423,23 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
             my_ident = _pair_ident(ga.name)
             sib = next((s for s in sibs if _pair_ident(s.name) == my_ident), None) \
                 or next((s for s in sibs if _identity_match(ga.name, s.name)), None)
+            if sib is None:
+                # Home Assistant requires `address` on a KNX light, so a brightness GA
+                # with no on/off GA in its zone would be invalid YAML. On real projects
+                # these are mostly device parameters on 5.001 (motion-detector
+                # sensitivity, "daytime command"), not lights. Fail closed.
+                review.append({"reason": "light_without_switch", "address": ga.address,
+                               "name": ga.name, "dpt": ga.dpt,
+                               "hint": "5.001 lighting GA with no on/off GA in its zone. A Home "
+                                       "Assistant light needs `address`; attach the on/off GA "
+                                       "manually, or it is a device parameter, not a light."})
+                consumed.add(ga.address)
+                continue
+            entity = {"name": ga.name, "brightness_address": ga.address}
+            st5 = status_for_dpt(ga, 5)   # brightness status (5.x)
+            if st5:
+                entity["brightness_state_address"] = st5.address
+                consumed.add(st5.address)
             if sib is not None:
                 entity["address"] = sib.address
                 s1 = status_for_dpt(sib, 1)   # on/off status (1.x)
@@ -466,7 +478,7 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
         attach_colour(entity, ga)
         lights.append(entity)
 
-    # ---- 3. SWITCHES (1.001 command) ----
+    # ---- 3. ON/OFF LIGHTS and SWITCHES (1.001 command) ----
     for ga in project.gas.values():
         if ga.address in consumed:
             continue
@@ -477,14 +489,19 @@ def generate_ha_yaml(project: LoadedProject) -> dict[str, Any]:
                 consumed.add(ga.address)
                 continue
             entity = {"name": ga.name, "address": ga.address}
+            # Lighting on/off is a light in Home Assistant, not a switch: the KNX light
+            # platform takes a plain on/off light with `address` + `state_address`
+            # ("Simple light" in the HA KNX docs), and light entities are what Assist
+            # and "all lights" targeting act on.
+            is_light = ga.category == "lighting"
             st = status_for_dpt(ga, 1)
             if st:
                 entity["state_address"] = st.address
                 consumed.add(st.address)
             else:
-                review.append({"reason": "switch_without_status",
+                review.append({"reason": "light_without_status" if is_light else "switch_without_status",
                                "address": ga.address, "name": ga.name})
-            switches.append(entity)
+            (lights if is_light else switches).append(entity)
             consumed.add(ga.address)
 
     # ---- 3b. CLIMATE — anchored on an HVAC mode (DPT 20.102/20.105). Zone
