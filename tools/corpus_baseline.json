@@ -286,6 +286,71 @@
         "switch": 6
       }
     },
+    "zennio-house-1312": {
+      "categories": {
+        "diagnostics": 47,
+        "energy": 14,
+        "hvac": 388,
+        "lighting": 509,
+        "scene": 1,
+        "sensor": 123,
+        "shutter": 91,
+        "unknown": 139
+      },
+      "devices": 88,
+      "file_digest": "25d93b4dfb30",
+      "findings_by_code": {
+        "central_macro_no_status": 1,
+        "dpt_mismatch_co": 4,
+        "duplicate_name": 25,
+        "inconsistent_dpt": 3,
+        "line_without_coupler": 1,
+        "missing_dpt": 9,
+        "missing_status_address": 35,
+        "missing_value_status": 1,
+        "reserve_without_dpt": 25,
+        "safety_input_no_status": 32,
+        "status_pairing_summary": 1,
+        "subdpt_suspect": 17
+      },
+      "findings_by_severity": {
+        "error": 9,
+        "info": 60,
+        "warning": 85
+      },
+      "group_addresses": 1312,
+      "ha_entities": {
+        "binary_sensor": 88,
+        "climate": 16,
+        "cover": 11,
+        "expose": 1,
+        "light": 12,
+        "sensor": 159,
+        "switch": 315
+      },
+      "ha_review_items": 598,
+      "suggestion_hints": {
+        "channels": 305,
+        "diagnostics_skipped": 40,
+        "duplicates_skipped": 15,
+        "fallback": 0,
+        "pseudo_channels": 3,
+        "review": 118,
+        "sensors": 102,
+        "skipped_fb_covered": 0,
+        "structural": 178,
+        "subunits": 201,
+        "unwired_flagged": 0
+      },
+      "suggestions_by_platform": {
+        "binary_sensor": 82,
+        "climate": 35,
+        "cover": 9,
+        "light": 105,
+        "sensor": 20,
+        "switch": 29
+      }
+    },
     "zennio-large": {
       "categories": {
         "diagnostics": 150,
