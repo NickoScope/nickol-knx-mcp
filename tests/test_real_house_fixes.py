@@ -66,8 +66,8 @@ import yaml
 from nickol_knx_mcp.generate_ha import generate_ha_yaml
 
 pB = _project([
-    ("1/0/1", "1.05 Bedroom - Ceiling - on/off", 1, 1),
-    ("1/1/1", "1.05 Bedroom - Ceiling - on/off status", 1, 11),
+    ("1/0/1", "1.05 Bedroom - Ceiling light - on/off", 1, 1),
+    ("1/1/1", "1.05 Bedroom - Ceiling light - on/off status", 1, 11),
     ("5/0/1", "Garden pump - on/off", 1, 1),
 ])
 knxB = yaml.safe_load(generate_ha_yaml(pB)["yaml"].split("\n\n", 1)[1])["knx"]
